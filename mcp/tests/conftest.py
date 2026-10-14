@@ -80,6 +80,43 @@ def demo_password(demo_server, monkeypatch):
     monkeypatch.setenv(env_var_name(domain_of(demo_server), "password"), "hunter2")
 
 
+@pytest.fixture(autouse=True)
+def nothing_real_is_touched(tmp_path_factory, monkeypatch) -> None:
+    """Every place Dejo keeps things on this machine, moved somewhere throwaway.
+
+    A test once ran the doctor's real checks, which made ~/.dejo/downloads and an empty
+    ~/.dejo/memory.db in the developer's own home folder. Dejo only brings an old ~/.cairn
+    across when ~/.dejo does not exist yet, so that empty folder would have silently cost
+    the developer every sign-in. A test passes its own paths where it can; this catches
+    every place it forgot to.
+    """
+    import dejo.browser
+    import dejo.home
+    import dejo.memory
+    import dejo.secrets
+    import dejo.store
+
+    fake = tmp_path_factory.mktemp("home")
+    places = {
+        (dejo.home, "HOME"): fake / ".dejo",
+        (dejo.home, "OLD_HOME"): fake / ".cairn",
+        (dejo.browser, "DEFAULT_DOWNLOADS"): fake / ".dejo" / "downloads",
+        (dejo.browser, "DEFAULT_PROFILE"): fake / ".dejo" / "browser-profile",
+        (dejo.browser, "DEFAULT_PROFILES_DIR"): fake / ".dejo" / "profiles",
+        (dejo.secrets, "SECRETS_FILE"): fake / ".dejo" / "secrets.json",
+        (dejo.memory, "DEFAULT_PATH"): fake / ".dejo" / "memory.db",
+        (dejo.memory, "SIBYL_PATH"): fake / ".sibyl-memory" / "memory.db",
+        (dejo.store, "DEFAULT_PATH"): fake / ".dejo" / "memory.db",
+        (dejo.store, "SIBYL_PATH"): fake / ".sibyl-memory" / "memory.db",
+    }
+    import dejo_mcp.server
+
+    places[(dejo_mcp.server, "DEFAULT_PROFILE")] = fake / ".dejo" / "browser-profile"
+    places[(dejo_mcp.server, "DEFAULT_PROFILES_DIR")] = fake / ".dejo" / "profiles"
+    for (module, name), where in places.items():
+        monkeypatch.setattr(module, name, where)
+
+
 @pytest.fixture
 def mcp_server(tmp_path):
     """A server with its own memory database, torn down properly after each test."""

@@ -68,13 +68,15 @@ def setting(name: str) -> str | None:
     return None
 
 
-def adopt_old_home(home: Path = HOME, old: Path = OLD_HOME) -> bool:
+def adopt_old_home(home: Path | None = None, old: Path | None = None) -> bool:
     """Copy `~/.cairn` to `~/.dejo` the first time Dejo starts. True if it copied.
 
     Does nothing when `~/.dejo` already exists or there was never a `~/.cairn`. Called by the
     `dejo` and `dejo-mcp` commands before anything else runs, never by the library, so a
     test or a program importing Dejo never touches the real folders.
     """
+    home = home or HOME
+    old = old or OLD_HOME
     if home.exists() or not old.is_dir():
         return False
 

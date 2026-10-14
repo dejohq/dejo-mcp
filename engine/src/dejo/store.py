@@ -874,7 +874,7 @@ def open_memory(db_path: str | Path | None = None) -> Database | SibylDatabase:
     return Database(db_path or DEFAULT_PATH)
 
 
-def adopt_old_memory(into: Path = DEFAULT_PATH, sibyl: Path = SIBYL_PATH) -> int:
+def adopt_old_memory(into: Path | None = None, sibyl: Path | None = None) -> int:
     """Bring a Sibyl memory across the first time Dejo starts. Returns how much came.
 
     Before October 2026 Dejo kept its memory in Sibyl. On a machine with that memory and no
@@ -885,6 +885,8 @@ def adopt_old_memory(into: Path = DEFAULT_PATH, sibyl: Path = SIBYL_PATH) -> int
     Called by the `dejo` and `dejo-mcp` commands, never by the library, so tests and
     programs importing Dejo never touch the real memory.
     """
+    into = into or DEFAULT_PATH
+    sibyl = sibyl or SIBYL_PATH
     if into.exists() or not sibyl.is_file():
         return 0
     partial = into.with_name(into.name + ".partial")

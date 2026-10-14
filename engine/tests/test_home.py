@@ -147,3 +147,15 @@ def test_the_commands_bring_the_old_folder_across_and_the_library_does_not() -> 
 
     assert "adopt_old_home" in inspect.getsource(cli.console)
     assert "adopt_old_home" not in inspect.getsource(cli.main)
+
+
+def test_the_suite_never_points_at_the_real_home_folder() -> None:
+    """The guard in conftest is on for every test. Without it a doctor test once made a
+    real ~/.dejo, which would have stopped the developer's own ~/.cairn being brought over."""
+    from pathlib import Path
+
+    from dejo import browser, memory, store
+
+    real = Path.home() / ".dejo"
+    for place in (home.HOME, browser.DEFAULT_PROFILE, memory.DEFAULT_PATH, store.DEFAULT_PATH):
+        assert real not in (place, *place.parents)
