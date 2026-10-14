@@ -1,0 +1,59 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+.python-version
+
+# test, type and lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# --- Secrets ---
+# Dejo needs no API key to run. If one ever appears (the optional OpenRouter mode), it
+# stays out of git.
+.env
+.env.*
+!.env.example
+*.pem
+
+# --- Dejo runtime state ---
+# Memory must never be committed: the deletion test needs a real wipe.
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+.dejo/
+runs/
+
+# --- Browser automation output ---
+.playwright-mcp/
+playwright-report/
+test-results/
+blob-report/
+.cache/ms-playwright/
+
+# --- Agent tooling ---
+.claude/settings.local.json
+
+# --- Scratch ---
+scratch/
+tmp/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp

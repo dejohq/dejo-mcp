@@ -1,0 +1,2 @@
+# The benchmark scripts follow the same style rules as the engine they measure.
+extend = "../engine/pyproject.toml"

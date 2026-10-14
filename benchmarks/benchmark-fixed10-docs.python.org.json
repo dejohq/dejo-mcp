@@ -1,0 +1,208 @@
+[
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 1,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 8,
+    "input_tokens": 18,
+    "output_tokens": 912,
+    "cache_read": 301676,
+    "cache_write": 28992,
+    "model_calls": 12,
+    "seconds": 24.230991100004758,
+    "cost_usd": 0.1864492,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run",
+      "ToolSearch",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_read",
+      "ToolSearch",
+      "cairn__cairn_save"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 2,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 247,
+    "cache_read": 102115,
+    "cache_write": 1401,
+    "model_calls": 4,
+    "seconds": 21.336392600002,
+    "cost_usd": 0.029498999999999997,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 3,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 302,
+    "cache_read": 102119,
+    "cache_write": 1455,
+    "model_calls": 5,
+    "seconds": 20.151839199999813,
+    "cost_usd": 0.030265800000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 4,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 313,
+    "cache_read": 102099,
+    "cache_write": 1466,
+    "model_calls": 4,
+    "seconds": 17.58596199999738,
+    "cost_usd": 0.030415800000000003,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 5,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 301,
+    "cache_read": 102131,
+    "cache_write": 1493,
+    "model_calls": 5,
+    "seconds": 22.513298799996846,
+    "cost_usd": 0.030410200000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 6,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 250,
+    "cache_read": 102118,
+    "cache_write": 1404,
+    "model_calls": 4,
+    "seconds": 19.63765190000413,
+    "cost_usd": 0.0295416,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 7,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 288,
+    "cache_read": 102115,
+    "cache_write": 1441,
+    "model_calls": 5,
+    "seconds": 20.247380200002226,
+    "cost_usd": 0.030069,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 8,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 245,
+    "cache_read": 102113,
+    "cache_write": 1399,
+    "model_calls": 4,
+    "seconds": 16.963351300000795,
+    "cost_usd": 0.0294706,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 9,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 330,
+    "cache_read": 102128,
+    "cache_write": 1484,
+    "model_calls": 5,
+    "seconds": 22.349987000008696,
+    "cost_usd": 0.0306586,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "docs.python.org",
+    "run": 10,
+    "ok": true,
+    "answer": "os \u2014 Miscellaneous operating system interfaces",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 247,
+    "cache_read": 102115,
+    "cache_write": 1401,
+    "model_calls": 4,
+    "seconds": 18.80071389999648,
+    "cost_usd": 0.029498999999999997,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  }
+]

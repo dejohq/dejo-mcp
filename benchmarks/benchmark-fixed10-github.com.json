@@ -1,0 +1,217 @@
+[
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 1,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 7,
+    "input_tokens": 16,
+    "output_tokens": 813,
+    "cache_read": 263087,
+    "cache_write": 28230,
+    "model_calls": 12,
+    "seconds": 39.358136700000614,
+    "cost_usd": 0.17467839999999996,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run",
+      "ToolSearch",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_read",
+      "cairn__cairn_read"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 2,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 6,
+    "input_tokens": 14,
+    "output_tokens": 680,
+    "cache_read": 250295,
+    "cache_write": 4410,
+    "model_calls": 9,
+    "seconds": 38.089715900001465,
+    "cost_usd": 0.075506,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run",
+      "ToolSearch",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_read"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 3,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 8,
+    "input_tokens": 18,
+    "output_tokens": 903,
+    "cache_read": 326930,
+    "cache_write": 5069,
+    "model_calls": 11,
+    "seconds": 50.36908059999405,
+    "cost_usd": 0.09570700000000001,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run",
+      "ToolSearch",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_read",
+      "cairn__cairn_save"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 4,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 228,
+    "cache_read": 102131,
+    "cache_write": 1378,
+    "model_calls": 4,
+    "seconds": 12.189545400004135,
+    "cost_usd": 0.029209200000000005,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 5,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 248,
+    "cache_read": 102117,
+    "cache_write": 1398,
+    "model_calls": 5,
+    "seconds": 15.518215299991425,
+    "cost_usd": 0.029486400000000003,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 6,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 211,
+    "cache_read": 102115,
+    "cache_write": 1362,
+    "model_calls": 4,
+    "seconds": 11.274693700004718,
+    "cost_usd": 0.028971999999999998,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 7,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 208,
+    "cache_read": 102110,
+    "cache_write": 1358,
+    "model_calls": 4,
+    "seconds": 14.84470980000333,
+    "cost_usd": 0.028925,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 8,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 215,
+    "cache_read": 102117,
+    "cache_write": 1412,
+    "model_calls": 4,
+    "seconds": 14.860809099991457,
+    "cost_usd": 0.0292124,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 9,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 212,
+    "cache_read": 102116,
+    "cache_write": 1363,
+    "model_calls": 4,
+    "seconds": 12.350192999991123,
+    "cost_usd": 0.028986200000000004,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "github.com",
+    "run": 10,
+    "ok": true,
+    "answer": "\ud83c\udfad Playwright",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 213,
+    "cache_read": 102117,
+    "cache_write": 1364,
+    "model_calls": 4,
+    "seconds": 12.962488499993924,
+    "cost_usd": 0.0289954,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  }
+]

@@ -1,0 +1,5 @@
+# One line ending everywhere, whatever the contributor's operating system.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.db binary

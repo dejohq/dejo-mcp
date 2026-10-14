@@ -1,0 +1,207 @@
+[
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 1,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 7,
+    "input_tokens": 16,
+    "output_tokens": 854,
+    "cache_read": 265002,
+    "cache_write": 28934,
+    "model_calls": 10,
+    "seconds": 30.4498406000057,
+    "cost_usd": 0.17829440000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run",
+      "ToolSearch",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_read",
+      "cairn__cairn_save"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 2,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 317,
+    "cache_read": 102168,
+    "cache_write": 1488,
+    "model_calls": 5,
+    "seconds": 23.36935189999349,
+    "cost_usd": 0.0305536,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 3,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 352,
+    "cache_read": 102208,
+    "cache_write": 1524,
+    "model_calls": 5,
+    "seconds": 18.79653710000275,
+    "cost_usd": 0.031055600000000003,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 4,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 342,
+    "cache_read": 102181,
+    "cache_write": 1514,
+    "model_calls": 5,
+    "seconds": 23.42898029999924,
+    "cost_usd": 0.030910200000000006,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 5,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 299,
+    "cache_read": 102164,
+    "cache_write": 1524,
+    "model_calls": 5,
+    "seconds": 27.642072299990105,
+    "cost_usd": 0.030516800000000004,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 6,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 268,
+    "cache_read": 102163,
+    "cache_write": 1482,
+    "model_calls": 5,
+    "seconds": 21.004656899996917,
+    "cost_usd": 0.030038600000000006,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 7,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 263,
+    "cache_read": 102165,
+    "cache_write": 1437,
+    "model_calls": 4,
+    "seconds": 25.181855000002543,
+    "cost_usd": 0.029809000000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 8,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 320,
+    "cache_read": 102160,
+    "cache_write": 1492,
+    "model_calls": 5,
+    "seconds": 19.240863400002127,
+    "cost_usd": 0.030598,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 9,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 305,
+    "cache_read": 102169,
+    "cache_write": 1531,
+    "model_calls": 5,
+    "seconds": 20.252980799996294,
+    "cost_usd": 0.030605800000000006,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "en.wikipedia.org",
+    "run": 10,
+    "ok": true,
+    "answer": "Python (programming language)",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 289,
+    "cache_read": 103508,
+    "cache_write": 2841,
+    "model_calls": 4,
+    "seconds": 26.075204199994914,
+    "cost_usd": 0.0359536,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  }
+]

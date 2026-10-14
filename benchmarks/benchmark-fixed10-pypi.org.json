@@ -1,0 +1,212 @@
+[
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 1,
+    "ok": true,
+    "answer": "The main heading is \"requests 2.34.2\".",
+    "tool_calls": 6,
+    "input_tokens": 14,
+    "output_tokens": 731,
+    "cache_read": 226447,
+    "cache_write": 28568,
+    "model_calls": 9,
+    "seconds": 33.58328849999816,
+    "cost_usd": 0.16789040000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run",
+      "ToolSearch",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_read"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 2,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 8,
+    "input_tokens": 18,
+    "output_tokens": 970,
+    "cache_read": 327302,
+    "cache_write": 5241,
+    "model_calls": 12,
+    "seconds": 42.52719649999926,
+    "cost_usd": 0.0971564,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run",
+      "ToolSearch",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_read",
+      "cairn__cairn_read",
+      "cairn__cairn_save"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 3,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 240,
+    "cache_read": 102125,
+    "cache_write": 1444,
+    "model_calls": 4,
+    "seconds": 21.920592399997986,
+    "cost_usd": 0.029599,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 4,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 240,
+    "cache_read": 102125,
+    "cache_write": 1444,
+    "model_calls": 4,
+    "seconds": 12.60343850000936,
+    "cost_usd": 0.029599,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 5,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 241,
+    "cache_read": 102125,
+    "cache_write": 1399,
+    "model_calls": 4,
+    "seconds": 10.9485493000102,
+    "cost_usd": 0.029434000000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 6,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 237,
+    "cache_read": 102125,
+    "cache_write": 1435,
+    "model_calls": 4,
+    "seconds": 15.050805899998522,
+    "cost_usd": 0.029538000000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 7,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 237,
+    "cache_read": 103160,
+    "cache_write": 356,
+    "model_calls": 4,
+    "seconds": 19.21221230000083,
+    "cost_usd": 0.025429,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 8,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 235,
+    "cache_read": 102120,
+    "cache_write": 1439,
+    "model_calls": 4,
+    "seconds": 13.657157800000277,
+    "cost_usd": 0.029528000000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 9,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 254,
+    "cache_read": 102123,
+    "cache_write": 1458,
+    "model_calls": 5,
+    "seconds": 11.625856400001794,
+    "cost_usd": 0.029799600000000002,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pypi.org",
+    "run": 10,
+    "ok": true,
+    "answer": "requests 2.34.2",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 236,
+    "cache_read": 103160,
+    "cache_write": 401,
+    "model_calls": 4,
+    "seconds": 18.883187400002498,
+    "cost_usd": 0.025599000000000004,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  }
+]

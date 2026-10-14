@@ -1,0 +1,140 @@
+# Dejo runs on Linux and macOS too — proved here rather than assumed.
+#
+# Everything was built on Windows. This workflow installs from a clean checkout, the way the
+# README tells a stranger to, on all three operating systems, and runs the whole suite. The
+# first time it ran it immediately found a test that could not pass on Linux at all, after
+# 616 tests had been green on Windows for days. That is what this file is for.
+#
+# Both ends of the supported Python range are covered, because the README promises "3.11 or
+# newer" and a promise nobody checks is a guess. The jobs run in parallel, so three
+# operating systems cost the same wall-clock as one.
+
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: python ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Never stop the other jobs because one failed. A failure on one operating system
+      # is exactly the thing worth seeing next to a pass on the others.
+      fail-fast: false
+      matrix:
+        # Ubuntu carries both ends of the supported Python range. macOS and Windows each
+        # take one end, which covers three operating systems and both versions without
+        # paying for six runners.
+        include:
+          - { os: ubuntu-latest, python: "3.11" }
+          - { os: ubuntu-latest, python: "3.13" }
+          - { os: macos-latest, python: "3.13" }
+          - { os: windows-latest, python: "3.11" }
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            engine/pyproject.toml
+            mcp/pyproject.toml
+
+      - name: Install Dejo
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "engine[dev]" -e "mcp[dev]"
+
+      # No real Chrome on any of these runners, on purpose: that exercises the fallback to
+      # bundled Chromium, which is the path most people actually hit.
+      - name: Install the browser
+        shell: bash
+        run: python -m playwright install chromium
+
+      # Only Linux needs system libraries pulled in for headless Chromium. `install-deps`
+      # is apt-based and has nothing to do on macOS or Windows.
+      - name: Linux browser libraries
+        if: runner.os == 'Linux'
+        run: python -m playwright install-deps chromium
+
+      # Failures are reported twice on purpose: once into the job summary a person reads,
+      # and once as ::error:: annotations. Downloading a run's log needs admin rights on
+      # the repository even when the repository is public, so a failure that only exists
+      # in the log is invisible to anyone without those rights — which cost a whole
+      # push-and-wait cycle to discover. Annotations are public.
+      # One test opens a HEADED browser — the sign-in window a real person uses. A runner
+      # has no display, so that test skips itself here and says so in the output. Giving
+      # the runner a virtual display with xvfb would let it run for real, and is worth
+      # doing later; it is deliberately not added yet, because every extra
+      # moving part in this file has cost a red build and a push to find out about.
+      # The headed path is covered on a developer machine, which is also where it is used.
+      - name: Engine tests
+        working-directory: engine
+        # Explicit, because Windows runners default to PowerShell and everything below
+        # is bash. GitHub ships bash on all three operating systems.
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
+          status=$?
+          cat pytest.log
+          if [ $status -ne 0 ]; then
+            {
+              echo "### Engine tests failed"
+              echo '```'
+              tail -n 150 pytest.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            grep -E '^(FAILED|ERROR)' pytest.log | head -25 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit $status
+
+      - name: MCP tests
+        working-directory: mcp
+        # Explicit, because Windows runners default to PowerShell and everything below
+        # is bash. GitHub ships bash on all three operating systems.
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
+          status=$?
+          cat pytest.log
+          if [ $status -ne 0 ]; then
+            {
+              echo "### MCP tests failed"
+              echo '```'
+              tail -n 150 pytest.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            grep -E '^(FAILED|ERROR)' pytest.log | head -25 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit $status
+
+  lint:
+    name: ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      # Pinned to the version used locally, so CI and a laptop never disagree about style.
+      - run: python -m pip install ruff==0.16.5
+
+      - name: Check
+        run: |
+          python -m ruff check engine/src engine/tests benchmarks
+          python -m ruff check mcp/src mcp/tests
+          python -m ruff format --check engine/src engine/tests benchmarks
+          python -m ruff format --check mcp/src mcp/tests

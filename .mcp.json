@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "dejo": {
+      "command": "python",
+      "args": ["mcp-server.py"],
+      "env": {}
+    }
+  }
+}

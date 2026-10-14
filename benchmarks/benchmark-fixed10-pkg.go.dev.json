@@ -1,0 +1,207 @@
+[
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 1,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 7,
+    "input_tokens": 16,
+    "output_tokens": 787,
+    "cache_read": 264657,
+    "cache_write": 28840,
+    "model_calls": 9,
+    "seconds": 30.077470800009905,
+    "cost_usd": 0.17717940000000004,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run",
+      "ToolSearch",
+      "cairn__cairn_act",
+      "cairn__cairn_act",
+      "cairn__cairn_read",
+      "cairn__cairn_save"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 2,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 214,
+    "cache_read": 102099,
+    "cache_write": 1421,
+    "model_calls": 3,
+    "seconds": 14.746206600000733,
+    "cost_usd": 0.0292418,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 3,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 234,
+    "cache_read": 102115,
+    "cache_write": 1401,
+    "model_calls": 4,
+    "seconds": 16.042705700005172,
+    "cost_usd": 0.029365,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 4,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 233,
+    "cache_read": 102115,
+    "cache_write": 1446,
+    "model_calls": 4,
+    "seconds": 15.48636599999736,
+    "cost_usd": 0.02954,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 5,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 234,
+    "cache_read": 103154,
+    "cache_write": 362,
+    "model_calls": 4,
+    "seconds": 15.504596099999617,
+    "cost_usd": 0.0254218,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 6,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 230,
+    "cache_read": 103154,
+    "cache_write": 398,
+    "model_calls": 4,
+    "seconds": 16.334197499993024,
+    "cost_usd": 0.025520800000000003,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 7,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 233,
+    "cache_read": 102114,
+    "cache_write": 1400,
+    "model_calls": 4,
+    "seconds": 12.46058680000715,
+    "cost_usd": 0.029350800000000003,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 8,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 233,
+    "cache_read": 103154,
+    "cache_write": 407,
+    "model_calls": 4,
+    "seconds": 17.85366539999086,
+    "cost_usd": 0.0255868,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 9,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 233,
+    "cache_read": 103154,
+    "cache_write": 407,
+    "model_calls": 4,
+    "seconds": 16.07669519999763,
+    "cost_usd": 0.0255868,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  },
+  {
+    "tool": "cairn",
+    "site": "pkg.go.dev",
+    "run": 10,
+    "ok": true,
+    "answer": "http",
+    "tool_calls": 2,
+    "input_tokens": 6,
+    "output_tokens": 244,
+    "cache_read": 102124,
+    "cache_write": 1410,
+    "model_calls": 4,
+    "seconds": 14.585860800012597,
+    "cost_usd": 0.0295028,
+    "note": "",
+    "called": [
+      "ToolSearch",
+      "cairn__cairn_run"
+    ]
+  }
+]
