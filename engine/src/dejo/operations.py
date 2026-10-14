@@ -49,6 +49,12 @@ Action = str
 DOWNLOAD_GRACE_MS = 2000
 DOWNLOAD_POLL_MS = 50
 
+# How long a step that DID act gets for the page to show its check, before the step is
+# called broken. Spent only when the check has already failed once, so a healthy replay
+# never pays it.
+SETTLE_MS = 3000
+SETTLE_POLL_MS = 100
+
 # A remembered read is a step whose job is to produce a value.
 READ_ACTION = "read"
 
@@ -806,6 +812,27 @@ def secret_name(element: Element | None) -> str | None:
     if (element.type or "").lower() == "password":
         return (element.name or "password").strip().lower().replace(" ", "_") or "password"
     return None
+
+
+def settles_into(browser: Browser, expected: Postcondition, timeout_ms: int | None = None) -> bool:
+    """Does the page reach its check, given a moment? For a step that has already acted.
+
+    A page keeps changing after an action returns: data loads, a redirect lands, a list
+    redraws. Found on a busy machine: a click was learned while a slow panel was still
+    filling in, so its saved check was that panel's text. On replay the click ran before the
+    panel filled, the check failed at once, and a working step was reported broken.
+    """
+    if expected.kind == "download":
+        # Already waits for the file itself. Looping over that wait would multiply it.
+        return check_postcondition(browser, expected)
+    limit = SETTLE_MS if timeout_ms is None else timeout_ms
+    waited = 0
+    while not check_postcondition(browser, expected):
+        if waited >= limit:
+            return False
+        browser.page.wait_for_timeout(SETTLE_POLL_MS)
+        waited += SETTLE_POLL_MS
+    return True
 
 
 def check_postcondition(browser: Browser, expected: Postcondition) -> bool:

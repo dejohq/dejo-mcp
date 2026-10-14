@@ -1,4 +1,4 @@
-"""Tests for the one file that touches Sibyl Memory.
+"""Tests for the one file that touches memory.
 
 The important one is `test_survives_a_completely_fresh_process`. Dejo's whole claim is
 "close your editor, come back tomorrow, it still remembers". A test that writes and reads
@@ -6,7 +6,7 @@ in the same process would prove nothing about that, because the data could be si
 an in-process cache. So that test spawns a genuinely separate Python interpreter.
 
 Every test uses its own temporary database, so running the suite never touches the real
-memory at ~/.sibyl-memory/memory.db.
+memory at ~/.dejo/memory.db.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import textwrap
 import pytest
 
 from dejo.models import Locator, Playbook, Postcondition, RunMetrics, SiteKnowledge, Step
-from dejo.store import DejoStore, trail_key
+from dejo.store import DejoStore
 
 DOMAIN = "billing.example.com"
 TASK = "download this month's invoice"
@@ -281,47 +281,38 @@ class TestHealth:
 class TestTheDebtPhase5aWouldHaveInherited:
     """Two bugs found by reading, not by anything failing.
 
-    Both were invisible: `search_similar` was never called, and no test ever stored more
-    than a handful of trails. The next phase is built on both.
+    Both were invisible: one search function was never called (it has since been removed
+    as dead code), and no test ever stored more than a handful of trails.
     """
 
-    def test_searching_stored_trails_actually_returns_them(self, store: DejoStore):
-        """It returned an empty list for every input from the day it was written.
-
-        `search_entities` gives back a `list` subclass, so the results ARE the list. The
-        old code asked it for `.entities` and then `.results`, found neither, and fell
-        through to `[]` every single time.
-        """
-        store.save_playbook(make_playbook())
-
-        assert store.search_similar("invoice") == [trail_key(DOMAIN, TASK)]
-
-    def test_searching_for_something_nobody_walked_finds_nothing(self, store: DejoStore):
-        store.save_playbook(make_playbook())
-
-        assert store.search_similar("zzzznothinglikethis") == []
-
     def test_a_listing_does_not_stop_at_a_hundred_sites(self, store: DejoStore):
-        """Sibyl's own default is 100 and it truncates in silence — no error, just a site
-        that is quietly not there. Harmless for one agent; not for a shared commons."""
+        """Sibyl, Dejo's first memory, stopped at 100 in silence — no error, just a site
+        that was quietly not there. Harmless for one agent; not for a shared commons."""
         for number in range(120):
             store.save_playbook(Playbook(domain=f"site{number:03d}.com", task=TASK))
 
         assert len(store.list_sites()) == 120
 
-    def test_only_the_memory_file_talks_to_sibyl(self):
-        """The promise the README makes: every memory read and write in this
-        project is in one file. Checked mechanically, so it cannot rot."""
+    def test_only_the_memory_file_uses_the_database(self):
+        """The promise the README makes: every decision about memory is in store.py, and
+        nothing else reaches the database underneath. Checked mechanically, so it cannot rot."""
+        assert self._files_mentioning("from .memory import", "dejo.memory import") == [
+            "engine/src/dejo/store.py"
+        ], "memory calls have escaped store.py"
+
+    def test_only_the_database_file_speaks_sql(self):
+        assert self._files_mentioning("import sqlite3", "sibyl_memory_client") == [
+            "engine/src/dejo/memory.py"
+        ]
+
+    @staticmethod
+    def _files_mentioning(*words: str) -> list[str]:
         import pathlib
 
         root = pathlib.Path(__file__).resolve().parents[2]
-        importers = sorted(
+        return sorted(
             path.relative_to(root).as_posix()
             for folder in ("engine/src", "mcp/src")
             for path in (root / folder).rglob("*.py")
-            if "sibyl_memory_client" in path.read_text(encoding="utf-8")
-        )
-
-        assert importers == ["engine/src/dejo/store.py"], (
-            f"memory calls have escaped store.py: {importers}"
+            if any(word in path.read_text(encoding="utf-8") for word in words)
         )

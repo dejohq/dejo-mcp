@@ -403,7 +403,14 @@ def test_upload_still_works_on_a_plain_file_input(browser: Browser, tmp_path) ->
 
 # ------------------------------------------------------------------ coverage
 
-EXERCISED = {"element", "gone", "text", "url", "idle"}
+EXERCISED = {
+    "element",
+    "in_frame",
+    "gone",
+    "text",
+    "url",
+    "idle",
+}  # in_frame: test_waiting_in_frames.py
 
 
 def test_every_wait_kind_is_exercised() -> None:

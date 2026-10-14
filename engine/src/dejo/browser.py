@@ -34,6 +34,7 @@ from urllib.parse import urlparse
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator as PWLocator
 from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from . import snapshot as aria
 from .home import HOME, PROFILE_OWNER
@@ -130,6 +131,11 @@ MAX_TEXT_CHARS = 1200
 # nav collapses into a hamburger button, so a trail recorded at one size cannot be
 # replayed at another. Whatever this is, it must not change between runs.
 VIEWPORT = {"width": 1280, "height": 800}
+
+# How long a fresh browser gets to prove an address loads, once the profile's own attempt
+# has timed out. Shorter than the real wait: it is a second opinion, and a person is
+# already waiting.
+FRESH_CHECK_MS = 10_000
 
 # Where downloaded files land unless a caller says otherwise. A default matters: a task
 # like "download this month's invoice" is not done if the file only existed inside a
@@ -327,6 +333,16 @@ class NoDisplay(RuntimeError):
     """A visible window was asked for on a machine that has no screen."""
 
 
+class ProfileStuck(RuntimeError):
+    """Nothing loads in this browser profile, while the same address loads without it.
+
+    Seen for real: a profile in which every tab spun forever, a typed address included,
+    while the same Chrome on a fresh profile loaded the site in about a second. Not the
+    network, not a proxy, not a leftover process. Without this the only symptom is a
+    timeout, which reads exactly like a slow or broken website.
+    """
+
+
 def _is_missing_display(problem: BaseException) -> bool:
     """Is this "there is nowhere to draw a window", rather than a browser problem?"""
     said = str(problem).lower()
@@ -341,6 +357,17 @@ NO_SCREEN_ADVICE = (
     "~/.dejo/browser-profile across afterwards,\n"
     "    or forward a display over SSH with `ssh -X` and run it again."
 )
+
+
+def _stuck_profile_advice(profile: Path, url: str) -> str:
+    """Say which profile is stuck, and both ways out of it."""
+    return (
+        f"Nothing loads in Dejo's browser profile at {profile}: {url} timed out there, but "
+        "the same address loads in a fresh browser. The website is fine; this profile is "
+        "stuck. Either switch to a new profile (dejo_profile with a new name, or "
+        "`dejo --profile <name>`) and sign in there, or close every Dejo window and delete "
+        f"{profile}, which signs that profile out of every site."
+    )
 
 
 def _browser_name(channel: str | None) -> str:
@@ -859,7 +886,34 @@ class Browser:
     # ----------------------------------------------------------------- doing
 
     def goto(self, url: str) -> None:
-        self.page.goto(url, wait_until="domcontentloaded")
+        """Open an address. A timeout in a saved profile is checked against a fresh browser.
+
+        A page that never loads has two very different causes: the site, or this profile.
+        Only the second is worth a different sentence, and only a second browser can tell
+        them apart, so it is asked once, and only after the real attempt has already failed.
+        """
+        try:
+            self.page.goto(url, wait_until="domcontentloaded")
+        except PlaywrightTimeout as stuck:
+            if self._profile is None or not self._loads_without_profile(url):
+                raise
+            raise ProfileStuck(_stuck_profile_advice(self._profile, url)) from stuck
+
+    def _loads_without_profile(self, url: str) -> bool:
+        """Does this address load in a throwaway browser with no profile at all?"""
+        try:
+            fresh = self._playwright.chromium.launch(**{**self._launch_options(), "headless": True})
+        except PlaywrightError:
+            # No second browser to compare with. Then nothing is known about the profile.
+            return False
+        try:
+            fresh.new_page().goto(url, wait_until="domcontentloaded", timeout=FRESH_CHECK_MS)
+            return True
+        except PlaywrightError:
+            return False
+        finally:
+            with suppress(PlaywrightError):
+                fresh.close()
 
     def snapshot(self) -> Snapshot:
         """The page as a short list of things you can act on.
@@ -1173,6 +1227,33 @@ class Browser:
             return self.page.locator('input[type="password"]').count() > 0
         except PlaywrightError:
             # A closed or navigating page cannot be asked. That is not a signed-out page.
+            return False
+
+    def sign_in_window(self) -> tuple[str, bool] | None:
+        """Where a sign-in window is, and whether it still shows a sign-in page.
+
+        None once the person has closed it. A closed page still reports its last address,
+        so asking it anything else would read as "no password box here, signed in".
+        """
+        if self.page.is_closed():
+            return None
+        return self.page.url, self.still_on_sign_in()
+
+    def still_on_sign_in(self) -> bool:
+        """Is this window still showing a sign-in page? Asked when a person says they are done.
+
+        Stricter than `looks_signed_out` about the password box: only a VISIBLE one counts.
+        Here a wrong "not signed in" stops a person who has finished, and plenty of
+        signed-in pages carry a hidden password field for a change-password dialog.
+        """
+        address = self.page.url.lower()
+        if any(hint in address for hint in _SIGNED_OUT_HINTS):
+            return True
+        try:
+            boxes = self.page.locator('input[type="password"]')
+            return any(boxes.nth(index).is_visible() for index in range(boxes.count()))
+        except PlaywrightError:
+            # A closed or navigating page cannot be asked. That is not a sign-in page.
             return False
 
     def text(self) -> str:

@@ -172,7 +172,9 @@ dejo login --site posthog.com
 ```
 
 Sign in however the site asks: a password, Google, a code on your phone. Dejo never types a
-password for you and never automates an SSO button. The session is kept, so you stay signed in.
+password for you and never automates an SSO button. When you say you are done, Dejo checks the
+window first: if it still shows a sign-in page, it says so rather than pretending. The session
+is kept, so you stay signed in.
 
 **Passwords never go into memory.** A step that needs one records only *that* a password goes
 there. The value is read at run time from an environment variable
@@ -229,13 +231,18 @@ All on your machine.
 
 | what | where |
 |---|---|
-| routes, site facts, maps, history | a local memory database. Every read and write is in one file, [`engine/src/dejo/store.py`](engine/src/dejo/store.py) |
+| routes, site facts, maps, history | `~/.dejo/memory.db`, one SQLite file. Every decision about what is remembered is in [`engine/src/dejo/store.py`](engine/src/dejo/store.py) |
 | signed-in browser profiles | `~/.dejo/browser-profile`, `~/.dejo/profiles/` |
 | downloads | `~/.dejo/downloads` |
 | passwords, if you choose to keep them in a file | `~/.dejo/secrets.json` |
 
 Being signed in is not the same as remembering. Forget a site and Dejo is still signed in, and
 has no idea what to click.
+
+The memory needs no account and has no size limit. History, the one part that grows with every
+run, keeps the newest 10,000 events per agent. If you would rather keep your memory in
+[Sibyl Memory](https://pypi.org/project/sibyl-memory-client/), install `pip install "dejo[sibyl]"`
+and set `DEJO_MEMORY=sibyl`.
 
 ## Tools
 
@@ -283,14 +290,21 @@ it open, or the profile is in a state no browser accepts. Close any other run fi
 was not it, deleting `~/.dejo/browser-profile` fixes it, at the cost of signing you out.
 To run two agents at once, give each its own profile: `DEJO_PROFILE=~/.dejo/profile-b dejo-mcp`.
 
+**"Nothing loads in Dejo's browser profile."** A page timed out, Dejo tried the same address
+in a fresh browser, and it loaded there. The site is fine; that profile is stuck. Switch to a
+new profile (`dejo --profile <name>`, or `dejo_profile` from your agent) and sign in there, or
+close every Dejo window and delete the profile folder the message names.
+
 **A captcha.** Dejo stops and says so. It does not mark the route broken and does not try to
 solve it. Clear it yourself once, and run again.
 
 ## Coming from Cairn
 
 Dejo was called **Cairn** until October 2026. On first start, Dejo copies an old `~/.cairn`
-folder to `~/.dejo`, so every sign-in is kept, and the old `CAIRN_*` environment variables
-still work. The old `cairn-browser-mcp` package installs Dejo.
+folder to `~/.dejo`, so every sign-in is kept, and brings the old memory across from Sibyl
+Memory into `~/.dejo/memory.db`, so every learned site is kept. Both are copies; the originals
+are left as they were. The old `CAIRN_*` environment variables still work, and the old
+`cairn-browser-mcp` package installs Dejo.
 
 ## Development
 

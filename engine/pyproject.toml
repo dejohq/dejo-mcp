@@ -21,12 +21,15 @@ classifiers = [
 ]
 authors = [{ name = "Rohit Kashyap" }]
 dependencies = [
-    "sibyl-memory-client>=0.8.0",
     "playwright>=1.62.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "fastapi>=0.141.1", "uvicorn>=0.52.4"]
+# Memory is Dejo's own SQLite file and needs nothing installed. Sibyl Memory is an optional
+# second backend, chosen with DEJO_MEMORY=sibyl.
+sibyl = ["sibyl-memory-client>=0.8.0"]
+# The Sibyl backend is in dev so its tests run everywhere the rest do.
+dev = ["pytest>=8.0", "fastapi>=0.141.1", "uvicorn>=0.52.4", "sibyl-memory-client>=0.8.0"]
 
 [project.urls]
 Homepage = "https://dejo.run"

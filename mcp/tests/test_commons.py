@@ -239,7 +239,7 @@ def test_forget_says_what_it_withdrew(alice_knows, bob_server):
 
 
 def test_forget_says_what_it_cannot_reach(alice_knows, bob_server):
-    """Sibyl offers no way to enumerate tenants, so this is a real boundary — and a
+    """One agent can never reach into another agent's memory, so this is a real boundary — a
     guarantee rather than a shortcoming, but only if somebody says so."""
     alice_knows.share_trail(SITE)
     call(bob_server, "dejo_borrow", site=SITE)

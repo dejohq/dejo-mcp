@@ -3,6 +3,7 @@
 import sys
 
 from dejo.home import OldHomeNotCopied, adopt_old_home
+from dejo.store import OldMemoryUnreadable, adopt_old_memory
 
 from .server import log, run_stdio
 
@@ -14,6 +15,11 @@ def main() -> None:
     except OldHomeNotCopied as stuck:
         # stderr only: stdout is the MCP transport, and one stray line there breaks it.
         sys.exit(str(stuck))
+    try:
+        if adopt_old_memory():
+            log("brought your memory across from Sibyl, so every learned site is kept")
+    except OldMemoryUnreadable as unreadable:
+        log(str(unreadable))
     run_stdio()
 
 

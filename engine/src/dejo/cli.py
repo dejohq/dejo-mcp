@@ -34,6 +34,7 @@ from .browser import (
     DEFAULT_PROFILE_NAME,
     Browser,
     NoDisplay,
+    ProfileStuck,
     ProfileUnavailable,
     domain_of,
     profile_named,
@@ -43,7 +44,7 @@ from .events import Emitter, Event
 from .executor import Executor, NoTrailError
 from .home import OldHomeNotCopied, adopt_old_home
 from .models import SiteMap
-from .store import DejoStore, TrailAlreadyHere
+from .store import DejoStore, OldMemoryUnreadable, TrailAlreadyHere, adopt_old_memory
 
 TICK = "+"
 CROSS = "!"
@@ -226,17 +227,21 @@ def cmd_login(args: argparse.Namespace) -> int:
     try:
         try:
             browser.start()
-        except (NoDisplay, ProfileUnavailable) as cannot:
+            browser.goto(target)
+        except (NoDisplay, ProfileUnavailable, ProfileStuck) as cannot:
             # A raw Playwright traceback about an X server tells a person on a server
-            # nothing they can act on. These two both end in a sentence that does.
+            # nothing they can act on. These all end in a sentence that does.
             print(f"\n  {CROSS} {cannot}\n")
             return 2
-        browser.goto(target)
         print()
-        input("  press Enter here once you are signed in... ")
-        where = browser.page.url
+        where = _wait_until_signed_in(browser)
     finally:
         browser.stop()
+
+    if where is None:
+        print(f"\n  {CROSS} the window was closed before Dejo could check it.")
+        print(f"    if the site still asks you to sign in, run:  dejo login --site {args.site}\n")
+        return 2
 
     print()
     print(f"  {TICK} signed in. session kept for {domain_of(where)}")
@@ -244,6 +249,27 @@ def cmd_login(args: argparse.Namespace) -> int:
     print(f"    now run:  dejo run --site {args.site}")
     print()
     return 0
+
+
+def _wait_until_signed_in(browser: Browser) -> str | None:
+    """Wait for the person, then check the window before believing them.
+
+    Pressing Enter used to be taken as proof. A window still on the sign-in page then
+    printed "signed in", and the next run failed with no clue why. Returns where the window
+    ended up, or None if it was closed before it could be checked.
+    """
+    input("  press Enter here once you are signed in... ")
+    while True:
+        window = browser.sign_in_window()
+        if window is None:
+            return None
+        where, still_signing_in = window
+        if not still_signing_in:
+            return where
+        print(f"\n  {CROSS} that window still shows a sign-in page: {where}")
+        answer = input("    finish there and press Enter, or type yes if you are signed in: ")
+        if answer.strip().lower() == "yes":
+            return where
 
 
 def cmd_sites(args: argparse.Namespace) -> int:
@@ -556,6 +582,11 @@ def console() -> int:
     except OldHomeNotCopied as stuck:
         print(f"\n  {CROSS} {stuck}\n")
         return 2
+    try:
+        if adopt_old_memory():
+            print(f"  {TICK} brought your memory across from Sibyl, so every learned site is kept")
+    except OldMemoryUnreadable as unreadable:
+        print(f"\n  {CROSS} {unreadable}\n")
     return main()
 
 

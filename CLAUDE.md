@@ -12,8 +12,9 @@ the engine (`engine/`, PyPI `dejo`) and the MCP server (`mcp/`, PyPI `dejo-mcp`)
 2. **Replay makes zero model calls.** Replay and its checks are plain deterministic Python.
    Nothing on the replay path may reach the network on its own behalf. A test walks the source
    to enforce it.
-3. **Every memory read and write lives in `engine/src/dejo/store.py`.** No other file imports
-   the memory client. A test walks the source to enforce it.
+3. **Every decision about memory lives in `engine/src/dejo/store.py`.** It is the only file
+   that uses `memory.py`, the SQLite database underneath, and `memory.py` is the only file that
+   speaks SQL. Tests walk the source to enforce both.
 4. **Every step has a postcondition.** A step that cannot check it landed is not saved. That
    check is what separates Dejo from a cache.
 5. **`forget` must always really forget.** After `dejo forget`, replay has nothing to follow and

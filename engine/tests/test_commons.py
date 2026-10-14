@@ -14,15 +14,9 @@ import threading
 
 import pytest
 
+from dejo.memory import COMMONS, DEFAULT_OWNER
 from dejo.models import Locator, Playbook, Postcondition, SiteKnowledge, Step
-from dejo.store import (
-    COMMONS_TENANT,
-    DEFAULT_TENANT,
-    DejoStore,
-    TrailAlreadyHere,
-    agent_tenant,
-    offer_key,
-)
+from dejo.store import DejoStore, TrailAlreadyHere, agent_owner, offer_key
 
 DOMAIN = "acme.com"
 TASK = "read the invoice total"
@@ -112,12 +106,12 @@ def bob(shared_db) -> DejoStore:
 
 class TestAgentIdentity:
     def test_an_agent_with_no_name_uses_the_memory_that_was_already_there(self, shared_db):
-        """The migration guard. Every trail learned before agents existed lives in Sibyl's
-        own default tenant, and must still be there afterwards."""
+        """The migration guard. Every trail learned before agents existed lives with the
+        default owner, and must still be there afterwards."""
         nameless = DejoStore(db_path=shared_db)
 
         assert nameless.agent is None
-        assert nameless._memory.get_tenant() == DEFAULT_TENANT
+        assert nameless._memory.owner == DEFAULT_OWNER
 
     def test_the_agent_name_comes_from_the_environment_when_none_is_given(
         self, shared_db, monkeypatch
@@ -134,37 +128,37 @@ class TestAgentIdentity:
         assert bob.load_playbook(DOMAIN, TASK) is None
 
     def test_an_agent_is_never_the_commons_by_accident(self):
-        """An agent literally called "commons" must not land on the shared tenant."""
-        assert agent_tenant("commons") != COMMONS_TENANT
+        """An agent literally called "commons" must not land on the shared memory."""
+        assert agent_owner("commons") != COMMONS
 
-    @pytest.mark.parametrize("bad", ['sql"injection', "up|pipe", "back`tick", "dot..dot", "  "])
-    def test_a_name_sibyl_would_refuse_is_refused_here_first(self, bad):
-        """Otherwise the agent is silently partitioned into a tenant nobody can reach."""
+    @pytest.mark.parametrize("bad", ["  ", "tab\there", "bell\x07"])
+    def test_a_blank_or_unprintable_name_is_refused(self, bad):
+        """Otherwise the agent is silently given a memory nobody can name again."""
         with pytest.raises(ValueError):
-            agent_tenant(bad)
+            agent_owner(bad)
 
-    def test_passing_both_a_client_and_a_name_is_refused(self, shared_db):
-        """Quietly ignoring the name would put the agent in the wrong memory."""
-        ready_made = DejoStore(db_path=shared_db)._memory
+    def test_any_printable_name_is_fine(self, shared_db):
+        """Dejo's own memory stores names as data, so punctuation costs nothing."""
+        odd = DejoStore(db_path=shared_db, agent='qa|team "two"')
+        odd.save_playbook(Playbook(domain=DOMAIN, task=TASK))
 
-        with pytest.raises(ValueError, match="not both"):
-            DejoStore(ready_made, agent="alice")
+        assert DejoStore(db_path=shared_db, agent='qa|team "two"').list_sites() == [DOMAIN]
 
 
-class TestNeitherClientEverMoves:
-    """One client per tenant, built once. The alternative — switching tenant around each
+class TestNeitherViewEverMoves:
+    """One view per owner, built once. The alternative — switching owner around each
     shared operation — has a window in which another thread's playbook is written into the
-    shared tenant, silently. The MCP server does call this object from two threads."""
+    commons, silently. The MCP server does call this object from two threads."""
 
-    def test_the_agents_own_client_stays_on_its_own_tenant(self, alice):
-        before = alice._memory.get_tenant()
+    def test_the_agents_own_view_stays_on_its_own_owner(self, alice):
+        before = alice._memory.owner
 
         alice.share_trail(DOMAIN)
         alice.offers_for(DOMAIN)
         alice.every_offer()
 
-        assert alice._memory.get_tenant() == before
-        assert alice._shared.get_tenant() == COMMONS_TENANT
+        assert alice._memory.owner == before
+        assert alice._shared.owner == COMMONS
 
     def test_sharing_from_several_threads_at_once_never_crosses_over(self, alice, shared_db):
         """The failure this design exists to make impossible."""
@@ -485,7 +479,7 @@ class TestTheGateWithACommons:
 
     def test_forgetting_does_not_reach_into_another_agents_memory(self, alice, bob):
         """A real isolation guarantee, and one that has to be said out loud rather than
-        discovered: Sibyl offers no way to enumerate tenants."""
+        discovered: one agent can never reach into another agent's memory."""
         alice.share_trail(DOMAIN)
         bob.borrow_trail(DOMAIN)
 

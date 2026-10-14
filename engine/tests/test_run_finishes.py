@@ -97,3 +97,54 @@ class TestATrailThatEndsByReading:
 
         assert result.ok is True
         assert result.answers["where we are"] == "nowhere yet"
+
+
+# A page that keeps filling in after a click returns: its proof arrives 600ms later.
+LATE_PROOF = """<!doctype html><title>late proof</title>
+<button id="go">Go</button><p id="where">waiting</p>
+<script>
+  document.getElementById('go').addEventListener('click', () => {
+    setTimeout(() => { document.getElementById('where').textContent = 'Arrived late'; }, 600);
+  });
+</script>"""
+
+
+class TestAStepWhoseProofArrivesLate:
+    """Found on a busy machine. A click was learned while a slow panel was filling in, so its
+    saved check was that panel's text. On replay the click ran first, the check failed at
+    once, and a working sign-in was reported as a broken step."""
+
+    def test_the_step_is_given_a_moment_before_it_is_called_broken(
+        self, store: DejoStore, browser: Browser, demo_server: str
+    ) -> None:
+        from dejo.models import Locator, Playbook, Postcondition, Step
+
+        page = f"{demo_server}/late-proof"
+        browser.page.route("**/late-proof", lambda route: route.fulfill(body=LATE_PROOF))
+        store.save_playbook(
+            Playbook(
+                domain=SITE,
+                task="go",
+                steps=[
+                    Step(
+                        index=1,
+                        intent="open the page",
+                        action="goto",
+                        value=page,
+                        postcondition=Postcondition("url_contains", "/late-proof"),
+                    ),
+                    Step(
+                        index=2,
+                        intent="press go",
+                        action="click",
+                        locators=[Locator("css", "#go")],
+                        postcondition=Postcondition("text_present", "Arrived late"),
+                    ),
+                ],
+            )
+        )
+
+        result = Executor(store, browser).run(SITE, task="go")
+
+        assert result.ok is True, result.reason
+        assert browser.page.locator("#go").count() == 1

@@ -1,50 +1,50 @@
 """THE MEMORY FILE.
 
-Every read and write to Sibyl Memory in this entire project happens here. Nothing else
-imports `sibyl_memory_client`. If you want to see whether the
-memory is load-bearing, this one file is the whole answer — and `forget_site` below is the
-deletion test.
+Every decision about what Dejo remembers is made here, and nothing else in the project
+touches memory. If you want to see whether the memory is load-bearing, this one file is the
+whole answer, and `forget_site` below is the deletion test. `memory.py` is the database
+underneath; this file is its only user.
 
-How the tiers are used:
+What is kept:
 
-    WARM  set_entity("playbook", <domain>)         the trail: steps, locators, health
-    WARM  set_entity("site_knowledge", <domain>)   facts that outlive a redesign
-    COLD  write_event(...)                         every run, drift and repair, in order
+    entry    "playbook", <domain>::<task>   the trail: steps, locators, health
+    entry    "site_knowledge", <domain>     facts that outlive a redesign
+    entry    "site_map", <domain>           the pages Dejo has looked at
+    history  every run, drift, repair, share and forget, in order
 
 Two deliberate choices worth knowing about:
 
-1. Entities are keyed by domain, and Sibyl enforces uniqueness on
-   (tenant_id, category, name) at the schema level. A site therefore cannot end up
-   holding two conflicting trails.
+1. Entries are unique per (owner, category, name), enforced by the database itself. A site
+   therefore cannot end up holding two conflicting trails for one task.
 
-2. Forgetting ARCHIVES, it does not delete. That matches Sibyl's own
-   forgetting-versus-deleting doctrine: the agent stops being able to follow the trail,
+2. Forgetting ARCHIVES, it does not delete. The agent stops being able to follow the trail,
    but the record of it having existed is recoverable.
 """
 
 from __future__ import annotations
 
-from contextlib import suppress
+from pathlib import Path
 from typing import Any
 
-from sibyl_memory_client import DEFAULT_TENANT, MemoryClient, NotFoundError
-
 from .home import setting
+from .memory import (
+    AGENT_OWNER_PREFIX,
+    COMMONS,
+    DEFAULT_OWNER,
+    DEFAULT_PATH,
+    SIBYL_PATH,
+    Database,
+    OldMemoryUnreadable,
+    SibylDatabase,
+    import_sibyl,
+)
 from .models import Playbook, RunMetrics, SiteKnowledge, SiteMap, utc_now
 
 PLAYBOOK = "playbook"
 
-# Where trails are offered to other agents. One well-known tenant in the same database.
-#
-# Sibyl has no sharing, scope or visibility concept — entities are unique per
-# (tenant_id, category, name) and every query filters on tenant. So publishing and
-# borrowing are deliberate copies, which is the behaviour we want anyway: nobody
+# Trails offered to other agents live with the `commons` owner in the same database. Every
+# read and write names its owner, so publishing and borrowing are deliberate copies: nobody
 # accidentally leaks a trail, and nobody silently inherits a stranger's.
-COMMONS_TENANT = "cairn-commons"
-
-# Agent names are namespaced so an agent literally called "commons" cannot collide with
-# the commons itself.
-AGENT_PREFIX = "cairn-agent-"
 
 # Offers live in their own category, keyed `domain::task::agent`. The agent is IN the key
 # on purpose: keyed by task alone, one agent publishing would silently overwrite another's
@@ -67,22 +67,16 @@ FORGOTTEN = "forgotten"
 # environment variable is the only channel `.mcp.json` has.
 AGENT_ENV = "DEJO_AGENT"
 
-# Sibyl rejects these inside an identifier, along with control characters and "..".
-FORBIDDEN_IN_NAME = set('<>|;"`')
+# Which database holds the memory: Dejo's own unless this says "sibyl".
+BACKEND_ENV = "DEJO_MEMORY"
+SIBYL = "sibyl"
 
 # A trail is named `domain::task-slug`. Keying on the domain alone meant one task per site.
-#
-# Not "|": Sibyl rejects it in an identifier, along with < > ; " ` and "..". A domain never
-# contains "::", so splitting on it is unambiguous.
+# A domain never contains "::", so splitting on it is unambiguous.
 KEY_SEPARATOR = "::"
 
 # Long enough to tell two tasks apart, short enough to read in a listing.
 MAX_SLUG = 60
-
-# How many entities a listing may return. Sibyl's own default is 100, and it truncates
-# silently — so a caller that never passes one simply stops seeing sites once it has more
-# than a hundred trails, with no error to notice.
-MAX_LISTED = 5000
 
 # How much of a request's wording must be shared with a saved task before they are treated
 # as the same job. Low enough to survive rephrasing, high enough that "download the
@@ -141,81 +135,50 @@ class TrailAlreadyHere(RuntimeError):
 
 
 class DejoStore:
-    """A small, explicit wrapper over Sibyl Memory.
+    """What Dejo remembers, in Dejo's own words: trails, site facts, maps, history.
 
-    Deliberately not clever. Each method is one Sibyl call plus serialisation, so the
-    mapping between "what Dejo remembers" and "what Sibyl stores" stays readable.
+    Deliberately not clever. Each method is one memory call plus serialisation, so the
+    mapping between "what Dejo remembers" and "what is stored" stays readable.
     """
 
-    def __init__(
-        self,
-        client: MemoryClient | None = None,
-        *,
-        db_path: str | None = None,
-        agent: str | None = None,
-    ):
-        """Uses Sibyl's default local database unless a path is given.
+    def __init__(self, *, db_path: str | None = None, agent: str | None = None):
+        """Uses `~/.dejo/memory.db` unless a path is given.
 
         Tests pass a temporary path so they never touch the developer's real memory.
 
-        `agent` names this agent, and becomes its Sibyl tenant. Left unset — and unset is
-        the normal case — it falls back to the `DEJO_AGENT` environment variable and then
-        to Sibyl's own default tenant, which is where every trail learned so far already
-        lives. So an unnamed agent sees exactly the memory it saw yesterday.
+        `agent` names this agent, and becomes the owner of its memory. Left unset, and unset
+        is the normal case, it falls back to the `DEJO_AGENT` environment variable and then
+        to the `default` owner, which is where every trail learned so far already lives.
 
-        There are TWO clients and neither ever changes tenant. One reads and writes this
-        agent's own memory; the other only ever touches the commons. The alternative —
-        one client that switches tenant around each shared operation — is unsafe here: the
-        MCP server calls this object from the browser thread and from anyio worker threads
-        at the same time, so a switch has a window in which another thread's playbook is
-        written into the shared tenant. Silently.
+        There are TWO views of the database and neither ever changes owner. One reads and
+        writes this agent's own memory; the other only ever touches the commons. A single
+        view that switched owner around each shared operation would be unsafe: the MCP
+        server calls this object from several threads at once, so a switch has a window in
+        which another thread's trail is written into the commons. Silently.
         """
         self.agent = agent if agent is not None else setting(AGENT_ENV)
-        if client is not None and self.agent is not None:
-            raise ValueError(
-                "pass either a ready-made client or an agent name, not both — otherwise "
-                "the name would be quietly ignored and the agent would read the wrong memory"
-            )
-
-        tenant = agent_tenant(self.agent)
-        if client is not None:
-            self._memory = client
-        elif db_path is not None:
-            self._memory = MemoryClient.local(db_path, tenant_id=tenant)
-        else:
-            self._memory = MemoryClient.local(tenant_id=tenant)
-
-        self._shared = self._commons_client()
-
-    def _commons_client(self) -> MemoryClient:
-        """A second client, pinned to the commons for the life of this store.
-
-        Shares the first client's `Storage` where it can, so both look at one file through
-        one connection pool.
-        """
-        storage = getattr(self._memory, "storage", None)
-        if storage is not None:
-            return MemoryClient(storage, tenant_id=COMMONS_TENANT, tier=self._memory.get_tier())
-        return MemoryClient.local(tenant_id=COMMONS_TENANT)
+        database = open_memory(db_path)
+        self.where = database.path
+        self._memory = database.owner(agent_owner(self.agent))
+        self._shared = database.owner(COMMONS)
 
     # ---------------------------------------------------------------- playbooks
 
     def save_playbook(self, playbook: Playbook) -> None:
-        """WARM write. One trail per TASK per site, overwritten as it improves.
+        """Write. One trail per TASK per site, overwritten as it improves.
 
         Keyed by task as well as domain. Keying on the domain alone meant a site could
         hold exactly one task ever — found on GitHub, where asking about a second repo
         collided with the first.
         """
         key = trail_key(playbook.domain, playbook.task)
-        self._memory.set_entity(PLAYBOOK, key, playbook.to_dict())
+        self._memory.put(PLAYBOOK, key, playbook.to_dict())
 
         # Knowing the site again is the opposite of having forgotten it.
-        with suppress(NotFoundError):
-            self._memory.archive_entity(FORGOTTEN, playbook.domain, reason="learned again")
+        self._memory.archive(FORGOTTEN, playbook.domain, reason="learned again")
 
     def load_playbook(self, domain: str, task: str | None = None) -> Playbook | None:
-        """WARM read. `None` means we have never walked this site — or it was forgotten.
+        """Read. `None` means we have never walked this site — or it was forgotten.
 
         The warm path lives or dies on this call. If it returns `None`, replay has
         nothing to follow and the caller has to explore from scratch.
@@ -285,42 +248,22 @@ class DejoStore:
 
     def _keys_for(self, domain: str) -> list[str]:
         """Every live trail key belonging to one site."""
-        entities = self._memory.list_entities(category=PLAYBOOK, limit=MAX_LISTED)
-        return sorted(
-            entity["name"]
-            for entity in entities
-            if not self._is_archived(entity) and domain_of_key(entity["name"]) == domain
-        )
+        return [key for key in self._memory.names(PLAYBOOK) if domain_of_key(key) == domain]
 
     def list_sites(self) -> list[str]:
         """Every domain Dejo currently knows a trail for.
 
         Domains, not trail keys — one site with four tasks is still one site.
         """
-        entities = self._memory.list_entities(category=PLAYBOOK, limit=MAX_LISTED)
-        return sorted({domain_of_key(e["name"]) for e in entities if not self._is_archived(e)})
-
-    def search_similar(self, query: str, *, limit: int = 5) -> list[str]:
-        """WARM read. Full-text search across stored trails, using Sibyl's FTS5 index.
-
-        This is what lets an agent landing on an unfamiliar site ask whether anything like
-        it has been walked before.
-
-        `search_entities` returns a `list` subclass, so the results ARE the list. Asking it
-        for `.entities` or `.results` — which is what this did until 2026-09-03 — always
-        found nothing, so this function returned an empty list for every input from the day
-        it was written. Nothing called it, so nothing noticed.
-        """
-        found = self._memory.search_entities(query, limit=limit, category=PLAYBOOK)
-        return [hit["name"] for hit in found if "name" in hit]
+        return sorted({domain_of_key(key) for key in self._memory.names(PLAYBOOK)})
 
     # ------------------------------------------------------------- the commons
     #
-    # Everything below writes to a DIFFERENT tenant through a SECOND client. Neither
-    # client ever changes tenant, so a trail cannot cross by accident.
+    # Everything below writes to a DIFFERENT owner through a SECOND view. Neither view
+    # ever changes owner, so a trail cannot cross by accident.
 
     def was_forgotten(self, domain: str) -> bool:
-        """WARM read. Did this agent deliberately forget this site?
+        """Read. Did this agent deliberately forget this site?
 
         Asked before offering a shared trail back. Forgetting has to mean
         something, and answering "somebody else still has it" one message later
@@ -375,7 +318,7 @@ class DejoStore:
             for carried in ("borrows", "confirmed_by", "failed_for"):
                 offer[carried] = existing.get(carried, offer[carried])
 
-        self._shared.set_entity(SHARED, key, offer)
+        self._shared.put(SHARED, key, offer)
         self._both_journals(
             acted=[f"{self.who} shared the trail for {playbook.task} on {domain}"],
             extra={"kind": "shared", "domain": domain, "task": playbook.task, "by": self.who},
@@ -406,11 +349,9 @@ class DejoStore:
                 continue
             if wanted and offer["task"] != wanted and best_match(wanted, [offer["task"]]) is None:
                 continue
-            try:
-                self._shared.archive_entity(
-                    SHARED, offer_key(domain, offer["task"], self.who), reason="withdrawn"
-                )
-            except NotFoundError:
+            if not self._shared.archive(
+                SHARED, offer_key(domain, offer["task"], self.who), reason="withdrawn"
+            ):
                 continue
             self._both_journals(
                 acted=[f"{self.who} withdrew the trail for {offer['task']} on {domain}"],
@@ -441,7 +382,7 @@ class DejoStore:
     def borrow_trail(
         self, domain: str, task: str | None = None, *, force: bool = False
     ) -> Playbook | None:
-        """COMMONS read, then a WARM write into this agent's own memory.
+        """COMMONS read, then a write into this agent's own memory.
 
         The trail is COPIED, not followed in place. That matters: the borrower ends up with
         something of its own that it can run, repair, and be made to forget. Reading the
@@ -464,9 +405,7 @@ class DejoStore:
         borrowed = self._import_offer(offer, force=force)
 
         offer["borrows"] = offer.get("borrows", 0) + 1
-        self._shared.set_entity(
-            SHARED, offer_key(domain, chosen["task"], offer["shared_by"]), offer
-        )
+        self._shared.put(SHARED, offer_key(domain, chosen["task"], offer["shared_by"]), offer)
 
         self._both_journals(
             evaluated=[f"{self.who} had never walked {domain}"],
@@ -497,7 +436,7 @@ class DejoStore:
             side = "confirmed_by" if worked else "failed_for"
             if self.who not in offer[side]:
                 offer[side] = [*offer[side], self.who]
-                self._shared.set_entity(SHARED, offer_key(domain, task, offer["shared_by"]), offer)
+                self._shared.put(SHARED, offer_key(domain, task, offer["shared_by"]), offer)
             return
 
     def contribute_repair(self, domain: str, task: str) -> bool:
@@ -528,7 +467,7 @@ class DejoStore:
                 theirs.contributors.append(self.who)
             offer["playbook"] = theirs.to_dict()
 
-            self._shared.set_entity(SHARED, offer_key(domain, task, offer["shared_by"]), offer)
+            self._shared.put(SHARED, offer_key(domain, task, offer["shared_by"]), offer)
             self._both_journals(
                 acted=[f"{self.who} contributed a fix to {offer['shared_by']}'s trail for {task}"],
                 extra={"kind": "contributed", "domain": domain, "task": task, "by": self.who},
@@ -539,7 +478,7 @@ class DejoStore:
     # ------------------------------------------------------- commons helpers
 
     def _import_offer(self, offer: dict[str, Any], *, force: bool) -> Playbook:
-        """WARM write. Turn somebody else's offer into a trail this agent owns.
+        """Write. Turn somebody else's offer into a trail this agent owns.
 
         Copied, never followed in place: the taker ends up with something of its own that it
         can run, repair, and be made to forget.
@@ -570,20 +509,10 @@ class DejoStore:
         return [offer for offer in self._all_offers() if offer.get("domain") == domain]
 
     def _all_offers(self) -> list[dict[str, Any]]:
-        found = []
-        for entity in self._shared.list_entities(category=SHARED, limit=MAX_LISTED):
-            body = entity.get("body")
-            if isinstance(body, dict) and body.get("domain"):
-                found.append(body)
-        return found
+        return [body for _, body in self._shared.items(SHARED) if body.get("domain")]
 
     def _offer(self, key: str) -> dict[str, Any] | None:
-        try:
-            entity = self._shared.get_entity(SHARED, key)
-        except NotFoundError:
-            return None
-        body = entity.get("body")
-        return body if isinstance(body, dict) else None
+        return self._shared.get(SHARED, key)
 
     @staticmethod
     def describe_offer(offer: dict[str, Any]) -> dict[str, Any]:
@@ -652,19 +581,19 @@ class DejoStore:
         self.save_site_map(mine)
 
     def _both_journals(self, **event: Any) -> None:
-        """COLD write, twice: this agent's own history, and the shared one.
+        """History, twice: this agent's own, and the shared one.
 
-        Two explicit writes because `write_event` always writes to its client's own tenant.
-        A handoff that only appeared in one of the two would be half a record.
+        Two explicit writes because each view only ever writes to its own owner. A handoff
+        that only appeared in one of the two would be half a record.
         """
-        self._memory.write_event(**event)
-        self._shared.write_event(**event)
+        self._memory.record(**event)
+        self._shared.record(**event)
 
     # ----------------------------------------------------------- site knowledge
 
     def save_site_knowledge(self, knowledge: SiteKnowledge) -> None:
-        """WARM write. Survives a playbook being rebuilt from nothing."""
-        self._memory.set_entity(SITE_KNOWLEDGE, knowledge.domain, knowledge.to_dict())
+        """Write. Survives a playbook being rebuilt from nothing."""
+        self._memory.put(SITE_KNOWLEDGE, knowledge.domain, knowledge.to_dict())
 
     def load_site_knowledge(self, domain: str) -> SiteKnowledge | None:
         body = self._read_entity_body(SITE_KNOWLEDGE, domain)
@@ -673,13 +602,13 @@ class DejoStore:
     # ------------------------------------------------------------------ the map
 
     def save_site_map(self, site_map: SiteMap) -> None:
-        """WARM write. The pages Dejo has looked at on one site, and what was on them.
+        """Write. The pages Dejo has looked at on one site, and what was on them.
 
         Separate from the playbook on purpose: a trail is one route, and this is the
         terrain. A second task on the same site reads this instead of exploring blind,
         which is the whole reason it exists.
         """
-        self._memory.set_entity(SITE_MAP, site_map.domain, site_map.to_dict())
+        self._memory.put(SITE_MAP, site_map.domain, site_map.to_dict())
 
     def load_site_map(self, domain: str) -> SiteMap | None:
         body = self._read_entity_body(SITE_MAP, domain)
@@ -692,21 +621,20 @@ class DejoStore:
         then abandoned would be invisible while Dejo still held its shape. Memory that
         exists but cannot be seen is indistinguishable from memory that does not.
         """
-        found = self._memory.list_entities(category=SITE_MAP, limit=MAX_LISTED)
-        return sorted({entity["name"] for entity in found if not self._is_archived(entity)})
+        return self._memory.names(SITE_MAP)
 
     # ------------------------------------------------------------ cold journal
 
     def journal_run(self, metrics: RunMetrics) -> None:
-        """COLD write. The time-ordered record of what every run actually cost."""
-        self._memory.write_event(
+        """History. The time-ordered record of what every run actually cost."""
+        self._memory.record(
             acted=[f"{metrics.mode} run on {metrics.domain}: {metrics.task}"],
             extra={"kind": "run", **metrics.to_dict()},
         )
 
     def journal_repair(self, domain: str, step_index: int, before: str, after: str) -> None:
-        """COLD write. Every repair is recorded, so drift over time is inspectable."""
-        self._memory.write_event(
+        """History. Every repair is recorded, so drift over time is inspectable."""
+        self._memory.record(
             evaluated=[f"step {step_index} on {domain} no longer matched"],
             acted=[f"repaired step {step_index}: {before} -> {after}"],
             extra={
@@ -719,8 +647,8 @@ class DejoStore:
         )
 
     def read_journal(self, *, limit: int = 50) -> list[dict[str, Any]]:
-        """COLD read. Used by the CLI and the dashboard to show memory working."""
-        return self._memory.read_events(limit=limit)
+        """History, newest first. Shows memory working, run by run."""
+        return self._memory.history(limit=limit)
 
     def retire_playbook(self, domain: str, task: str | None = None) -> bool:
         """Archive only the trail, keeping what we know about the site.
@@ -729,13 +657,11 @@ class DejoStore:
         rebuilt, but "needs a login, sends a code to your phone, use the finance account"
         is all still true. This is what makes relearning cheaper than a first visit.
         """
-        try:
-            key = trail_key(domain, task) if task else domain
-            self._memory.archive_entity(PLAYBOOK, key, reason="stale, site was rebuilt")
-        except NotFoundError:
+        key = trail_key(domain, task) if task else domain
+        if not self._memory.archive(PLAYBOOK, key, reason="stale, site was rebuilt"):
             return False
 
-        self._memory.write_event(
+        self._memory.record(
             evaluated=[f"most of the trail for {domain} no longer matches the site"],
             acted=[f"retired the trail for {domain}, kept what is known about the site"],
             extra={"kind": "retired", "domain": domain},
@@ -759,37 +685,25 @@ class DejoStore:
         # simply broken must never be able to stop a site being forgotten here.
         try:
             for offer in self.my_offers_for(domain):
-                self._shared.archive_entity(
-                    SHARED,
-                    offer_key(domain, offer["task"], self.who),
-                    reason="dejo forget",
-                )
-                forgotten = True
+                key = offer_key(domain, offer["task"], self.who)
+                forgotten = self._shared.archive(SHARED, key, reason="dejo forget") or forgotten
         except Exception:  # noqa: BLE001 - forgetting matters more than the reason
             pass
 
         # Every trail for the site, not just one. A site with four tasks has four trails,
         # and "forget this site" has to mean all of them or the gate does not hold.
         for key in self._keys_for(domain):
-            try:
-                self._memory.archive_entity(PLAYBOOK, key, reason="dejo forget")
-                forgotten = True
-            except NotFoundError:
-                continue
+            forgotten = self._memory.archive(PLAYBOOK, key, reason="dejo forget") or forgotten
 
         for category in (PLAYBOOK, SITE_KNOWLEDGE, SITE_MAP):
-            try:
-                self._memory.archive_entity(category, domain, reason="dejo forget")
-                forgotten = True
-            except NotFoundError:
-                continue
+            forgotten = self._memory.archive(category, domain, reason="dejo forget") or forgotten
 
         # The tombstone goes down whether or not anything was there to archive, so
         # that a site forgotten twice stays forgotten.
-        self._memory.set_entity(FORGOTTEN, domain, {"at": utc_now(), "by": self.who})
+        self._memory.put(FORGOTTEN, domain, {"at": utc_now(), "by": self.who})
 
         if forgotten:
-            self._memory.write_event(
+            self._memory.record(
                 acted=[f"{self.who} forgot everything about {domain}"],
                 extra={"kind": "forget", "domain": domain, "by": self.who},
             )
@@ -799,21 +713,8 @@ class DejoStore:
     # ------------------------------------------------------------------ helpers
 
     def _read_entity_body(self, category: str, name: str) -> dict[str, Any] | None:
-        """Reads one entity, treating missing and archived alike as 'we do not know'."""
-        try:
-            entity = self._memory.get_entity(category, name)
-        except NotFoundError:
-            return None
-
-        if entity is None or self._is_archived(entity):
-            return None
-
-        body = entity.get("body") if isinstance(entity, dict) else None
-        return body if isinstance(body, dict) else None
-
-    @staticmethod
-    def _is_archived(entity: dict[str, Any]) -> bool:
-        return str(entity.get("status", "")).lower() == "archived"
+        """One remembered entry. Missing and forgotten alike read as 'we do not know'."""
+        return self._memory.get(category, name)
 
 
 def trail_key(domain: str, task: str | None) -> str:
@@ -947,27 +848,69 @@ def _meaningful(text: str, domain: str | None = None) -> set[str]:
     return {word for word in words.split() if word not in ignore}
 
 
-def agent_tenant(agent: str | None) -> str:
-    """The Sibyl tenant one agent's memory lives in.
+def agent_owner(agent: str | None) -> str:
+    """Whose memory one agent reads and writes.
 
-    No name means Sibyl's own default tenant — which is where everything learned before
-    agents existed already is, so nothing has to be migrated and nothing is lost.
+    No name means the `default` owner, which is where everything learned before agents
+    existed already is, so nothing has to be migrated and nothing is lost. A named agent is
+    prefixed, so an agent literally called "commons" can never collide with the commons.
     """
     if agent is None:
-        return DEFAULT_TENANT
+        return DEFAULT_OWNER
 
     name = agent.strip()
     if not name:
         raise ValueError("an agent name cannot be blank")
-    if any(character in FORBIDDEN_IN_NAME for character in name) or ".." in name:
-        raise ValueError(
-            f"{agent!r} is not a usable agent name: Sibyl refuses "
-            f"{''.join(sorted(FORBIDDEN_IN_NAME))} and '..' inside one"
-        )
     if any(ord(character) < 0x20 or ord(character) == 0x7F for character in name):
         raise ValueError(f"{agent!r} has a control character in it")
 
-    return f"{AGENT_PREFIX}{name}"
+    return f"{AGENT_OWNER_PREFIX}{name}"
+
+
+def open_memory(db_path: str | Path | None = None) -> Database | SibylDatabase:
+    """The database this machine's memory lives in: Dejo's own, unless DEJO_MEMORY=sibyl."""
+    if (setting(BACKEND_ENV) or "").strip().lower() == SIBYL:
+        return SibylDatabase(db_path or SIBYL_PATH)
+    return Database(db_path or DEFAULT_PATH)
+
+
+def adopt_old_memory(into: Path = DEFAULT_PATH, sibyl: Path = SIBYL_PATH) -> int:
+    """Bring a Sibyl memory across the first time Dejo starts. Returns how much came.
+
+    Before October 2026 Dejo kept its memory in Sibyl. On a machine with that memory and no
+    Dejo memory yet, every trail, fact, map and the whole history are copied in, so nothing
+    learned is lost. Built under a temporary name and renamed into place only when complete,
+    so a failure part-way leaves no half-memory behind to be mistaken for the real thing.
+
+    Called by the `dejo` and `dejo-mcp` commands, never by the library, so tests and
+    programs importing Dejo never touch the real memory.
+    """
+    if into.exists() or not sibyl.is_file():
+        return 0
+    partial = into.with_name(into.name + ".partial")
+    for leftover in (partial, *_sidecars(partial)):
+        leftover.unlink(missing_ok=True)
+    database = Database(partial)
+    try:
+        brought = import_sibyl(sibyl, database)
+    except OldMemoryUnreadable:
+        database.close()
+        for leftover in (partial, *_sidecars(partial)):
+            leftover.unlink(missing_ok=True)
+        raise
+    database.close()
+    if brought == 0:
+        # Nothing of Dejo's was in there. Leave no file, so nothing claims an import happened.
+        for leftover in (partial, *_sidecars(partial)):
+            leftover.unlink(missing_ok=True)
+        return 0
+    partial.rename(into)
+    return brought
+
+
+def _sidecars(database: Path) -> tuple[Path, Path]:
+    """The two files SQLite keeps beside a database while it is open in WAL mode."""
+    return database.with_name(database.name + "-wal"), database.with_name(database.name + "-shm")
 
 
 def offer_key(domain: str, task: str, agent: str) -> str:

@@ -74,11 +74,17 @@ class TestTheChecksThemselves:
         assert doctor.MINIMUM_PYTHON == (3, 11)
         assert doctor._python().ok, "the interpreter running the tests must qualify"
 
-    def test_memory_reports_what_it_can_reach(self) -> None:
+    def test_memory_reports_what_it_can_reach(self, monkeypatch, tmp_path) -> None:
+        import dejo.store
+
+        # The real memory is never opened by a test.
+        monkeypatch.setattr(dejo.store, "DEFAULT_PATH", tmp_path / "memory.db")
+
         got = doctor._memory()
 
         assert got.ok
         assert "remembered" in got.detail
+        assert str(tmp_path) in got.detail, "it says where the memory is"
 
     def test_a_missing_profile_is_fine_rather_than_broken(self, monkeypatch, tmp_path) -> None:
         """A profile that does not exist yet is made on first use. Reporting that as a

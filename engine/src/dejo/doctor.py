@@ -103,13 +103,13 @@ def _named_profiles() -> list[str]:
 
 
 def _memory() -> Check:
-    """Sibyl writes a SQLite file. A read-only home is a silent, confusing failure."""
+    """Memory is a SQLite file. A read-only home is a silent, confusing failure."""
     from .store import DejoStore
 
     try:
         store = DejoStore()
         sites = store.list_sites()
-        return Check("memory", True, f"{len(sites)} site(s) remembered")
+        return Check("memory", True, f"{len(sites)} site(s) remembered, in {store.where}")
     except Exception as broken:  # noqa: BLE001 - reported to a person, not re-raised
         return Check(
             "memory",

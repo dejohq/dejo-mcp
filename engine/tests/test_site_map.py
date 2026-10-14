@@ -38,7 +38,7 @@ DOMAIN = "shop.example.com"
 TASK = "read the invoice total"
 
 # One full map — every page, every control — has to stay small enough that a person could
-# hold a lot of sites without going near Sibyl's whole-database limit.
+# hold a lot of sites and the memory file stays small.
 MAX_STORED_BYTES = 200_000
 
 
@@ -185,11 +185,12 @@ class TestItRemembersWhatWasSeen:
 
 
 class TestItCannotGrowWithoutEnd:
-    """Sibyl's cap is on the whole DATABASE, and the error is database-wide.
+    """A map grows every time a page is seen, so it needs a ceiling.
 
-    So a runaway map would not merely spoil itself — it would stop trails, site knowledge
-    and the commons being written at all, in the middle of somebody's run. These limits are
-    load-bearing, which is why they are tested rather than commented.
+    Found when memory was Sibyl's, whose cap was on the whole DATABASE: a runaway map would
+    have stopped trails, site knowledge and the commons being written at all. Dejo's own
+    memory has no such cap, and an unbounded map would still be a slow, bloated one. These
+    limits are tested rather than commented.
     """
 
     def test_a_page_stops_at_the_control_limit(self) -> None:

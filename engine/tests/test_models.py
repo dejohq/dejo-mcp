@@ -113,7 +113,7 @@ class TestPlaybookStaleness:
 
 
 class TestSerialisation:
-    """These bodies are written into Sibyl as JSON, so the shape has to survive a trip."""
+    """These bodies are written to memory as JSON, so the shape has to survive a trip."""
 
     @pytest.mark.parametrize(
         "original",

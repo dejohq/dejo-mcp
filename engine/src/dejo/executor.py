@@ -59,7 +59,7 @@ from .models import (
     href_path,
     page_path,
 )
-from .operations import READ_ACTION, check_postcondition, controls_in
+from .operations import READ_ACTION, check_postcondition, controls_in, settles_into
 from .secrets import MissingSecret
 from .secrets import resolve as resolve_secret
 from .store import DejoStore, swapped_subject
@@ -887,7 +887,7 @@ class Executor:
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)
                 return outcome, found_anything, missed
 
-            if check_postcondition(self.browser, step.postcondition):
+            if settles_into(self.browser, step.postcondition):
                 locator.record_hit()
                 outcome.matched_by = label
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)

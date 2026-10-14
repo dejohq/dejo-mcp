@@ -12,6 +12,7 @@ description tells the caller to prefer these.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,6 +34,19 @@ LOCATOR_WAIT_MS = 1500
 # in the background never goes quiet at all.
 QUIET_WAIT_MS = 5000
 
+MS_PER_SECOND = 1000
+
+# The tags that hold a page of their own. Waiting for one of these is waiting for a page.
+FRAME_TAGS = ("IFRAME", "FRAME")
+
+# Anything on screen inside a frame's page. `:visible` is Playwright's own filter.
+VISIBLE_CONTENT = "body *:visible"
+
+# Waiting inside a frame names two things. "|" splits them because it never appears in an
+# ordinary CSS selector, and Dejo's own refs already use it the same way.
+IN_FRAME = "in_frame"
+FRAME_SPLIT = "|"
+
 
 @dataclass(frozen=True)
 class WaitSpec:
@@ -51,7 +65,13 @@ WAITS: dict[str, WaitSpec] = {
     "element": WaitSpec(
         "element",
         "wait until something is on screen and has stopped moving. The right way to wait "
-        "for content that loads late",
+        "for content that loads late. Waiting for an iframe also waits for its page to load",
+    ),
+    "in_frame": WaitSpec(
+        "in_frame",
+        "wait until something INSIDE an iframe is on screen, written as "
+        "in_frame:<the iframe>|<what is inside it>, e.g. in_frame:iframe.picker|#upload-tab. "
+        "Use this when a frame fills itself in after it appears, as file pickers do",
     ),
     "gone": WaitSpec(
         "gone",
@@ -113,6 +133,11 @@ def parse(value: str) -> tuple[str, str]:
     subject = subject.strip()
     if spec.needs_value and not subject:
         raise WaitNeedsMore(f"waiting for {kind} needs something to wait for, as {kind}:...")
+    if kind == IN_FRAME and not all(part.strip() for part in subject.partition(FRAME_SPLIT)[::2]):
+        raise WaitNeedsMore(
+            "waiting inside a frame needs the frame and what is in it, as "
+            "in_frame:<the iframe>|<what is inside it>"
+        )
     return kind, subject
 
 
@@ -131,7 +156,24 @@ def wait_for(value: str, *, page: Page, timeout_ms: int = DEFAULT_WAIT_MS) -> No
 def _wait_element(page: Page, subject: str, timeout_ms: int) -> None:
     # "visible" and not "attached": attached only means the element exists in the page,
     # which can be true while it is still animating in and cannot yet be clicked.
-    page.locator(subject).first.wait_for(state="visible", timeout=timeout_ms)
+    began = time.monotonic()
+    found = page.locator(subject).first
+    found.wait_for(state="visible", timeout=timeout_ms)
+
+    # An iframe is on screen long before anything is in it. Found on Google's file picker:
+    # the wait passed on the empty frame and the very next click had nothing to hit. So a
+    # frame counts as arrived only once something inside it is visible. Not its body: an
+    # empty frame's body already fills the frame, so it reads as visible from the start.
+    if found.evaluate("el => el.tagName") in FRAME_TAGS:
+        left = max(timeout_ms - (time.monotonic() - began) * MS_PER_SECOND, 0)
+        content = page.frame_locator(subject).first.locator(VISIBLE_CONTENT).first
+        content.wait_for(state="attached", timeout=left)
+
+
+def _wait_in_frame(page: Page, subject: str, timeout_ms: int) -> None:
+    frame, _, inside = subject.partition(FRAME_SPLIT)
+    target = page.frame_locator(frame.strip()).first.locator(inside.strip()).first
+    target.wait_for(state="visible", timeout=timeout_ms)
 
 
 def _wait_gone(page: Page, subject: str, timeout_ms: int) -> None:
@@ -152,6 +194,7 @@ def _wait_idle(page: Page, subject: str, timeout_ms: int) -> None:
 
 _WAITERS: dict[str, Any] = {
     "element": _wait_element,
+    IN_FRAME: _wait_in_frame,
     "gone": _wait_gone,
     "text": _wait_text,
     "url": _wait_url,

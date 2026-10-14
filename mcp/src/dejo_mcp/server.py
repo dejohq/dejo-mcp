@@ -418,14 +418,25 @@ class DejoTools:
         self._login_worker.start()
         self._login_worker.submit(lambda browser: browser.goto(url))
 
-    def finish_login(self) -> str:
+    def login_window(self) -> tuple[str, bool] | None:
+        """Where the sign-in window is, and whether it still shows a sign-in page.
+
+        None when there is no window to ask: never opened, or closed by the person. Neither
+        of those says anything about whether they signed in.
+        """
+        if self._login_worker is None:
+            return None
+        try:
+            return self._login_worker.submit(lambda browser: browser.sign_in_window())
+        except Exception:  # noqa: BLE001 - a window that cannot be asked is a window that is gone
+            return None
+
+    def finish_login(self) -> None:
         """Close the sign-in window. The session is already saved in the profile."""
         if self._login_worker is None:
-            return ""
-        where = self._login_worker.submit(lambda browser: browser.page.url)
+            return
         self._login_worker.stop()
         self._login_worker = None
-        return where
 
     @property
     def signing_in(self) -> bool:
@@ -1362,8 +1373,11 @@ def build_server(
         }
 
     @server.tool()
-    def dejo_login_done(site: str) -> dict[str, Any]:
+    def dejo_login_done(site: str, confirmed: bool = False) -> dict[str, Any]:
         """Close the sign-in window once the user says they are signed in.
+
+        Dejo looks at the window first. If it still shows a sign-in page, nothing is
+        closed and nothing is saved: tell the user to finish, then call this again.
 
         Dejo saves nothing about how they signed in — no password, no code. It simply
         keeps the browser session, the same way their own browser does, so later runs
@@ -1371,13 +1385,43 @@ def build_server(
 
         Args:
             site: The same site passed to dejo_login.
+            confirmed: Only when the user has looked and says they ARE signed in although
+                Dejo reported the page still looks like a sign-in page.
         """
         key = domain_of(site)
         if not tools.signing_in:
             return err("no sign-in window is open — call dejo_login first")
 
+        window = tools.login_window()
+        if window is None:
+            # The person closed the window. Whether they signed in first cannot be seen
+            # from here, so nothing is claimed and nothing is written down.
+            tools.finish_login()
+            return err(
+                "the sign-in window was closed before Dejo could check it, so Dejo cannot "
+                "tell whether the sign-in finished. Call dejo_run: if the site still asks "
+                "for a sign-in, call dejo_login again and leave the window open until the "
+                "user says they are done."
+            )
+        ended_at, still_signing_in = window
+        if still_signing_in and not confirmed:
+            # Saying "signed in" here wrote a false fact into memory for good: found when
+            # this was called twice on Google while the window sat on the identifier page.
+            return {
+                "ok": False,
+                "site": key,
+                "signed_in": False,
+                "window_at": ended_at,
+                "next": (
+                    "The window still shows a sign-in page, so the user has not finished. "
+                    "It is still open. Ask them to finish signing in there and tell you, "
+                    "then call dejo_login_done again. If they have looked and say they ARE "
+                    "signed in, call dejo_login_done with confirmed=true."
+                ),
+            }
+
         try:
-            ended_at = tools.finish_login()
+            tools.finish_login()
             knowledge = tools.store.load_site_knowledge(key) or SiteKnowledge(domain=key)
             knowledge.merge(
                 fact="signed in by hand; Dejo keeps the session in its browser profile",
@@ -1390,6 +1434,7 @@ def build_server(
         return {
             "ok": True,
             "site": key,
+            "signed_in": True,
             "ended_at": ended_at,
             "known_facts": knowledge.summary(),
             "next": (
