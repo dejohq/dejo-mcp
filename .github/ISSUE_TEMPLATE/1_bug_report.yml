@@ -1,0 +1,69 @@
+name: Bug report
+description: Dejo crashed, hung, gave a wrong answer, or a command did not do what it says.
+title: "Bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please never paste a password, a session cookie, or anything typed into a private form.
+        If Dejo works but gets one particular website wrong, the "A site Dejo gets wrong" form fits better.
+
+  - type: input
+    id: version
+    attributes:
+      label: Dejo version
+      description: Run `pip show dejo-mcp` (or `pip show dejo`) and copy the version.
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent
+    attributes:
+      label: How you run Dejo
+      options:
+        - Claude Code
+        - Codex
+        - Cursor
+        - Another MCP client
+        - The dejo command in a terminal
+        - As a Python library
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you asked for, what you expected, and what happened instead.
+      placeholder: |
+        1. Asked my agent: "count the open issues on github.com/microsoft/playwright"
+        2. Expected: one dejo_run call with the number
+        3. Instead: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Error or tool output
+      description: The error message, or the JSON a Dejo tool returned. Remove anything private.
+      render: shell
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `dejo doctor`
+      description: It checks the browser, the profile, the memory and the downloads folder.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "e.g. Windows 11, macOS 15, Ubuntu 24.04"
+    validations:
+      required: true

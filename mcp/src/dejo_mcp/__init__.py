@@ -2,5 +2,5 @@
 
 from .server import build_server, run_stdio
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __all__ = ["build_server", "run_stdio", "__version__"]

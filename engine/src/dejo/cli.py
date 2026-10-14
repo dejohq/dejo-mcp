@@ -42,7 +42,7 @@ from .browser import (
 from .doctor import cmd_doctor
 from .events import Emitter, Event
 from .executor import Executor, NoTrailError
-from .home import OldHomeNotCopied, adopt_old_home
+from .home import OldHomeNotMoved, adopt_old_home
 from .models import SiteMap
 from .store import DejoStore, OldMemoryUnreadable, TrailAlreadyHere, adopt_old_memory
 
@@ -578,8 +578,8 @@ def console() -> int:
     """
     try:
         if adopt_old_home():
-            print(f"\n  {TICK} copied your old ~/.cairn folder to ~/.dejo, so sign-ins are kept")
-    except OldHomeNotCopied as stuck:
+            print(f"\n  {TICK} moved your old ~/.cairn folder to ~/.dejo, so sign-ins are kept")
+    except OldHomeNotMoved as stuck:
         print(f"\n  {CROSS} {stuck}\n")
         return 2
     try:

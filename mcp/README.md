@@ -23,4 +23,6 @@ issues it has."* The first time it explores. After that it is one call.
 No API key and no account. Your agent does the thinking; Dejo supplies the browser and the
 memory, on your machine.
 
+<!-- mcp-name: io.github.dejohq/dejo-mcp -->
+
 Documentation: **https://github.com/dejohq/dejo-mcp** · Website: **https://dejo.run** · MIT licensed.

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 380" width="880" height="380" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<rect width="880" height="380" rx="12" fill="#0d1117"/>
+<text x="56" y="30" font-size="15" font-weight="600" fill="#f0f3f6">Tool calls per fresh session, three multi-step tasks</text>
+<text x="56" y="49" font-size="12" fill="#9198a1">Each run is a brand-new Claude chat. Lower is better.</text>
+<line x1="56" x2="634" y1="328.0" y2="328.0" stroke="#21262d"/>
+<text x="46" y="332.0" font-size="11" text-anchor="end" fill="#9198a1">0</text>
+<line x1="56" x2="634" y1="262.0" y2="262.0" stroke="#21262d"/>
+<text x="46" y="266.0" font-size="11" text-anchor="end" fill="#9198a1">10</text>
+<line x1="56" x2="634" y1="196.0" y2="196.0" stroke="#21262d"/>
+<text x="46" y="200.0" font-size="11" text-anchor="end" fill="#9198a1">20</text>
+<line x1="56" x2="634" y1="130.0" y2="130.0" stroke="#21262d"/>
+<text x="46" y="134.0" font-size="11" text-anchor="end" fill="#9198a1">30</text>
+<line x1="56" x2="634" y1="64.0" y2="64.0" stroke="#21262d"/>
+<text x="46" y="68.0" font-size="11" text-anchor="end" fill="#9198a1">40</text>
+<text x="56.0" y="348" font-size="11" text-anchor="middle" fill="#9198a1">1</text>
+<text x="120.2" y="348" font-size="11" text-anchor="middle" fill="#9198a1">2</text>
+<text x="184.4" y="348" font-size="11" text-anchor="middle" fill="#9198a1">3</text>
+<text x="248.7" y="348" font-size="11" text-anchor="middle" fill="#9198a1">4</text>
+<text x="312.9" y="348" font-size="11" text-anchor="middle" fill="#9198a1">5</text>
+<text x="377.1" y="348" font-size="11" text-anchor="middle" fill="#9198a1">6</text>
+<text x="441.3" y="348" font-size="11" text-anchor="middle" fill="#9198a1">7</text>
+<text x="505.6" y="348" font-size="11" text-anchor="middle" fill="#9198a1">8</text>
+<text x="569.8" y="348" font-size="11" text-anchor="middle" fill="#9198a1">9</text>
+<text x="634.0" y="348" font-size="11" text-anchor="middle" fill="#9198a1">10</text>
+<text x="345.0" y="370" font-size="11" text-anchor="middle" fill="#9198a1">run</text>
+<polyline points="56.0,235.6 120.2,229.0 184.4,222.4 248.7,242.2 312.9,215.8 377.1,229.0 441.3,242.2 505.6,229.0 569.8,222.4 634.0,229.0" fill="none" stroke="#4a525c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="646.0" y="233.0" font-size="12.5" font-weight="500" fill="#4a525c">Chrome DevTools MCP · 149 in total</text>
+<polyline points="56.0,215.8 120.2,215.8 184.4,123.4 248.7,189.4 312.9,176.2 377.1,196.0 441.3,189.4 505.6,222.4 569.8,229.0 634.0,209.2" fill="none" stroke="#7d8590" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="646.0" y="213.2" font-size="12.5" font-weight="500" fill="#7d8590">Playwright MCP · 199 in total</text>
+<polyline points="56.0,136.6 120.2,255.4 184.4,235.6 248.7,288.4 312.9,288.4 377.1,288.4 441.3,288.4 505.6,288.4 569.8,288.4 634.0,288.4" fill="none" stroke="#f0f3f6" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="646.0" y="292.4" font-size="12.5" font-weight="700" fill="#f0f3f6">Dejo · 96 in total</text>
+</svg>

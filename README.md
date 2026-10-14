@@ -1,10 +1,41 @@
-# Dejo
+<p align="center">
+  <a href="https://dejo.run">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/dejo-mark-white.svg">
+      <img alt="Dejo" src=".github/assets/dejo-mark-black.svg" width="76">
+    </picture>
+  </a>
+</p>
 
-**A browser your AI agent remembers.**
+<h1 align="center">Dejo</h1>
 
-[![tests](https://github.com/dejohq/dejo-mcp/actions/workflows/test.yml/badge.svg)](https://github.com/dejohq/dejo-mcp/actions/workflows/test.yml)
-[![PyPI](https://img.shields.io/pypi/v/dejo-mcp?label=dejo-mcp)](https://pypi.org/project/dejo-mcp/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
+<p align="center">
+  <strong>A browser your AI agent remembers.</strong><br>
+  It learns a website once. Every run after that is one tool call, with zero model calls.
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/dejo-mcp/"><img alt="PyPI" src="https://img.shields.io/pypi/v/dejo-mcp?label=pypi&color=0b0d10"></a>
+  <a href="https://pypi.org/project/dejo-mcp/"><img alt="Python" src="https://img.shields.io/pypi/pyversions/dejo-mcp?color=0b0d10"></a>
+  <a href="https://github.com/dejohq/dejo-mcp/actions/workflows/test.yml"><img alt="Tests" src="https://github.com/dejohq/dejo-mcp/actions/workflows/test.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-0b0d10"></a>
+</p>
+
+<p align="center">
+  <a href="https://dejo.run">Website</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#benchmark">Benchmark</a> ·
+  <a href="#tools">Tools</a> ·
+  <a href="docs/BROWSING.md">What it can do</a> ·
+  <a href=".github/CONTRIBUTING.md">Contributing</a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/benchmark-dark.svg">
+    <img alt="Tool calls per fresh Claude session over ten runs of three multi-step tasks: Dejo 96 in total, flat at 6 per run after it learns; Playwright MCP 199; Chrome DevTools MCP 149." src=".github/assets/benchmark-light.svg" width="880">
+  </picture>
+</p>
 
 Your AI can use websites. But it forgets how, every single time. Dejo makes it remember.
 
@@ -12,11 +43,6 @@ Dejo gives Claude Code, Codex, Cursor or any MCP client a browser with a memory.
 walks a website once: signing in, clicking, reading. Dejo writes down the route. Every run
 after that follows the route instead: **one tool call, no page reading, zero model calls.**
 When the site changes, Dejo repairs the one step that moved and keeps the rest.
-
-**[dejo.run](https://dejo.run)** · [Install](#install) · [How it works](#how-it-works) ·
-[Benchmark](#benchmark) · [Tools](#tools) · [Troubleshooting](#when-something-goes-wrong)
-
----
 
 ## Install
 
@@ -300,10 +326,10 @@ solve it. Clear it yourself once, and run again.
 
 ## Coming from Cairn
 
-Dejo was called **Cairn** until October 2026. On first start, Dejo copies an old `~/.cairn`
-folder to `~/.dejo`, so every sign-in is kept, and brings the old memory across from Sibyl
-Memory into `~/.dejo/memory.db`, so every learned site is kept. Both are copies; the originals
-are left as they were. The old `CAIRN_*` environment variables still work, and the old
+Dejo was called **Cairn** until October 2026. On first start, Dejo moves an old `~/.cairn`
+folder to `~/.dejo`, so every sign-in is kept, and copies the old memory across from Sibyl
+Memory into `~/.dejo/memory.db`, so every learned site is kept. The Sibyl file itself is left
+as it was. The old `CAIRN_*` environment variables still work, and the old
 `cairn-browser-mcp` package installs Dejo.
 
 ## Development
@@ -328,6 +354,33 @@ docs/        design notes
 
 Opening Claude Code inside the clone needs no setup: the checked-in `.mcp.json` offers the
 server straight away.
+
+## FAQ
+
+**Is Dejo a cache?** No. A cache replays and hopes. Every step Dejo saves carries a check that
+proves it landed, so Dejo can tell a changed site from a working one and fix only the step that
+moved.
+
+**Does it call an AI model?** No. Replay is plain code with zero model calls, and there is no
+API key to set. The agent you already use does the thinking, on the first run and when a step
+needs fixing.
+
+**Is it cheaper on every task?** No. The first run costs the most, because Dejo does the job and
+learns the route. On a single page with a one-line answer there is nothing to remember. It pays
+off on tasks with steps that you run again.
+
+**Does it store my passwords?** No. You sign in yourself, in a real window. A step that needs a
+password records only that a password goes there.
+
+**Which agents does it work with?** Any agent that can run an MCP server: Claude Code, Codex,
+Cursor, and others.
+
+## Contributing
+
+Bug reports, sites Dejo gets wrong, and pull requests are all welcome. Start with
+[CONTRIBUTING.md](.github/CONTRIBUTING.md). Found a security problem? Please report it
+privately, as [SECURITY.md](.github/SECURITY.md) explains, not in a public issue. Everyone
+taking part follows the [Code of Conduct](.github/CODE_OF_CONDUCT.md).
 
 ## Prior work
 

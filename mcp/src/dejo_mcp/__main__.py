@@ -2,7 +2,7 @@
 
 import sys
 
-from dejo.home import OldHomeNotCopied, adopt_old_home
+from dejo.home import OldHomeNotMoved, adopt_old_home
 from dejo.store import OldMemoryUnreadable, adopt_old_memory
 
 from .server import log, run_stdio
@@ -11,8 +11,8 @@ from .server import log, run_stdio
 def main() -> None:
     try:
         if adopt_old_home():
-            log("copied your old ~/.cairn folder to ~/.dejo, so every sign-in is kept")
-    except OldHomeNotCopied as stuck:
+            log("moved your old ~/.cairn folder to ~/.dejo, so every sign-in is kept")
+    except OldHomeNotMoved as stuck:
         # stderr only: stdout is the MCP transport, and one stray line there breaks it.
         sys.exit(str(stuck))
     try:

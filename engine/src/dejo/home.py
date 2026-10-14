@@ -4,9 +4,11 @@ Everything Dejo writes outside its memory lives under one folder, `~/.dejo`: the
 browser profiles, downloaded files, and the optional secrets file.
 
 Dejo was called Cairn until October 2026 and kept the same things in `~/.cairn`. The first
-time Dejo starts on a machine that has the old folder and not the new one, it copies the old
-one across, so nobody has to sign in to every site again. Copied, never moved: if anything
-goes wrong, the original is untouched and the copy can simply be tried again.
+time Dejo starts on a machine that has the old folder and not the new one, it moves the old
+folder to the new name, so nobody has to sign in to every site again. A move, not a copy: a
+real user's folder held 1.5 GB of signed-in browser profiles, and copying that took longer
+than an MCP client waits for a server to start, so the first start looked like a failure. A
+rename is instant, doubles no disk space, and happens completely or not at all.
 
 The old `CAIRN_*` environment variables are still read when the `DEJO_*` one is not set, so
 an existing MCP config keeps working after the upgrade.
@@ -15,7 +17,6 @@ an existing MCP config keeps working after the upgrade.
 from __future__ import annotations
 
 import os
-import shutil
 from pathlib import Path
 
 HOME = Path.home() / ".dejo"
@@ -25,29 +26,13 @@ SETTING_PREFIX = "DEJO_"
 OLD_SETTING_PREFIX = "CAIRN_"
 
 # Written inside every browser profile to say which browser made it (see browser.py). The
-# old name is renamed in each copied profile, so the browser that made it is still known.
+# old name is renamed in each moved profile, so the browser that made it is still known.
 PROFILE_OWNER = ".dejo-browser"
 OLD_PROFILE_OWNER = ".cairn-browser"
 
-# Left behind on purpose. Chrome's lock files belong to a browser that may still be running
-# and mean nothing in a copy. The wallet files belonged to a payment feature Dejo no longer
-# has, and a private key is not something to spread to a second folder.
-NOT_COPIED = (
-    "SingletonLock",
-    "SingletonSocket",
-    "SingletonCookie",
-    "lockfile",
-    "wallet.env",
-    "*-shop.env",
-)
 
-# Where a copy is assembled before it becomes ~/.dejo. Renamed into place only once it is
-# complete, so a copy that fails halfway never looks like a finished one.
-PARTIAL_SUFFIX = ".partial"
-
-
-class OldHomeNotCopied(RuntimeError):
-    """`~/.cairn` exists and could not be copied to `~/.dejo`.
+class OldHomeNotMoved(RuntimeError):
+    """`~/.cairn` exists and could not be moved to `~/.dejo`.
 
     Raised rather than worked around. Starting with an empty `~/.dejo` would quietly sign
     the person out of every site they had signed in to, with nothing telling them why.
@@ -69,7 +54,7 @@ def setting(name: str) -> str | None:
 
 
 def adopt_old_home(home: Path | None = None, old: Path | None = None) -> bool:
-    """Copy `~/.cairn` to `~/.dejo` the first time Dejo starts. True if it copied.
+    """Move `~/.cairn` to `~/.dejo` the first time Dejo starts. True if it moved.
 
     Does nothing when `~/.dejo` already exists or there was never a `~/.cairn`. Called by the
     `dejo` and `dejo-mcp` commands before anything else runs, never by the library, so a
@@ -80,34 +65,31 @@ def adopt_old_home(home: Path | None = None, old: Path | None = None) -> bool:
     if home.exists() or not old.is_dir():
         return False
 
-    partial = home.with_name(home.name + PARTIAL_SUFFIX)
-    shutil.rmtree(partial, ignore_errors=True)
     try:
-        shutil.copytree(old, partial, ignore=shutil.ignore_patterns(*NOT_COPIED))
-        _rename_profile_owners(partial)
-        partial.rename(home)
+        old.rename(home)
     except OSError as failed:
-        shutil.rmtree(partial, ignore_errors=True)
-        raise OldHomeNotCopied(
-            f"Dejo found your old Cairn folder at {old} but could not copy it to {home}: "
-            f"{failed}. Close any Cairn or Dejo that is still running and start Dejo again. "
-            f"To start fresh without your old sign-ins instead, create an empty folder at "
-            f"{home}."
+        # On Windows a folder with a file still open in it cannot be renamed at all. Nothing
+        # has moved, so the next start simply tries again.
+        raise OldHomeNotMoved(
+            f"Dejo found your old Cairn folder at {old} but could not move it to {home}: "
+            f"{failed}. Close any Cairn or Dejo that is still running, including old MCP "
+            f"servers, and start Dejo again."
         ) from failed
+    _rename_profile_owners(home)
     return True
 
 
-def _rename_profile_owners(copied: Path) -> None:
-    """Give every copied browser profile the new name for its owner marker.
+def _rename_profile_owners(moved: Path) -> None:
+    """Give every moved browser profile the new name for its owner marker.
 
     The marker sits at the top of a profile, and profiles live in exactly two places: the
     original one, and one folder each for the named ones.
     """
-    profiles = copied / "profiles"
+    profiles = moved / "profiles"
     named = (
         [folder for folder in profiles.iterdir() if folder.is_dir()] if profiles.is_dir() else []
     )
-    for profile in [copied / "browser-profile", *named]:
+    for profile in [moved / "browser-profile", *named]:
         marker = profile / OLD_PROFILE_OWNER
         if marker.is_file():
             marker.rename(profile / PROFILE_OWNER)

@@ -1,14 +1,14 @@
-"""`~/.dejo`, and the one-time copy from `~/.cairn`.
+"""`~/.dejo`, and the one-time move from `~/.cairn`.
 
 Dejo was called Cairn and kept its signed-in browser profiles in `~/.cairn`. Losing that
 folder in the rename would sign every existing user out of every site, with nothing to say
-why. These tests pin the promise: copied once, never moved, never half-done, and never
-silently skipped.
+why. These tests pin the promise: moved once, in one step, never half-done, never silently
+skipped, and fast enough that the first start of the MCP server does not time out.
 """
 
 from __future__ import annotations
 
-import shutil
+from pathlib import Path
 
 import pytest
 
@@ -21,12 +21,10 @@ def old_home_with_a_signed_in_profile(root):
     profile.mkdir(parents=True)
     (profile / "Cookies").write_text("signed in", encoding="utf-8")
     (profile / home.OLD_PROFILE_OWNER).write_text("chrome", encoding="utf-8")
-    (profile / "SingletonLock").write_text("held by a running browser", encoding="utf-8")
     admin = old / "profiles" / "admin"
     admin.mkdir(parents=True)
     (admin / home.OLD_PROFILE_OWNER).write_text("chromium", encoding="utf-8")
     (old / "secrets.json").write_text('{"acme.com": {"password": "x"}}', encoding="utf-8")
-    (old / "wallet.env").write_text("DEJO_WALLET_KEY=0xsecret", encoding="utf-8")
     return old
 
 
@@ -40,13 +38,14 @@ class TestTheOldFolderIsBroughtAcross:
         assert (new / "browser-profile" / "Cookies").read_text(encoding="utf-8") == "signed in"
         assert (new / "secrets.json").is_file()
 
-    def test_the_old_folder_is_copied_never_moved(self, tmp_path) -> None:
+    def test_it_is_moved_so_nothing_is_stored_twice(self, tmp_path) -> None:
+        """A real ~/.cairn held 1.5 GB of profiles. Copying it took longer than an MCP
+        client waits for a server to start; a rename takes no time and no extra disk."""
         old = old_home_with_a_signed_in_profile(tmp_path)
 
         home.adopt_old_home(tmp_path / ".dejo", old)
 
-        assert (old / "browser-profile" / "Cookies").is_file()
-        assert (old / "browser-profile" / home.OLD_PROFILE_OWNER).is_file()
+        assert not old.exists()
 
     def test_every_profile_keeps_the_name_of_the_browser_that_made_it(self, tmp_path) -> None:
         """The marker is renamed, not dropped. Without it, a profile made by Chromium is
@@ -63,15 +62,6 @@ class TestTheOldFolderIsBroughtAcross:
             assert (profile / home.PROFILE_OWNER).read_text(encoding="utf-8") == made_by
             assert not (profile / home.OLD_PROFILE_OWNER).exists()
 
-    def test_lock_files_and_wallet_keys_are_left_behind(self, tmp_path) -> None:
-        old = old_home_with_a_signed_in_profile(tmp_path)
-        new = tmp_path / ".dejo"
-
-        home.adopt_old_home(new, old)
-
-        assert not (new / "browser-profile" / "SingletonLock").exists()
-        assert not (new / "wallet.env").exists()
-
 
 class TestItHappensOnlyOnce:
     def test_an_existing_new_folder_is_never_overwritten(self, tmp_path) -> None:
@@ -81,6 +71,7 @@ class TestItHappensOnlyOnce:
 
         assert home.adopt_old_home(new, old) is False
         assert not (new / "browser-profile").exists()
+        assert (old / "browser-profile" / "Cookies").is_file(), "the old folder is untouched"
 
     def test_nothing_to_do_without_an_old_folder(self, tmp_path) -> None:
         new = tmp_path / ".dejo"
@@ -89,26 +80,25 @@ class TestItHappensOnlyOnce:
         assert not new.exists()
 
 
-class TestAFailedCopyIsNeverMistakenForADoneOne:
-    def test_it_stops_with_a_reason_and_leaves_nothing_half_copied(
-        self, tmp_path, monkeypatch
-    ) -> None:
+class TestAFailedMoveLeavesEverythingWhereItWas:
+    def test_it_stops_with_a_reason_and_moves_nothing(self, tmp_path, monkeypatch) -> None:
+        """On Windows a folder with a file open in it cannot be renamed. That is the case."""
         old = old_home_with_a_signed_in_profile(tmp_path)
         new = tmp_path / ".dejo"
 
-        def locked(*args, **kwargs):
-            raise PermissionError("the profile is in use")
+        def in_use(self, target):
+            raise PermissionError("a file in it is open in another program")
 
-        monkeypatch.setattr(shutil, "copytree", locked)
+        monkeypatch.setattr(Path, "rename", in_use)
 
-        with pytest.raises(home.OldHomeNotCopied) as stuck:
+        with pytest.raises(home.OldHomeNotMoved) as stuck:
             home.adopt_old_home(new, old)
 
         said = str(stuck.value)
-        assert "the profile is in use" in said
+        assert "open in another program" in said
         assert "Close any Cairn or Dejo" in said, "it must say what to do next"
-        assert not new.exists(), "an empty ~/.dejo would stop the copy ever being retried"
-        assert not (tmp_path / ".dejo.partial").exists()
+        assert not new.exists(), "an empty ~/.dejo would stop the move ever being retried"
+        assert (old / "browser-profile" / "Cookies").is_file()
 
 
 class TestOldSettingsStillWork:

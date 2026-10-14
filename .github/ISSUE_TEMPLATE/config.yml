@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Install and setup
+    url: https://github.com/dejohq/dejo-mcp#install
+    about: Most setup problems are answered here, and `dejo doctor` names the fix.
+  - name: Report a security problem
+    url: https://github.com/dejohq/dejo-mcp/security/advisories/new
+    about: Please report security problems privately, never in a public issue.
+  - name: Website
+    url: https://dejo.run
+    about: What Dejo is, and how it compares.

@@ -1,0 +1,71 @@
+name: A site Dejo gets wrong
+description: Dejo could not learn, replay or repair a route on a real website.
+title: "Site: "
+labels: ["site", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most useful report you can send. Real websites are where Dejo gets better.
+        Please never paste a password, a session cookie, or anything typed into a private form.
+
+  - type: input
+    id: site
+    attributes:
+      label: The website
+      description: The address of the page. If it needs a sign-in, say so; we may not be able to open it ourselves.
+      placeholder: "e.g. https://github.com/microsoft/playwright/issues"
+    validations:
+      required: true
+
+  - type: textarea
+    id: task
+    attributes:
+      label: What you asked for
+      description: The task, in the words you gave your agent.
+      placeholder: "count the open issues on microsoft/playwright"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: When it went wrong
+      options:
+        - The first time, while learning the site
+        - Replaying a route that had worked before
+        - Repairing a step after the site changed
+        - Signing in
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What Dejo did, and what you expected. A screenshot of the page helps a lot.
+    validations:
+      required: true
+
+  - type: textarea
+    id: route
+    attributes:
+      label: The saved route, if there is one
+      description: Run `dejo show <site>` and paste the output. It holds no passwords, only steps.
+      render: shell
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Tool output
+      description: The JSON the Dejo tool returned, if you have it. Remove anything private.
+      render: json
+
+  - type: input
+    id: version
+    attributes:
+      label: Dejo version
+      description: Run `pip show dejo-mcp`.
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
