@@ -32,7 +32,7 @@ dependencies = [
     # This venv happened to hold 1.29.1 from an earlier install, so every test passed while
     # a fresh `pip install` was completely broken — found by installing the built wheels
     # into a clean virtualenv, 2026-09-04. Moving to 2.x is planned work.
-    "mcp>=1.29.1,<2",
+    "mcp>=1.29.1,<3",
 ]
 
 [project.optional-dependencies]
