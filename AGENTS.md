@@ -63,7 +63,10 @@ fixture in both `conftest.py` files points every `~/.dejo` path at a throwaway f
    dejo.run.
 3. Both suites green in CI, then `python -m build engine` and `python -m build mcp`, and
    upload `dejo` before `dejo-mcp`, because `dejo-mcp` depends on it.
-4. Publish the listing to the MCP Registry with `mcp-publisher publish`.
+4. Publish the listing to the MCP Registry with `mcp-publisher publish`. Log in first with
+   `mcp-publisher login github -token <token>`, using a GitHub token that has only the `read:org`
+   scope: the plain device login cannot see organizations, so it is refused for
+   `io.github.dejohq/*` (registry issue #1649). Only an Owner of `dejohq` can publish.
 
 ## Definition of done
 
