@@ -57,7 +57,7 @@ Then connect it to your agent:
 
 | agent | where | what |
 |---|---|---|
-| Claude Code | your terminal | `claude mcp add dejo -- dejo-mcp` |
+| Claude Code | your terminal | `claude mcp add --scope user dejo -- dejo-mcp` |
 | Codex | `~/.codex/config.toml` | `[mcp_servers.dejo]`<br>`command = "dejo-mcp"` |
 | Cursor | `~/.cursor/mcp.json` | `{ "mcpServers": { "dejo": { "command": "dejo-mcp" } } }` |
 | anything else | as a stdio server | `dejo-mcp` |
@@ -92,7 +92,7 @@ Prefer a terminal? Everything works without an MCP client:
 
 ```bash
 dejo sites                                            # what it remembers
-dejo run --site github.com --task "count open issues" # replay, no model involved
+dejo run "count open issues" --site github.com        # replay, no model involved
 dejo show github.com                                  # the route, step by step
 dejo forget --site github.com                         # make it forget
 ```
@@ -167,7 +167,7 @@ rerun measures the same thing: `@playwright/mcp@0.0.80`, `chrome-devtools-mcp@1.
 | **all three** | **96 calls · 4.6M tokens** | 199 · 8.7M | 149 · 7.1M |
 
 **52% fewer tool calls and 47% fewer tokens than Playwright MCP.** Against Chrome DevTools
-MCP: 36% fewer calls, 35% fewer tokens. All three tools answered correctly 30 times out of 30.
+MCP: 36% fewer calls, 35% fewer tokens. Every tool answered in all 30 of its sessions.
 
 The GitHub task, run by run:
 
@@ -231,7 +231,7 @@ Memory is per agent. Agents on one machine can hand routes to each other:
 ```bash
 dejo --agent alice share github.com     # alice already knows the site
 dejo --agent bob borrow github.com      # bob has never opened it
-dejo --agent bob run --site github.com --task "count open issues"   # one call
+dejo --agent bob run "count open issues" --site github.com   # one call
 ```
 
 **What travels:** the steps, the ranked locators, the checks, the notes about the site, and the

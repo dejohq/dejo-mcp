@@ -10,7 +10,7 @@ When the site changes, Dejo repairs the one step that moved and keeps the rest.
 pip install dejo
 playwright install chromium        # the browser, a separate download
 
-dejo run --site github.com --task "count open issues"
+dejo run "count open issues" --site github.com
 dejo show github.com               # the route, step by step
 dejo forget --site github.com      # make it forget
 ```

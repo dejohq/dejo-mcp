@@ -11,7 +11,7 @@ moved.
 pip install dejo-mcp
 playwright install chromium        # the browser, a separate download
 
-claude mcp add dejo -- dejo-mcp    # Claude Code
+claude mcp add --scope user dejo -- dejo-mcp    # Claude Code, every project
 ```
 
 Codex: add `[mcp_servers.dejo]` with `command = "dejo-mcp"` to `~/.codex/config.toml`.

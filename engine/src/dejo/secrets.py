@@ -1,7 +1,7 @@
 """Passwords never go into memory.
 
 Dejo remembers *that* a step types a password, never *which* password. The trail stored in
-Sibyl holds a marker like `secret: "password"`; the value itself is looked up at replay time
+memory holds a marker like `secret: "password"`; the value itself is looked up at replay time
 from the machine it runs on.
 
 Two places are checked, in order:

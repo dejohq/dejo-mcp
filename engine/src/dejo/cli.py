@@ -451,7 +451,7 @@ def cmd_borrow(args: argparse.Namespace) -> int:
     needed = [step.secret for step in borrowed.steps if step.secret]
     if needed:
         print(f"     it will ask you for: {', '.join(needed)} — those were never shared")
-    print(f'\n     now run:  dejo run --site {domain} --task "{borrowed.task}"\n')
+    print(f'\n     now run:  dejo run "{borrowed.task}" --site {domain}\n')
     return 0
 
 
@@ -483,7 +483,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="dejo",
         description="A browser memory for AI agents. Learn a site once, replay it for free.",
     )
-    parser.add_argument("--db", default=None, help="memory database (default: Sibyl's own)")
+    parser.add_argument("--db", default=None, help="memory database (default: ~/.dejo/memory.db)")
     parser.add_argument(
         "--profile",
         default=DEFAULT_PROFILE_NAME,

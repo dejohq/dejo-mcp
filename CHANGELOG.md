@@ -2,6 +2,19 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **The README's `dejo run` example works.** It showed `--task`, which `run` does not have, so
+  the first command a reader copied failed. `run` takes the task as plain words:
+  `dejo run "count open issues" --site github.com`. `dejo borrow` suggested the same broken
+  form and now prints the working one. A test checks every `dejo` command in the READMEs.
+- `dejo --help` names the real default memory file, `~/.dejo/memory.db`.
+- The README no longer says every tool answered "correctly" 30 times out of 30. The benchmark
+  checks that an answer came back, not that it was right, so it now says every tool answered.
+- **The Claude Code setup line adds Dejo for every project.** `claude mcp add` alone adds a server
+  to the current folder only, so Dejo vanished when Claude Code opened anywhere else. The READMEs now
+  say `claude mcp add --scope user dejo -- dejo-mcp`.
+
 ## 0.1.1 — 2026-10-15
 
 - **Moving from Cairn is instant.** An old `~/.cairn` folder is now moved to `~/.dejo` instead of

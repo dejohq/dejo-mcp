@@ -59,7 +59,8 @@ fixture in both `conftest.py` files points every `~/.dejo` path at a throwaway f
 1. Bump the version in `engine/pyproject.toml`, `engine/src/dejo/__init__.py`,
    `mcp/pyproject.toml` (and its `dejo>=` floor), `mcp/src/dejo_mcp/__init__.py` and
    `server.json` (twice). `mcp/tests/test_registry.py` fails if any of them disagree.
-2. Add the release to `CHANGELOG.md`.
+2. Add the release to `CHANGELOG.md`, and copy the same section to the changelog page on
+   dejo.run.
 3. Both suites green in CI, then `python -m build engine` and `python -m build mcp`, and
    upload `dejo` before `dejo-mcp`, because `dejo-mcp` depends on it.
 4. Publish the listing to the MCP Registry with `mcp-publisher publish`.
