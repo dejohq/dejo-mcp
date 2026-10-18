@@ -683,6 +683,11 @@ class Executor:
         # page. `wait_until_quiet` returns the moment the site stops calling home, so
         # the whole budget is only ever spent by a page that never goes quiet.
         self.browser.wait_until_quiet(SETTLE_AFTER_LAST_STEP_MS)
+        # Quiet network is not the end of it: an app that redirects on a timer sends no
+        # request, so the address has to have stopped moving too. Then once more for the
+        # network, in case the page it moved to is still loading its data.
+        self.browser.wait_until_address_still(timeout_ms=SETTLE_AFTER_LAST_STEP_MS)
+        self.browser.wait_until_quiet(SETTLE_AFTER_LAST_STEP_MS)
 
     # ------------------------------------------------------------ one step
 

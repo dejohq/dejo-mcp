@@ -1172,6 +1172,26 @@ class Browser:
             waited += SPA_NAV_POLL_MS
         return self.page.url != was
 
+    def wait_until_address_still(
+        self, still_ms: int = SPA_NAV_GRACE_MS, timeout_ms: int = 4000
+    ) -> None:
+        """Wait until the address has stopped changing for `still_ms`.
+
+        "The network went quiet" is not enough after a click: an app that redirects on a
+        timer (pushState a beat after a sign-in) makes no request at all, so the page is
+        already idle while the redirect is still to come. macOS CI caught this, where a run
+        returned on the sign-in page because the 120 ms redirect had not fired yet.
+        """
+        seen = self.page.url
+        still = waited = 0
+        while still < still_ms and waited < timeout_ms:
+            with suppress(PlaywrightError):
+                self.page.wait_for_timeout(SPA_NAV_POLL_MS)
+            waited += SPA_NAV_POLL_MS
+            now = self.page.url
+            still = 0 if now != seen else still + SPA_NAV_POLL_MS
+            seen = now
+
     def settle(self) -> None:
         """Let the page catch up after an action.
 

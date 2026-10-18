@@ -4,6 +4,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## 0.1.2 — 2026-10-18
 
+- **A run that ends with a click waits for the address to stop moving.** An app that redirects
+  on a timer after sign-in (pushState a beat later) sends no request, so "the network is quiet"
+  was already true and the run could return on the sign-in page. Found on macOS CI.
 - **A sign-in page is no longer read as the answer.** Replaying a Google Doc while signed out,
   Google sent the document to its sign-in page with the document's address in the query string.
   The address check matched that, walking back joined the document's path onto
