@@ -28,8 +28,11 @@ dependencies = [
 # Memory is Dejo's own SQLite file and needs nothing installed. Sibyl Memory is an optional
 # second backend, chosen with DEJO_MEMORY=sibyl.
 sibyl = ["sibyl-memory-client>=0.8.0"]
-# The Sibyl backend is in dev so its tests run everywhere the rest do.
-dev = ["pytest>=8.0", "fastapi>=0.141.1", "uvicorn>=0.52.4", "sibyl-memory-client>=0.8.0"]
+# The Sibyl backend is in dev so its tests run everywhere the rest do. Held below 0.9 here only:
+# the tests write sample Sibyl files the way Cairn-era Sibyl did, and 0.9.0 refuses to write
+# anything until `sibyl init` has made an account, which a CI machine never has. Dejo's own
+# import of an old Sibyl file reads it directly and needs no Sibyl package at all.
+dev = ["pytest>=8.0", "fastapi>=0.141.1", "uvicorn>=0.52.4", "sibyl-memory-client>=0.8.0,<0.9"]
 
 [project.urls]
 Homepage = "https://dejo.run"
