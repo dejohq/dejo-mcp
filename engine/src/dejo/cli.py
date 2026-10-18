@@ -140,6 +140,7 @@ EXIT_CODES = {
     "needs_login": 3,
     "blocked": 4,
     "wrong_place": 5,
+    "page_error": 6,
 }
 
 
@@ -151,6 +152,8 @@ def outcome_of(result: ReplayResult) -> str:
         return "wrong_place"
     if result.blocked:
         return "blocked"
+    if result.page_error is not None:
+        return "page_error"
     if result.needs_login:
         return "needs_login"
     if result.stale:
@@ -253,6 +256,12 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"  {CROSS} {result.reason}")
         print()
         return 4
+
+    if result.page_error is not None:
+        print()
+        print(f"  {CROSS} {result.reason}")
+        print()
+        return EXIT_CODES["page_error"]
 
     if result.needs_login:
         print()

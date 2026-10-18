@@ -44,6 +44,10 @@ class TestTheOutcome:
     def test_each_kind_of_stop_is_named(self, flag: str, outcome: str) -> None:
         assert outcome_of(a_result(ok=False, **{flag: True})) == outcome
 
+    def test_an_error_page_is_its_own_outcome(self) -> None:
+        assert outcome_of(a_result(ok=False, page_error=404)) == "page_error"
+        assert EXIT_CODES["page_error"] == 6
+
     def test_a_broken_step_with_a_repair_request_needs_repair(self) -> None:
         repair = RepairRequest(
             domain=SITE, step_index=2, intent="read the count", action="read", tried=[]
@@ -52,7 +56,7 @@ class TestTheOutcome:
 
     def test_every_outcome_has_an_exit_code(self) -> None:
         outcomes = {"done", "failed", "already_done", "wrong_place", "blocked"}
-        outcomes |= {"needs_login", "stale", "needs_repair", "no_trail"}
+        outcomes |= {"needs_login", "stale", "needs_repair", "no_trail", "page_error"}
         assert outcomes == set(EXIT_CODES)
 
     def test_only_success_exits_zero(self) -> None:

@@ -127,6 +127,30 @@ _NOISE = frozenset(
         "with",
     ]
 )
+# Verbs that say what is done to a page, not which job it is. Almost every task starts with
+# one, so on their own they are no evidence that two descriptions mean the same task.
+_ACTIONS = frozenset(
+    [
+        "check",
+        "click",
+        "count",
+        "download",
+        "fetch",
+        "find",
+        "give",
+        "go",
+        "list",
+        "look",
+        "open",
+        "read",
+        "see",
+        "take",
+        "tell",
+        "use",
+        "view",
+        "visit",
+    ]
+)
 SITE_KNOWLEDGE = "site_knowledge"
 
 
@@ -787,8 +811,18 @@ def shares_meaning(wanted: str, candidate: str, domain: str | None = None) -> bo
 
     Zero words in common is still a refusal, because that is the case that matters:
     "cancel my subscription" must never run "count open issues".
+
+    So is sharing only an action word. "read the keywords tab of the Sheet" ran the one
+    trail saved on docs.google.com, "read the full text of a Google Doc", because both
+    begin with "read" — and answered with the wrong document. Words like "read" and "open"
+    say what is done, never to what, so they cannot make two jobs the same job. The one
+    exception is a swapped subject ("message riya" against "message ankush"), which is the
+    same route aimed somewhere else and is handled as exactly that.
     """
-    return bool(_meaningful(wanted, domain) & _meaningful(candidate, domain))
+    shared = _meaningful(wanted, domain) & _meaningful(candidate, domain)
+    if shared - _ACTIONS:
+        return True
+    return bool(shared) and swapped_subject(wanted, candidate, domain) is not None
 
 
 def swapped_subject(

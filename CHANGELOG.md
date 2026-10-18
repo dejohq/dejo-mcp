@@ -2,13 +2,29 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
-## Unreleased
+## 0.1.2 — 2026-10-18
 
+- **A sign-in page is no longer read as the answer.** Replaying a Google Doc while signed out,
+  Google sent the document to its sign-in page with the document's address in the query string.
+  The address check matched that, walking back joined the document's path onto
+  accounts.google.com (a 404 page), and the run reported `ok` with the 404 text as the answer.
+  Address checks now ignore the query string unless the saved address has one, walking back
+  stays on the route's own site, and the run reports `needs_login`.
+- **An error page stops the run.** When a site answers a step's address with HTTP 400 or above,
+  the run stops with the new outcome `page_error` (`dejo run` exit code 6) instead of reading
+  the error page. Nothing is marked broken and no repair is offered. A 401/403 that shows a
+  sign-in page is reported as `needs_login`.
+- **A site's only route is not run for a different job.** "read the keywords tab of the Sheet"
+  ran the one route saved on docs.google.com, "read the full text of a Google Doc", because
+  both start with "read". Sharing only an action word (read, open, check, download...) no
+  longer counts as the same task; a swapped subject ("message riya" for "message ankush")
+  still does.
 - **`dejo run` prints the answer.** A run read the value it was saved for (the open issue
   count, the invoice total) and never showed it, so a terminal run ended with no result.
 - **`dejo run --json`** prints one line of JSON (outcome, answers, saved files, time) for cron
   jobs and scripts. Exit codes: 0 done, 1 failed or needs a repair, 2 no trail or the site was
-  rebuilt, 3 needs a sign-in, 4 blocked by a captcha, 5 not on the trail's starting page.
+  rebuilt, 3 needs a sign-in, 4 blocked by a captcha, 5 not on the trail's starting page, 6 the
+  page answered with an HTTP error.
 - **The README's `dejo run` example works.** It showed `--task`, which `run` does not have, so
   the first command a reader copied failed. `run` takes the task as plain words:
   `dejo run "count open issues" --site github.com`. `dejo borrow` suggested the same broken

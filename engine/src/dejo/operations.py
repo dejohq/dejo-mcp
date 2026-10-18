@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from time import monotonic
 from typing import Any, get_args
+from urllib.parse import urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
@@ -835,6 +836,21 @@ def settles_into(browser: Browser, expected: Postcondition, timeout_ms: int | No
     return True
 
 
+def address_to_check(url: str, wanted: str) -> str:
+    """The part of the current address an expected address is compared with.
+
+    Without its query string, unless the expectation has one of its own. A sign-in page
+    carries the page you asked for in its query (Google sends a document to
+    accounts.google.com/...?continue=https://docs.google.com/document/d/...), so checking
+    the whole address said a sign-in page WAS the document, and the run read the sign-in
+    page as its answer.
+    """
+    if "?" in wanted or "#" in wanted:
+        return url
+    parts = urlparse(url)
+    return f"{parts.scheme}://{parts.netloc}{parts.path}" if parts.netloc else url
+
+
 def check_postcondition(browser: Browser, expected: Postcondition) -> bool:
     """Did the page actually end up where it should have?
 
@@ -848,7 +864,9 @@ def check_postcondition(browser: Browser, expected: Postcondition) -> bool:
         # `target` holds the OTHER acceptable URL when a step navigated through a
         # redirect. Arriving at either end of that redirect is arriving.
         here = browser.page.url
-        return expected.value in here or bool(expected.target and expected.target in here)
+        return expected.value in address_to_check(here, expected.value) or bool(
+            expected.target and expected.target in address_to_check(here, expected.target)
+        )
     if expected.kind == "text_present":
         return expected.value.lower() in browser.text().lower()
     if expected.kind == "text_gone":

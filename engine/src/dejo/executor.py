@@ -67,6 +67,10 @@ from .store import DejoStore, swapped_subject
 # A step is considered past saving when this share of the trail is already broken.
 STALE_SHARE = 0.5
 
+# HTTP statuses from here up mean the server did not give us the page (not found, forbidden,
+# server error). Below it, 2xx and 3xx, the page arrived.
+HTTP_ERROR_FROM = 400
+
 # How long to let the site finish moving after a trail's LAST action before saying the run
 # is done. Spent only by trails that end by pressing something — a trail ending in a read
 # has nothing in flight — and only in full by a page that never stops calling home.
@@ -178,6 +182,13 @@ class ReplayResult:
     there is nothing to repair, and nothing an AI can do about it either. Reporting it as
     drift would mark good locators dead for a page the trail never actually reached."""
 
+    page_error: int | None = None
+    """The site answered a step's address with an error status (404, 403, 500...), so
+    the page the trail reads from is not there. Without this a whole-page read ran on the
+    error page and reported success: a Google Doc that had gone came back `ok` with
+    "404. That's an error." as its answer. Not drift either — the controls did not move,
+    the page is missing — so nothing is marked broken and no repair is offered."""
+
     site_facts: list[str] = field(default_factory=list)
     """What is still known about the site after a stale trail is thrown away. This is why
     relearning is cheaper than a first visit."""
@@ -226,6 +237,16 @@ def _same_page(here: str, recorded: str) -> bool:
     `/admin/sign-in` and `/admin/sign-in/` has not moved anything.
     """
     return page_path(here).rstrip("/") == page_path(recorded).rstrip("/")
+
+
+def _trail_origin(playbook: Playbook) -> str | None:
+    """Where this trail's site starts: the scheme and host of its first address."""
+    for step in playbook.steps:
+        if step.action == "goto" and step.value:
+            parts = urlparse(step.value)
+            if parts.scheme in ("http", "https") and parts.netloc:
+                return f"{parts.scheme}://{parts.netloc}/"
+    return None
 
 
 def _redirected_there(landed: str, asked_for: str) -> bool:
@@ -448,6 +469,11 @@ class Executor:
                 )
                 continue
 
+            # The site answered with an error page. Some sites send 401 or 403 to a
+            # signed-out visitor, so that case is a sign-in, not a missing page.
+            if outcome.error_status is not None:
+                return self._page_missing(playbook, metrics, started, step, outcome)
+
             # Decided BEFORE the repair request is built. Building it takes a snapshot of
             # the wrong page and writes it into the site map, and emits RepairNeeded to
             # every listener — all of it about a page this trail has nothing to do with.
@@ -459,16 +485,23 @@ class Executor:
                 # is the whole difference between a tool that recovers and one that hands
                 # its user an error to read.
                 # A trail may hold its pages as bare paths, and Playwright needs a whole
-                # address. Resolving against where we are keeps a path on this site and
-                # leaves an absolute URL exactly as it was written. A trail whose first
-                # step is a click has not been anywhere yet, so there is no origin to
-                # resolve against and nothing to walk back to.
-                target = urljoin(self.browser.page.url, belongs)
+                # address. A path is resolved against the TRAIL's own site, never against
+                # wherever the browser happens to be: signed out of Google, a document
+                # path was joined onto accounts.google.com, which answered 404, and that
+                # error page was read as the document. An absolute URL stays as written.
+                target = urljoin(_trail_origin(playbook) or self.browser.page.url, belongs)
                 if urlparse(target).scheme in ("http", "https") and self._can_walk_back(
                     playbook, step
                 ):
                     self._went_back = True
                     self.browser.goto(target)
+                    status = self.browser.last_status
+                    if status is not None and status >= HTTP_ERROR_FROM:
+                        missing = self._StepOutcome(
+                            error_status=status,
+                            reason=f"{target} answered with HTTP {status} instead of the page",
+                        )
+                        return self._page_missing(playbook, metrics, started, step, missing)
                     retry = self._replay_step(step, start_url=None)
                     if retry.matched_by is not None:
                         metrics.steps_replayed += 1
@@ -659,6 +692,8 @@ class Executor:
         tried: list[str] = field(default_factory=list)
         reason: str = ""
         duration_ms: int = 0
+        error_status: int | None = None
+        """The HTTP error a `goto` was answered with, when the page itself is missing."""
         off_trail: tuple[str, str] | None = None
         """Where this step belongs, and where we actually are — when they differ.
 
@@ -693,6 +728,16 @@ class Executor:
             sent_elsewhere = bool(start_url) and step.index == 1
             destination = start_url if sent_elsewhere else step.value
             self.browser.goto(destination or "")
+
+            # An error page sits at the address we asked for, so the address check below
+            # would pass it. Asked first, and recorded as neither a hit nor a miss: the
+            # step is fine, the page it goes to is not there.
+            status = self.browser.last_status
+            if status is not None and status >= HTTP_ERROR_FROM:
+                return self._StepOutcome(
+                    error_status=status,
+                    reason=f"{destination} answered with HTTP {status} instead of the page",
+                )
 
             # When the caller redirects the first step, the stored check is about the old
             # address and cannot apply. Checking it anyway reported `needs_repair` on a
@@ -898,6 +943,45 @@ class Executor:
             missed.append((locator, label))
 
         return None, found_anything, missed
+
+    def _page_missing(
+        self,
+        playbook: Playbook,
+        metrics: RunMetrics,
+        started: float,
+        step: Step,
+        outcome: _StepOutcome,
+    ) -> ReplayResult:
+        """The site answered with an error page, so there is nothing to read or repair.
+
+        Some sites send 401 or 403 to a signed-out visitor, so that case is reported as a
+        sign-in, which is the thing the person can actually fix.
+        """
+        self.events.emit(StepFailed(index=step.index, intent=step.intent, reason=outcome.reason))
+        self._finish(playbook, metrics, started, succeeded=False)
+        if self.browser.looks_signed_out():
+            return ReplayResult(
+                ok=False,
+                metrics=metrics,
+                needs_login=True,
+                reason=(
+                    f"{playbook.domain} asked to sign in again. The trail is fine — "
+                    f"the session ran out."
+                ),
+                saved_files=list(self.browser.saved_files),
+            )
+        return ReplayResult(
+            ok=False,
+            metrics=metrics,
+            page_error=outcome.error_status,
+            reason=(
+                f"Step {step.index} ({step.intent!r}): {outcome.reason}. The page this trail "
+                f"reads from is not there (deleted, moved, or not shared with this profile). "
+                f"Nothing was read and nothing is marked broken. Check the address in a "
+                f"browser; if the page moved, walk the task again and save it."
+            ),
+            saved_files=list(self.browser.saved_files),
+        )
 
     def _can_walk_back(self, playbook: Playbook, step: Step) -> bool:
         """May this run navigate back to where the step belongs, and try once more?

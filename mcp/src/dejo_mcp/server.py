@@ -744,6 +744,23 @@ def build_server(
                 ),
             }
 
+        if result.page_error is not None:
+            return {
+                "ok": False,
+                "known": True,
+                "page_error": result.page_error,
+                "site": key,
+                "profile": tools.active,
+                "message": result.reason,
+                "next": (
+                    "STOP. Do not call dejo_repair: the controls did not move, the page is "
+                    f"missing (HTTP {result.page_error}). Nothing was read, so do not report "
+                    "an answer. Tell the user the page could not be opened and why it may "
+                    "be (deleted, moved, or not shared with this account). If they give a "
+                    "new address, walk the task there and call dejo_save."
+                ),
+            }
+
         if result.needs_login:
             return {
                 "ok": False,

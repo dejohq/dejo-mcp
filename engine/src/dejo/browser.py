@@ -469,6 +469,9 @@ class Browser:
         appears to succeed while nothing happened. Whatever is chosen, the message and the
         choice are both recorded, and replay stops if the message has changed."""
         self.last_dialog: dict[str, str] | None = None
+        self.last_status: int | None = None
+        """The HTTP status the last `goto` was answered with. None when there was no
+        response to read, which happens for a jump within the same page."""
         self.profile_note: str | None = None
         """Set when the profile had to be opened by the other browser. Worth passing on."""
         self.tabs: list[Page] = []
@@ -892,8 +895,12 @@ class Browser:
         Only the second is worth a different sentence, and only a second browser can tell
         them apart, so it is asked once, and only after the real attempt has already failed.
         """
+        self.last_status = None
         try:
-            self.page.goto(url, wait_until="domcontentloaded")
+            response = self.page.goto(url, wait_until="domcontentloaded")
+            # Kept because an error page passes every address check: Google answers a
+            # document that is gone with a 404 page at the document's own address.
+            self.last_status = response.status if response is not None else None
         except PlaywrightTimeout as stuck:
             if self._profile is None or not self._loads_without_profile(url):
                 raise
