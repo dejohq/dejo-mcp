@@ -28,6 +28,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
 from .browser import (
@@ -41,7 +42,7 @@ from .browser import (
 )
 from .doctor import cmd_doctor
 from .events import Emitter, Event
-from .executor import Executor, NoTrailError
+from .executor import Executor, NoTrailError, ReplayResult
 from .home import OldHomeNotMoved, adopt_old_home
 from .models import SiteMap
 from .store import DejoStore, OldMemoryUnreadable, TrailAlreadyHere, adopt_old_memory
@@ -104,7 +105,9 @@ def _store(args: argparse.Namespace) -> DejoStore:
     """
     store = DejoStore(db_path=args.db, agent=getattr(args, "agent", None))
     if store.agent:
-        print(f"  (as agent {store.agent})")
+        # `run --json` promises one line of JSON on stdout, so the notice goes elsewhere.
+        out = sys.stderr if getattr(args, "json", False) else sys.stdout
+        print(f"  (as agent {store.agent})", file=out)
     return store
 
 
@@ -126,12 +129,64 @@ def _site_key(value: str) -> str:
 # ------------------------------------------------------------------ commands
 
 
+# What `dejo run` exits with, by outcome. A scheduler acts on these, so they never change.
+EXIT_CODES = {
+    "done": 0,
+    "already_done": 0,
+    "failed": 1,
+    "needs_repair": 1,
+    "no_trail": 2,
+    "stale": 2,
+    "needs_login": 3,
+    "blocked": 4,
+    "wrong_place": 5,
+}
+
+
+def outcome_of(result: ReplayResult) -> str:
+    """One word for how a run ended, checked in the same order the human report uses."""
+    if result.already_done:
+        return "already_done"
+    if result.wrong_place:
+        return "wrong_place"
+    if result.blocked:
+        return "blocked"
+    if result.needs_login:
+        return "needs_login"
+    if result.stale:
+        return "stale"
+    if result.needs_repair and result.repair is not None:
+        return "needs_repair"
+    return "done" if result.ok else "failed"
+
+
+def run_report(domain: str, result: ReplayResult) -> dict[str, Any]:
+    """The `--json` line. A scheduled run has nobody watching the step-by-step output, so
+    everything a script needs to act on is here: did it work, what did it read, what did it
+    save, and if not, why."""
+    outcome = outcome_of(result)
+    return {
+        "outcome": outcome,
+        "ok": EXIT_CODES[outcome] == 0,
+        "site": domain,
+        "task": result.metrics.task,
+        "answers": result.answers,
+        "saved_files": result.saved_files,
+        "duration_ms": result.metrics.duration_ms,
+        "model_calls": result.metrics.model_calls,
+        "reason": result.reason,
+        "repair": result.repair.to_dict() if result.repair is not None else None,
+    }
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     domain = _site_key(args.site)
     start_url = args.url or (args.site if urlparse(args.site).scheme else None)
+    as_json = getattr(args, "json", False)
 
     emitter = Emitter()
-    emitter.subscribe(render)
+    if not as_json:
+        emitter.subscribe(render)
     store = _store(args)
 
     browser = Browser(headless=not args.headed, profile=_profile_path(args))
@@ -146,13 +201,26 @@ def cmd_run(args: argparse.Namespace) -> int:
             profile=getattr(args, "profile", DEFAULT_PROFILE_NAME),
         ).run(domain, task=args.task, start_url=start_url)
     except NoTrailError as gone:
-        print(f"\n  {CROSS} {gone}\n")
-        return 2
+        if as_json:
+            gone_report = {"outcome": "no_trail", "ok": False, "site": domain, "reason": str(gone)}
+            print(json.dumps(gone_report))
+        else:
+            print(f"\n  {CROSS} {gone}\n")
+        return EXIT_CODES["no_trail"]
     finally:
         browser.stop()
 
+    if as_json:
+        print(json.dumps(run_report(domain, result), ensure_ascii=False))
+        return EXIT_CODES[outcome_of(result)]
+
     for saved in result.saved_files:
         print(f"  {TICK} saved  {saved}")
+    # The answer is the point of most runs ("how many open issues"). It used to be read and
+    # then never shown, so a terminal run ended with no result on screen. Printed on one
+    # line, because page text often arrives split across several; --json keeps it as read.
+    for intent, answer in result.answers.items():
+        print(f"  {TICK} {intent}:  {' '.join(str(answer).split())}")
 
     if result.aimed_at:
         was, now = result.aimed_at
@@ -507,6 +575,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--site", required=True, help="domain or full url")
     run.add_argument("--url", default=None, help="override where the first step goes")
     run.add_argument("--headed", action="store_true", help="watch it happen")
+    run.add_argument(
+        "--json",
+        action="store_true",
+        help="print only the outcome, as one line of JSON, for scripts and schedulers",
+    )
     run.set_defaults(func=cmd_run)
 
     login = subs.add_parser(

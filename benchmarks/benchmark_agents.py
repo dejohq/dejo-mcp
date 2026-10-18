@@ -9,7 +9,9 @@ the same real job, so the rows are comparable the way a model card's rows are.
 
     Playwright MCP        driven by Claude
     Chrome DevTools MCP   driven by Claude
-    Dejo                 driven by Claude
+    Dejo                  driven by Claude
+    Playwright CLI        driven by Claude, through Bash and the CLI's own skill (--tools)
+    Claude in Chrome      driven by Claude, in the person's own Chrome (--tools)
     browser-use           driven by its own model (below)
 
 The axis is REPETITION, because that is what actually happens: a daily invoice check, a
@@ -57,6 +59,14 @@ EFFORT = "medium"
 # Pinned, so a rerun measures the same servers.
 PLAYWRIGHT_MCP = "@playwright/mcp@0.0.80"
 DEVTOOLS_MCP = "chrome-devtools-mcp@1.8.0"
+# Playwright CLI is not an MCP server: the agent runs it through Bash, guided by the skill it
+# installs. It must be on PATH at exactly this version: npm install -g @playwright/cli@0.1.22
+PLAYWRIGHT_CLI_VERSION = "0.1.22"
+
+# Every row the script knows. The first three are the published head-to-head; the last two
+# are the ways Claude Code users drive a browser without an MCP server of their own.
+MCP_TOOLS = ["dejo", "playwright", "chrome-devtools"]
+ALL_TOOLS = [*MCP_TOOLS, "playwright-cli", "claude-in-chrome"]
 BROWSER_USE_MODEL = "google/gemini-2.5-flash-lite"
 
 DEJO_MCP = str(Path(sys.executable).with_name("dejo-mcp.exe"))
@@ -194,12 +204,19 @@ JOURNEYS = [
 ]
 
 
-def ask(site: Site) -> str:
-    """The identical job, worded the same for every tool."""
-    return (
+def ask(site: Site, tool: str = "") -> str:
+    """The identical job, worded the same for every tool.
+
+    One exception. An MCP server's tools are the only browser Claude can see, so "open it
+    in the browser" is enough. Playwright CLI is a skill on top of Bash, and a pilot given
+    the plain wording never opened it: it tried curl, was refused, and gave up. Its README
+    tells people to name it in the request, so that row gets the sentence its own docs say
+    to add, and nothing else."""
+    job = (
         f"Open {site.url} in the browser and {site.asked}. "
         f"Reply with only that text and nothing else."
     )
+    return f"{job} Use playwright-cli." if tool == "playwright-cli" else job
 
 
 @dataclass
@@ -253,25 +270,77 @@ def _server(name: str, memory: str) -> dict:
     return {"command": npx, "args": ["-y", DEVTOOLS_MCP, "--headless"]}
 
 
-def with_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -> Run:
-    """One real Claude session, given one browser tool and one job."""
-    row = Run(tool=name, site=site.domain, run=attempt)
+def _tool_args(name: str, memory: str, where: Path) -> list[str]:
+    """The flags that hand Claude exactly one browser tool and take every other way away.
+
+    Everything a model could use to SHORTCUT the browser must be taken away, or the
+    benchmark measures nothing. The first pilot spent two of three runs on WebFetch — it
+    fetched the page over HTTP and answered — while being recorded as a browser-tool
+    result. `--allowedTools` permits a tool; it does not forbid the built-in ones, and a
+    model reaches for the cheapest thing that works."""
+    if name == "playwright-cli":
+        # The CLI is driven through Bash and reports pages as snapshot files the model
+        # reads, so Bash (only `playwright-cli` commands) and Read stay. A denied rule
+        # outranks an allowed one, so Bash cannot also sit in the disallowed list; in
+        # print mode any other command is refused anyway, because nobody is there to
+        # approve it.
+        kept = {"Bash", "Read"}
+        allowed = ["Bash(playwright-cli:*)", "Read", "Skill"]
+        return [
+            "--allowedTools",
+            *allowed,
+            "--disallowedTools",
+            *[t for t in BUILT_INS if t not in kept],
+        ]
+    if name == "claude-in-chrome":
+        # Anthropic's extension in the person's own Chrome: no server to configure.
+        return [
+            "--chrome",
+            "--allowedTools",
+            "mcp__claude-in-chrome",
+            "--disallowedTools",
+            *BUILT_INS,
+        ]
     config = _config(name, _server(name, memory), where)
-    command = [
-        _cli("claude"),
-        "-p",
-        ask(site),
+    return [
         "--mcp-config",
         str(config),
         "--allowedTools",
         f"mcp__{name}",
-        # Everything a model could use to SHORTCUT the browser must be taken away, or the
-        # benchmark measures nothing. The first pilot spent two of three runs on WebFetch
-        # — it fetched the page over HTTP and answered — while being recorded as a
-        # browser-tool result. `--allowedTools` permits a tool; it does not forbid the
-        # built-in ones, and a model reaches for the cheapest thing that works.
         "--disallowedTools",
         *BUILT_INS,
+    ]
+
+
+def _fresh_cli_workspace(where: Path, attempt: int) -> Path:
+    """A new folder with the CLI's skill installed, so every session starts from nothing,
+    exactly like a new Claude Code session in a project that uses the CLI."""
+    folder = where / f"cli-run-{attempt}-{time.monotonic_ns()}"
+    folder.mkdir()
+    subprocess.run(
+        [_cli("playwright-cli"), "install", "--skills"],
+        cwd=folder,
+        capture_output=True,
+        check=True,
+        **_gently(),
+    )
+    return folder
+
+
+def with_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -> Run:
+    """One real Claude session, given one browser tool and one job."""
+    row = Run(tool=name, site=site.domain, run=attempt)
+    if name == "playwright-cli":
+        where = _fresh_cli_workspace(where, attempt)
+    command = [
+        _cli("claude"),
+        "-p",
+        ask(site, name),
+        *_tool_args(name, memory, where),
+        # Only the server this row names. Without it Claude also loads every MCP server
+        # the person has configured for themselves: a Playwright CLI pilot ignored the CLI
+        # and called a user-wide Dejo instead, and was recorded as a CLI result.
+        "--strict-mcp-config",
         "--model",
         MODEL,
         "--effort",
@@ -296,6 +365,13 @@ def with_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -
         row.note = "timed out"
         row.seconds = time.perf_counter() - began
         return row
+    finally:
+        if name == "playwright-cli":
+            # A headless CLI browser outlives the session for an hour by default, and the
+            # next run must not find it open.
+            subprocess.run(
+                [_cli("playwright-cli"), "close-all"], cwd=where, capture_output=True, **_gently()
+            )
     row.seconds = time.perf_counter() - began
     _read_stream(row, done.stdout)
     if not row.ok and not row.note:
@@ -434,10 +510,20 @@ def main() -> int:
     # replaced a full head-to-head that cost real money to produce.
     parser.add_argument("--out", default="benchmark-agents.json", help="where to write it")
     parser.add_argument("--runs", type=int, default=3)
+    parser.add_argument(
+        "--tools",
+        default=",".join(MCP_TOOLS),
+        help=f"comma-separated rows to run, from: {', '.join(ALL_TOOLS)}. claude-in-chrome needs "
+        "the extension connected to a Chrome on this machine, and opens real tabs in it",
+    )
     parser.add_argument("--only", default="", help="one tool, for diagnosing a row")
     parser.add_argument("--skip-browser-use", action="store_true")
     parser.add_argument("--browser-use-python", default=os.environ.get("BROWSER_USE_PYTHON", ""))
     args = parser.parse_args()
+
+    unknown = ({args.only} - {""} | set(args.tools.split(","))) - set(ALL_TOOLS)
+    if unknown:
+        parser.error(f"unknown tool {sorted(unknown)} — have: {ALL_TOOLS}")
 
     where = Path(mkdtemp())
     table = Table()
@@ -448,7 +534,7 @@ def main() -> int:
 
     for site in chosen:
         print(f"\n  {site.domain}")
-        wanted = [args.only] if args.only else ["dejo", "playwright", "chrome-devtools"]
+        wanted = [args.only] if args.only else args.tools.split(",")
         for name in wanted:
             memory = str(Path(mkdtemp()) / "memory.db")
             for attempt in range(1, args.runs + 1):

@@ -4,6 +4,11 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **`dejo run` prints the answer.** A run read the value it was saved for (the open issue
+  count, the invoice total) and never showed it, so a terminal run ended with no result.
+- **`dejo run --json`** prints one line of JSON (outcome, answers, saved files, time) for cron
+  jobs and scripts. Exit codes: 0 done, 1 failed or needs a repair, 2 no trail or the site was
+  rebuilt, 3 needs a sign-in, 4 blocked by a captcha, 5 not on the trail's starting page.
 - **The README's `dejo run` example works.** It showed `--task`, which `run` does not have, so
   the first command a reader copied failed. `run` takes the task as plain words:
   `dejo run "count open issues" --site github.com`. `dejo borrow` suggested the same broken

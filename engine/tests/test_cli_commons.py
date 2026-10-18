@@ -6,9 +6,11 @@ trusting a screen recording. These are the commands that make that possible.
 
 from __future__ import annotations
 
+import shlex
+
 import pytest
 
-from dejo.cli import main
+from dejo.cli import build_parser, main
 from dejo.models import Locator, Playbook, Postcondition, Step
 from dejo.store import DejoStore
 
@@ -130,7 +132,11 @@ class TestBorrowingFromATerminal:
         run(db, "--agent", "bob", "borrow", SITE)
         out = capsys.readouterr().out
 
-        assert f'dejo run --site {SITE} --task "{TASK}"' in out
+        printed = f'dejo run "{TASK}" --site {SITE}'
+        assert printed in out
+        # It once printed `--task`, which `run` does not have, so the hint itself failed.
+        args = build_parser().parse_args(shlex.split(printed)[1:])
+        assert (args.task, args.site) == (TASK, SITE)
 
     def test_borrowing_says_what_it_will_ask_for(self, alice, db, capsys):
         run(db, "--agent", "alice", "share", SITE)

@@ -93,6 +93,7 @@ Prefer a terminal? Everything works without an MCP client:
 ```bash
 dejo sites                                            # what it remembers
 dejo run "count open issues" --site github.com        # replay, no model involved
+dejo run "count open issues" --site github.com --json # one JSON line, for cron and scripts
 dejo show github.com                                  # the route, step by step
 dejo forget --site github.com                         # make it forget
 ```
