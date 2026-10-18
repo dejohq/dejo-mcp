@@ -16,6 +16,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# The suite only reads the code. Saying so here keeps the token read-only even if the repo or
+# org default is ever widened.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: python ${{ matrix.python }} on ${{ matrix.os }}
