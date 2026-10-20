@@ -143,3 +143,10 @@ jobs:
           python -m ruff check mcp/src mcp/tests
           python -m ruff format --check engine/src engine/tests benchmarks
           python -m ruff format --check mcp/src mcp/tests
+
+      # The benchmark's turn-by-turn reader is checked against a real recorded run. It needs
+      # only the standard library, so it lives here rather than in the browser-heavy jobs.
+      - name: Benchmark reader tests
+        run: |
+          python -m pip install "pytest>=8.0"
+          python -m pytest benchmarks -q

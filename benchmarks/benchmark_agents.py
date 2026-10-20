@@ -258,13 +258,27 @@ def _config(name: str, server: dict, where: Path) -> Path:
     return path
 
 
+def dejo_env(memory: str) -> dict[str, str]:
+    """A clean browser profile, and one memory per SITE so that run 1 is genuinely cold and
+    runs 2 and 3 are genuinely warm.
+
+    The profile folders sit beside the memory file. An empty DEJO_PROFILE used to be passed
+    here meaning "clean", but Dejo reads an empty setting as unset, so every Dejo row ran in
+    the developer's own signed-in profile: GitHub served Dejo its signed-in page while
+    Playwright MCP, started with --isolated, got the signed-out one."""
+    folder = Path(memory).parent
+    return {
+        "DEJO_DB": memory,
+        "DEJO_PROFILE": str(folder / "browser-profile"),
+        "DEJO_PROFILES_DIR": str(folder / "profiles"),
+    }
+
+
 def _server(name: str, memory: str) -> dict:
     """How each MCP server is started, and nothing else about it."""
     npx = _cli("npx")
     if name == "dejo":
-        # A clean browser profile, and one memory per SITE so that run 1 is genuinely
-        # cold and runs 2 and 3 are genuinely warm.
-        return {"command": DEJO_MCP, "env": {"DEJO_PROFILE": "", "DEJO_DB": memory}}
+        return {"command": DEJO_MCP, "env": dejo_env(memory)}
     if name == "playwright":
         return {"command": npx, "args": ["-y", PLAYWRIGHT_MCP, "--headless", "--isolated"]}
     return {"command": npx, "args": ["-y", DEVTOOLS_MCP, "--headless"]}
@@ -327,9 +341,19 @@ def _fresh_cli_workspace(where: Path, attempt: int) -> Path:
     return folder
 
 
-def with_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -> Run:
-    """One real Claude session, given one browser tool and one job."""
-    row = Run(tool=name, site=site.domain, run=attempt)
+@dataclass
+class Session:
+    """What one headless Claude session printed, and how long it took."""
+
+    stdout: str = ""
+    stderr: str = ""
+    seconds: float = 0.0
+    timed_out: bool = False
+
+
+def run_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -> Session:
+    """One real Claude session, given one browser tool and one job. Shared with
+    benchmark_learning.py, so both scripts drive Claude exactly the same way."""
     if name == "playwright-cli":
         where = _fresh_cli_workspace(where, attempt)
     command = [
@@ -362,9 +386,7 @@ def with_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -
             **_gently(),
         )
     except subprocess.TimeoutExpired:
-        row.note = "timed out"
-        row.seconds = time.perf_counter() - began
-        return row
+        return Session(seconds=time.perf_counter() - began, timed_out=True)
     finally:
         if name == "playwright-cli":
             # A headless CLI browser outlives the session for an hour by default, and the
@@ -372,10 +394,20 @@ def with_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -
             subprocess.run(
                 [_cli("playwright-cli"), "close-all"], cwd=where, capture_output=True, **_gently()
             )
-    row.seconds = time.perf_counter() - began
-    _read_stream(row, done.stdout)
+    return Session(stdout=done.stdout, stderr=done.stderr, seconds=time.perf_counter() - began)
+
+
+def with_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -> Run:
+    """One real Claude session, reduced to the row this script reports."""
+    row = Run(tool=name, site=site.domain, run=attempt)
+    session = run_claude(name, site, attempt, memory, where)
+    row.seconds = session.seconds
+    if session.timed_out:
+        row.note = "timed out"
+        return row
+    _read_stream(row, session.stdout)
     if not row.ok and not row.note:
-        row.note = (done.stderr or "no result event")[:90]
+        row.note = (session.stderr or "no result event")[:90]
     return row
 
 
