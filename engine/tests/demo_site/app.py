@@ -175,6 +175,27 @@ def hard() -> HTMLResponse:
     return hard_page()
 
 
+@app.get("/checkout", response_class=HTMLResponse)
+def checkout(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    """A payment widget inside an iframe, the way hosted card forms arrive on real sites.
+
+    It exists for one bug. After the browser has navigated even once, Playwright numbers the
+    main page's refs as well as the frame's, and Dejo used to read that number as "which
+    frame". The button in here then lost its frame, and a trail that pressed it could never
+    find it again."""
+    widget = (
+        "<button onclick=&quot;parent.document.getElementById('status').textContent='Paid'"
+        "&quot;>Pay now</button>"
+    )
+    return page(
+        "Checkout",
+        f"""<h1>Checkout</h1>
+            <p id="status">Not paid</p>
+            <iframe id="card" title="Card payment" srcdoc="{widget}"></iframe>""",
+        variant=variant_of(request, variant),
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
     v = variant_of(request, variant)

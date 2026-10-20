@@ -80,8 +80,14 @@ _LINE = re.compile(
 )
 _ATTR = re.compile(r"\[([^\]]*)\]")
 
-# `f1e2` means element e2 inside frame 1. A ref with no `f` prefix is on the main page.
-_FRAME_OF_REF = re.compile(r"^f(\d+)e\d+$")
+# Playwright's own ref: `e4`, or `f3e4` when it has numbered the document `f3`. The number
+# says nothing reliable about WHICH frame: after any navigation Playwright prefixes the main
+# page's refs too (`f3e2` for a plain button), so frames are found by nesting instead.
+_PLAYWRIGHT_REF = re.compile(r"^(?P<doc>f\d+)?e(?P<number>\d+)$")
+
+# The escapes a YAML double-quoted scalar can hold that change the character. Anything else
+# after a backslash stands for itself, which covers `\"` and `\\`.
+_YAML_ESCAPES = {"n": "\n", "t": "\t"}
 
 # What a ref looks like: `e4`, or `f1e2` inside a frame. Anything else a caller passes is
 # a CSS selector, because that is what people reach for when an element has no ref.
@@ -99,8 +105,13 @@ class Element:
     """
 
     ref: str
+    """The ref a caller sees and passes back: `e16` on the main page, `f1e3` in the first
+    iframe. Dejo's own, so it reads the same whatever Playwright has numbered the document."""
     role: str
     name: str
+    aria_ref: str = ""
+    """Playwright's ref for the same node, which is what `aria-ref=` resolves. Empty for an
+    element that did not come from a snapshot."""
     selector: str = ""
     """How to find this element, when it did not come from a snapshot.
 
@@ -265,16 +276,34 @@ class Snapshot:
         }
 
 
-def parse(snapshot: str, *, frames: dict[str, str] | None = None) -> list[Element]:
-    """Turn Playwright's snapshot into the controls a caller can act on.
+@dataclass
+class Node:
+    """One line of the snapshot that carries a ref, before anything is decided about it."""
 
-    `frames` maps a frame number to the CSS selector of its iframe, so an element inside a
-    frame can record where it lives. Without that a stored locator would be unresolvable:
-    `page.locator` does not look inside iframes.
+    aria_ref: str
+    role: str
+    name: str
+    trailing: str
+    flags: str
+    frame_ref: str
+    """Playwright's ref of the iframe this node sits under, or "" on the main page."""
+    frame_index: int
+    """Which iframe that is, counted by Dejo in document order from 1. 0 on the main page."""
+    href: str | None = None
+
+
+def nodes(snapshot: str) -> list[Node]:
+    """Every node in the snapshot that has a ref, with the iframe it sits in.
+
+    The iframe comes from NESTING: a node belongs to the nearest `iframe` line above it with
+    a smaller indent. Playwright's `f<N>` numbers cannot be used for this: after a page has
+    navigated, Playwright prefixes the main page's refs as well, so `f3e2` was a plain button
+    while the iframe on the same page was `f4`, and every element inside a frame lost its
+    frame. Only nesting says the same thing on every visit.
     """
-    frames = frames or {}
-    found: list[Element] = []
-    pending_url_for: Element | None = None
+    found: list[Node] = []
+    frames: list[tuple[int, str, int]] = []  # (indent, iframe ref, index), innermost last
+    counted = 0
 
     for line in snapshot.splitlines():
         stripped = line.strip()
@@ -282,40 +311,71 @@ def parse(snapshot: str, *, frames: dict[str, str] | None = None) -> list[Elemen
         # `- /url: /invoices/9` is a property of the line above it, not a node of its own.
         # Checked before the main pattern, which only matches lines that start with a role.
         if stripped.startswith("- /url:"):
-            if pending_url_for is not None:
-                pending_url_for.href = _unquote(stripped[len("- /url:") :].strip())
+            if found:
+                found[-1].href = _unquote(stripped[len("- /url:") :].strip())
             continue
 
-        match = _LINE.match(line.rstrip())
+        match = _LINE.match(_unwrapped(line.rstrip()))
         if match is None:
             continue
+        indent = len(match.group("indent"))
+        while frames and frames[-1][0] >= indent:
+            frames.pop()
 
-        role = match.group("role")
         attrs = _attributes(match.group("attrs") or "")
-
         ref = attrs.get("ref")
         if not ref:
             continue
 
-        quoted = _unescape(match.group("name") or "")
-        trailing = (match.group("text") or "").strip()
+        role = match.group("role")
+        frame_ref, frame_index = (frames[-1][1], frames[-1][2]) if frames else ("", 0)
+        found.append(
+            Node(
+                aria_ref=ref,
+                role=role,
+                name=_unescape(match.group("name") or ""),
+                trailing=_plain((match.group("text") or "").strip()),
+                flags=attrs.get("_flags", ""),
+                frame_ref=frame_ref,
+                frame_index=frame_index,
+            )
+        )
+        if role == "iframe":
+            counted += 1
+            frames.append((indent, ref, counted))
 
+    return found
+
+
+def parse(snapshot: str, *, frames: dict[str, str] | None = None) -> list[Element]:
+    """Turn Playwright's snapshot into the controls a caller can act on.
+
+    `frames` maps an iframe's Playwright ref to a CSS selector for that iframe, so an
+    element inside it can record where it lives. Without that a stored locator would be
+    unresolvable: `page.locator` does not look inside iframes.
+    """
+    frames = frames or {}
+    every = nodes(snapshot)
+    main = _document_of(every[0].aria_ref) if every else ""
+    found: list[Element] = []
+
+    for node in every:
         # With a quoted name, the trailing text is the field's contents. Without one, it is
         # the element's name — which is how a `div role="combobox"` gets called anything at
         # all.
-        name = quoted or trailing
-        filled = bool(quoted and trailing and role in _FIELD_ROLES)
+        name = node.name or node.trailing
+        filled = bool(node.name and node.trailing and node.role in _FIELD_ROLES)
 
         element = Element(
-            ref=ref,
-            role=role,
+            ref=_dejo_ref(node, main),
+            role=node.role,
             name=name[:80],
-            clickable="cursor=pointer" in attrs.get("_flags", ""),
-            frame=frames.get(_frame_number(ref) or ""),
+            aria_ref=node.aria_ref,
+            href=node.href,
+            clickable="cursor=pointer" in node.flags,
+            frame=frames.get(node.frame_ref) if node.frame_ref else None,
             value=FILLED if filled else None,
         )
-        pending_url_for = element
-
         if _worth_offering(element):
             found.append(element)
 
@@ -328,26 +388,32 @@ def is_ref(handle: str) -> bool:
     return bool(_LOOKS_LIKE_REF.match(handle.strip()))
 
 
-def frame_number(ref: str) -> str | None:
-    """Which frame a ref belongs to, or None for the main page."""
-    return _frame_number(ref)
-
-
 def iframe_refs(snapshot: str) -> list[str]:
-    """The refs of the iframes on this page, in the order Playwright numbers them.
+    """Playwright's refs of the iframes on this page, so each can be given a selector."""
+    return [node.aria_ref for node in nodes(snapshot) if node.role == "iframe"]
 
-    Frame 1 is the first iframe that appears, frame 2 the second, and so on — which is how
-    a ref like `f1e2` is tied back to the iframe it lives in.
-    """
-    refs: list[str] = []
-    for line in snapshot.splitlines():
-        match = _LINE.match(line.rstrip())
-        if match is None or match.group("role") != "iframe":
-            continue
-        ref = _attributes(match.group("attrs") or "").get("ref")
-        if ref:
-            refs.append(ref)
-    return refs
+
+def _document_of(aria_ref: str) -> str:
+    """The `f<N>` Playwright has put in front of a ref, or "" for none."""
+    match = _PLAYWRIGHT_REF.match(aria_ref)
+    return (match.group("doc") or "") if match else ""
+
+
+def _dejo_ref(node: Node, main: str) -> str:
+    """The ref a caller sees: `e<n>` on the main page, `f<k>e<n>` in the k-th iframe.
+
+    The main page's prefix is the one on the snapshot's first line, which is always the main
+    document. A ref that does not have Playwright's shape is passed through unchanged rather
+    than guessed at."""
+    match = _PLAYWRIGHT_REF.match(node.aria_ref)
+    if match is None:
+        return node.aria_ref
+    number = match.group("number")
+    if node.frame_index:
+        return f"f{node.frame_index}e{number}"
+    if (match.group("doc") or "") == main:
+        return f"e{number}"
+    return node.aria_ref
 
 
 def _worth_offering(element: Element) -> bool:
@@ -400,9 +466,59 @@ def _attributes(raw: str) -> dict[str, str]:
     return found
 
 
-def _frame_number(ref: str) -> str | None:
-    match = _FRAME_OF_REF.match(ref)
-    return match.group(1) if match else None
+def _unwrapped(line: str) -> str:
+    """Take Playwright's YAML quoting off a snapshot line.
+
+    A line whose text contains `": "` is written as a quoted YAML scalar, because unquoted it
+    would read as a mapping: `- 'link "Fix: login bug" [ref=e6]':`. The line pattern expects
+    the role first, so every such element was silently skipped: 47 controls on one GitHub
+    page, most topic titles on a Discourse forum, the titles of half the books on a shop
+    page. A single-quoted scalar escapes `'` as `''`; a double-quoted one uses backslashes.
+    What follows the closing quote (nothing, `:`, or `: text`) is kept as it was.
+    """
+    head = len(line) - len(line.lstrip())
+    body = line[head:]
+    if not body.startswith("- ") or body[2:3] not in ("'", '"'):
+        return line
+    quote = body[2]
+    inner, end = _scalar(body, 3, quote)
+    if end < 0:
+        return line
+    return f"{line[:head]}- {inner}{body[end:]}"
+
+
+def _scalar(text: str, start: int, quote: str) -> tuple[str, int]:
+    """Read one YAML quoted scalar that opens just before `start`. Returns its value and the
+    index just past the closing quote, or -1 when it never closes."""
+    out: list[str] = []
+    at = start
+    while at < len(text):
+        char = text[at]
+        if quote == "'" and char == "'":
+            if text[at + 1 : at + 2] == "'":
+                out.append("'")
+                at += 2
+                continue
+            return "".join(out), at + 1
+        if quote == '"' and char == "\\" and at + 1 < len(text):
+            out.append(_YAML_ESCAPES.get(text[at + 1], text[at + 1]))
+            at += 2
+            continue
+        if quote == '"' and char == '"':
+            return "".join(out), at + 1
+        out.append(char)
+        at += 1
+    return "", -1
+
+
+def _plain(text: str) -> str:
+    """A node's trailing text without YAML quoting, which it gets for the same reason a
+    whole line does: `- paragraph: "Total: 1,240"`."""
+    if len(text) >= 2 and text[0] in "\"'" and text[-1] == text[0]:
+        inner, end = _scalar(text, 1, text[0])
+        if end == len(text):
+            return inner
+    return text
 
 
 def _unquote(url: str) -> str:

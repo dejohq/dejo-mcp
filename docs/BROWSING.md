@@ -448,8 +448,13 @@ Nothing on this list is missing by accident, and none of it is needed to use a w
 
 # Open questions — decide before building
 
-1. **Durable locators inside iframes.** A ref like `f1e2` is not stable. A stored locator
-   needs to name the frame as well as the element. Probably `frame:<url-or-name> >> role=…`.
+1. **Durable locators inside iframes - DECIDED 2026-10-20.** A stored locator names its
+   iframe by a CSS selector (`Locator.frame`). Which iframe an element is in comes from
+   NESTING in the snapshot, never from Playwright's `f<N>` number: after any navigation
+   Playwright prefixes the main page's refs too, and reading that number as "which frame"
+   saved iframe steps with no frame, so they never replayed
+   (`engine/tests/test_frame_after_navigation.py`). Callers see Dejo's own refs, `e16` on the
+   main page and `f1e3` in the first iframe, the same on every visit.
 2. **Dialogs during replay - DECIDED 2026-09-01.** A step records the choice **and** the
    message. On replay, if the message has changed, stop and hand it back rather than
    accepting. A trail that recorded "click OK" must never blindly accept a box that now says

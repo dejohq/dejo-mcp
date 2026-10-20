@@ -7,6 +7,8 @@ as a button, and content that had not loaded yet.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from dejo import snapshot as aria
@@ -315,8 +317,98 @@ def test_parse_counts_look_alikes() -> None:
 
 
 def test_parse_ties_an_element_to_its_frame() -> None:
-    elements = aria.parse('- button "In a frame" [ref=f1e2]', frames={"1": "#frame"})
+    elements = aria.parse(
+        '- iframe [ref=e3]:\n  - button "In a frame" [ref=f1e2]', frames={"e3": "#frame"}
+    )
     assert elements[0].frame == "#frame"
+    assert elements[0].ref == "f1e2"
+
+
+# Playwright's snapshot of a page reached by navigating: every ref is prefixed, the main
+# page's included. Taken from a real run (the shape repro'd on 20 Oct 2026).
+NAVIGATED = """
+- generic [active] [ref=f3e1]:
+  - button "Outside" [ref=f3e2]
+  - iframe [ref=f3e3]:
+    - button "Pay now" [ref=f4e2]
+  - link "After the frame" [ref=f3e5]
+"""
+
+
+def test_a_main_page_element_on_a_navigated_page_has_no_frame() -> None:
+    """`f3e2` is a plain button. Read as "frame 3" it was tied to a frame that is not
+    there, or, as here, the real frame's element was tied to nothing."""
+    outside = aria.parse(NAVIGATED, frames={"f3e3": "#card"})[0]
+    assert outside.frame is None
+
+
+def test_an_element_in_a_frame_is_found_by_nesting_whatever_its_number() -> None:
+    elements = {e.name: e for e in aria.parse(NAVIGATED, frames={"f3e3": "#card"})}
+    assert elements["Pay now"].frame == "#card"
+    assert elements["After the frame"].frame is None, "the frame ends where its indent does"
+
+
+def test_refs_read_the_same_on_every_visit() -> None:
+    """A caller sees Dejo's refs, not Playwright's numbering of the document."""
+    elements = {e.name: e for e in aria.parse(NAVIGATED)}
+    assert elements["Outside"].ref == "e2"
+    assert elements["Pay now"].ref == "f1e2"
+    assert elements["Pay now"].aria_ref == "f4e2", "Playwright's own ref is kept for acting"
+
+
+# ------------------------------------------------- lines Playwright puts in quotes
+
+
+def test_a_name_with_a_colon_and_space_is_not_skipped() -> None:
+    """Playwright quotes the whole line when the name has ": " in it. Every such element
+    used to vanish: 47 controls on one GitHub page."""
+    elements = aria.parse(
+        '- link "Docs" [ref=e1]\n- \'link "Fix: login bug" [ref=e2] [cursor=pointer]\':\n'
+        "  - /url: /issues/7"
+    )
+    assert [e.name for e in elements] == ["Docs", "Fix: login bug"]
+    assert elements[1].href == "/issues/7"
+    assert elements[1].clickable
+
+
+def test_a_quoted_line_keeps_its_escaped_quote() -> None:
+    elements = aria.parse("- 'button \"Joe''s: bar\" [ref=e4]'")
+    assert elements[0].name == "Joe's: bar"
+
+
+def test_a_double_quoted_line_is_read_too() -> None:
+    elements = aria.parse('- "button \\"say: hi\\" [ref=e5]"')
+    assert elements[0].name == "say: hi"
+
+
+def test_quoted_trailing_text_is_unquoted() -> None:
+    elements = aria.parse('- combobox [ref=e6]: "Month: September"')
+    assert elements[0].name == "Month: September"
+
+
+# ------------------------------------------------------- real pages, every node
+
+FIXTURES = Path(__file__).parent / "fixtures" / "aria"
+
+
+@pytest.mark.parametrize("page", ["books_travel", "crates_search", "internet_iframe", "quotes"])
+def test_every_node_with_a_ref_is_read(page: str) -> None:
+    """Real snapshots from the 20 Oct lab, signed out. Not one ref'd line may be dropped."""
+    text = (FIXTURES / f"{page}.txt").read_text(encoding="utf-8")
+    assert len(aria.nodes(text)) == text.count("[ref=")
+
+
+def test_a_real_frame_is_tied_to_its_iframe() -> None:
+    """The-internet's TinyMCE page: the main document is `f51`, the editor's frame `f52`."""
+    text = (FIXTURES / "internet_iframe.txt").read_text(encoding="utf-8")
+    inside = [node for node in aria.nodes(text) if node.frame_ref]
+    assert inside and all(node.frame_ref == "f51e77" for node in inside)
+    assert all(e.ref.startswith("e") for e in aria.parse(text) if not e.frame)
+
+
+def test_main_page_refs_lose_playwrights_prefix() -> None:
+    text = (FIXTURES / "crates_search.txt").read_text(encoding="utf-8")
+    assert all(not e.ref.startswith("f") for e in aria.parse(text))
 
 
 def test_parse_handles_a_quoted_name_with_quotes_in_it() -> None:
@@ -332,11 +424,6 @@ def test_parse_survives_a_line_it_does_not_understand() -> None:
 
 def test_iframe_refs_are_found_in_order() -> None:
     assert aria.iframe_refs("- iframe [ref=e6]:\n- iframe [ref=e9]:") == ["e6", "e9"]
-
-
-def test_frame_number_of_a_ref() -> None:
-    assert aria.frame_number("f1e2") == "1"
-    assert aria.frame_number("e2") is None
 
 
 def test_the_hand_written_collector_is_gone() -> None:

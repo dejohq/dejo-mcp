@@ -938,17 +938,17 @@ class Browser:
         )
 
     def _frame_selectors(self, raw: str) -> dict[str, str]:
-        """Map each frame number to a selector for its iframe.
+        """Map each iframe's Playwright ref to a selector for that iframe.
 
         An element inside an iframe cannot be found later by a plain selector, because
         `page.locator` does not look inside frames. The locator has to name the frame too,
         so the iframe itself needs a durable selector of its own.
         """
         selectors: dict[str, str] = {}
-        for number, ref in enumerate(aria.iframe_refs(raw), start=1):
+        for ref in aria.iframe_refs(raw):
             described = self._describe_ref(ref)
             if described and described.get("css"):
-                selectors[str(number)] = described["css"]
+                selectors[ref] = described["css"]
         return selectors
 
     def _describe_ref(self, ref: str) -> dict[str, Any] | None:
@@ -1150,7 +1150,7 @@ class Browser:
         if element.selector:
             everything = self.page.locator(element.selector)
             return everything.first if one else everything
-        return self.page.locator(f"aria-ref={element.ref}").first
+        return self.page.locator(f"aria-ref={element.aria_ref or element.ref}").first
 
     def await_url_change(self, was: str, timeout_ms: int = SPA_NAV_GRACE_MS) -> bool:
         """Give a client-side navigation time to show up in the address bar.
