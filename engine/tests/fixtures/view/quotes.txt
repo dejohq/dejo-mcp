@@ -1,0 +1,16 @@
+page "Quotes to Scrape" https://quotes.toscrape.com/
+best for "open about page first quote author tell date born go next quotes": e94 link "Next" · e15 link "(about)" · e24 link "(about)" · e31 link "(about)" · e41 link "(about)" · e50 link "(about)" · e57 link "(about)" · e65 link "(about)" · e72 link "(about)" · e81 link "(about)" · e87 link "(about)" · e6 link "Quotes to Scrape" · e119: Quotes by: · e17 link "change" · e18 link "deep-thoughts"
+e6 link "Quotes to Scrape"
+e9 link "Login"
+g1 10 rows, 3 shown:
+ r1 e13: “The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.” · e14: by Albert Einstein · e15 link "(about)" · e16: Tags: · e17 link "change" · e18 link "deep-thoughts" · e19 link "thinking" · e20 link "world"
+ r2 e22: “It is our choices, Harry, that show what we truly are, far more than our abilities.” · e23: by J.K. Rowling · e24 link "(about)" · e25: Tags: · e26 link "abilities" · e27 link "choices"
+ r3 e29: “There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is… · e30: by Albert Einstein · e31 link "(about)" · e32: Tags: · e33 link "inspirational" · e34 link "life" · e35 link "live" · e36 link "miracle" · e37 link "miracles"
+ +7 more rows: look g1
+e94 link "Next"
+e96 h2 "Top Ten tags"
+g2 10 links: e98 "love" · e100 "inspirational" · e102 "life" · +7 more: look g2
+e119: Quotes by:
+e120 link "GoodReads.com"
+e121: Made with ❤ by
+e122 link "Zyte"

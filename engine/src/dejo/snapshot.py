@@ -55,7 +55,12 @@ INTERACTIVE_ROLES = frozenset(
 _NAMED_FROM_ELSEWHERE = {"input", "select", "textarea", "img"}
 
 # Roles that hold something a person typed or chose.
-_FIELD_ROLES = frozenset({"textbox", "searchbox", "combobox", "spinbutton", "slider"})
+FIELD_ROLES = frozenset({"textbox", "searchbox", "combobox", "spinbutton", "slider"})
+
+# Fields whose trailing text is always what someone typed, never a label. A combobox is left
+# out on purpose: its trailing text is the choice on show ("Choose a month"), which is how a
+# `div role="combobox"` with no label gets a name at all.
+TYPED_ROLES = frozenset({"textbox", "searchbox", "spinbutton"})
 
 # What a filled field reports instead of its contents.
 #
@@ -278,9 +283,10 @@ class Snapshot:
 
 @dataclass
 class Node:
-    """One line of the snapshot that carries a ref, before anything is decided about it."""
+    """One line of the snapshot, before anything is decided about it."""
 
     aria_ref: str
+    """Playwright's ref, or "" for a line without one (plain `text:` lines, mostly)."""
     role: str
     name: str
     trailing: str
@@ -290,10 +296,23 @@ class Node:
     frame_index: int
     """Which iframe that is, counted by Dejo in document order from 1. 0 on the main page."""
     href: str | None = None
+    depth: int = 0
+    """The line's indent. The page's tree is in it: a node's parent is the nearest line
+    above it with a smaller indent."""
+    ref: str = ""
+    """The ref a caller sees (`e16`, `f1e3`), or "" for a line without a Playwright ref."""
 
 
 def nodes(snapshot: str) -> list[Node]:
-    """Every node in the snapshot that has a ref, with the iframe it sits in.
+    """Every node in the snapshot that has a ref, with the iframe it sits in."""
+    return [node for node in lines(snapshot) if node.aria_ref]
+
+
+def lines(snapshot: str) -> list[Node]:
+    """Every node line of the snapshot, with or without a ref, in page order.
+
+    The lines without a ref are mostly `text:` children, which hold the words of the
+    element above them; a page view needs them, a list of controls does not.
 
     The iframe comes from NESTING: a node belongs to the nearest `iframe` line above it with
     a smaller indent. Playwright's `f<N>` numbers cannot be used for this: after a page has
@@ -302,17 +321,21 @@ def nodes(snapshot: str) -> list[Node]:
     frame. Only nesting says the same thing on every visit.
     """
     found: list[Node] = []
+    open_: list[Node] = []  # the nodes still open above the current line, innermost last
     frames: list[tuple[int, str, int]] = []  # (indent, iframe ref, index), innermost last
     counted = 0
 
     for line in snapshot.splitlines():
         stripped = line.strip()
 
-        # `- /url: /invoices/9` is a property of the line above it, not a node of its own.
-        # Checked before the main pattern, which only matches lines that start with a role.
+        # `- /url: /invoices/9` is a property of the node it is nested under. It goes to
+        # that node even when the node has no ref: giving it to the last node WITH a ref
+        # put a ref-less link's address on whatever came before it.
         if stripped.startswith("- /url:"):
-            if found:
-                found[-1].href = _unquote(stripped[len("- /url:") :].strip())
+            indent = len(line) - len(line.lstrip())
+            owner = _innermost_above(open_, indent)
+            if owner is not None:
+                owner.href = _unquote(stripped[len("- /url:") :].strip())
             continue
 
         match = _LINE.match(_unwrapped(line.rstrip()))
@@ -321,30 +344,52 @@ def nodes(snapshot: str) -> list[Node]:
         indent = len(match.group("indent"))
         while frames and frames[-1][0] >= indent:
             frames.pop()
+        while open_ and open_[-1].depth >= indent:
+            open_.pop()
 
         attrs = _attributes(match.group("attrs") or "")
-        ref = attrs.get("ref")
-        if not ref:
-            continue
-
+        ref = attrs.get("ref", "")
         role = match.group("role")
         frame_ref, frame_index = (frames[-1][1], frames[-1][2]) if frames else ("", 0)
-        found.append(
-            Node(
-                aria_ref=ref,
-                role=role,
-                name=_unescape(match.group("name") or ""),
-                trailing=_plain((match.group("text") or "").strip()),
-                flags=attrs.get("_flags", ""),
-                frame_ref=frame_ref,
-                frame_index=frame_index,
-            )
+        node = Node(
+            aria_ref=ref,
+            role=role,
+            name=_unescape(match.group("name") or ""),
+            trailing=_plain((match.group("text") or "").strip()),
+            flags=attrs.get("_flags", ""),
+            frame_ref=frame_ref,
+            frame_index=frame_index,
+            depth=indent,
         )
-        if role == "iframe":
+        found.append(node)
+        open_.append(node)
+        if role == "iframe" and ref:
             counted += 1
             frames.append((indent, ref, counted))
 
+    _name_refs(found)
     return found
+
+
+def _innermost_above(open_: list[Node], indent: int) -> Node | None:
+    """The nearest open node with a smaller indent than `indent`: the one a property
+    line belongs to."""
+    for node in reversed(open_):
+        if node.depth < indent:
+            return node
+    return None
+
+
+def _name_refs(found: list[Node]) -> None:
+    """Give every node with a Playwright ref the ref a caller sees.
+
+    The main page's prefix is the one on the first line with a ref, which is always the main
+    document."""
+    first = next((node.aria_ref for node in found if node.aria_ref), "")
+    main = _document_of(first)
+    for node in found:
+        if node.aria_ref:
+            node.ref = _dejo_ref(node, main)
 
 
 def parse(snapshot: str, *, frames: dict[str, str] | None = None) -> list[Element]:
@@ -355,19 +400,20 @@ def parse(snapshot: str, *, frames: dict[str, str] | None = None) -> list[Elemen
     unresolvable: `page.locator` does not look inside iframes.
     """
     frames = frames or {}
-    every = nodes(snapshot)
-    main = _document_of(every[0].aria_ref) if every else ""
     found: list[Element] = []
 
-    for node in every:
+    for node in nodes(snapshot):
         # With a quoted name, the trailing text is the field's contents. Without one, it is
         # the element's name — which is how a `div role="combobox"` gets called anything at
-        # all.
-        name = node.name or node.trailing
-        filled = bool(node.name and node.trailing and node.role in _FIELD_ROLES)
+        # all. Except in a field someone types into: an unlabelled password box is printed
+        # `textbox [ref=e2]: hunter2`, and taking that as the name put the password into
+        # what a caller reads and into the locator written to memory.
+        typed = node.role in TYPED_ROLES
+        name = node.name or ("" if typed else node.trailing)
+        filled = bool(node.trailing and node.role in FIELD_ROLES and (node.name or typed))
 
         element = Element(
-            ref=_dejo_ref(node, main),
+            ref=node.ref,
             role=node.role,
             name=name[:80],
             aria_ref=node.aria_ref,

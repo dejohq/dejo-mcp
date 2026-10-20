@@ -1,0 +1,20 @@
+page "The Internet" https://the-internet.herokuapp.com/iframe
+best for "type sentence rich text editor": f1e1 generic "Rich Text Area. Press ALT-0 for help." · e8 h3 "An iFrame containing the TinyMCE WYSIWYG Editor" · e87 generic "Press the Up and Down arrow keys to resize the editor." · e13 menuitem "File" · e15 menuitem "Edit" · e17 menuitem "View" · e19 menuitem "Insert" · e21 menuitem "Format" · e26 button "Undo" [disabled] · e30 button "Redo" [disabled] · e35 button "Format Paragraph" · e41 button "Bold" · e45 button "Italic" · e50 button "Align left" · e54 button "Align center"
+e1: The Internet
+e5 img "Fork me on GitHub"
+e8 h3 "An iFrame containing the TinyMCE WYSIWYG Editor"
+g1 5 menuitems: e13 "File" · e15 "Edit" · e17 "View" · +2 more: look g1
+g2 5 rows, 3 shown:
+ r1 e25 toolbar "history" · e26 button "Undo" [disabled] · e30 button "Redo" [disabled]
+ r2 e34 toolbar "styles" · e35 button "Format Paragraph"
+ r3 e40 toolbar "formatting" · e41 button "Bold" · e45 button "Italic"
+ +2 more rows: look g2
+e77 iframe (f1)
+f1e1 generic "Rich Text Area. Press ALT-0 for help."
+f1e2: Your content goes here.
+e81 button "p"
+e84 link "Powered by Tiny"
+e87 generic "Press the Up and Down arrow keys to resize the editor."
+e93: Powered by and
+e94 link "Elemental Selenium"
+e95 link "Sauce Labs"

@@ -39,6 +39,7 @@ from .memory import (
     import_sibyl,
 )
 from .models import Playbook, RunMetrics, SiteKnowledge, SiteMap, utc_now
+from .words import COMMON_WORDS
 
 PLAYBOOK = "playbook"
 
@@ -83,50 +84,6 @@ MAX_SLUG = 60
 # invoice" never matches "cancel the subscription".
 MATCH_THRESHOLD = 0.4
 
-# Words too common to tell two tasks apart. "the invoice" and "the subscription" share
-# "the" and nothing that matters.
-_NOISE = frozenset(
-    [
-        "a",
-        "an",
-        "and",
-        "are",
-        "as",
-        "at",
-        "be",
-        "by",
-        "do",
-        "does",
-        "for",
-        "from",
-        "get",
-        "how",
-        "i",
-        "in",
-        "is",
-        "it",
-        "many",
-        "me",
-        "my",
-        "of",
-        "on",
-        "or",
-        "please",
-        "show",
-        "that",
-        "the",
-        "them",
-        "then",
-        "there",
-        "this",
-        "to",
-        "what",
-        "when",
-        "where",
-        "which",
-        "with",
-    ]
-)
 # Verbs that say what is done to a page, not which job it is. Almost every task starts with
 # one, so on their own they are no evidence that two descriptions mean the same task.
 _ACTIONS = frozenset(
@@ -877,7 +834,7 @@ def _meaningful(text: str, domain: str | None = None) -> set[str]:
     separate argument. Leaving it in meant "read the first quote on quotes.toscrape.com"
     scored worse than "read the first quote" against the very trail it belonged to.
     """
-    ignore = _NOISE | (_meaningful(domain.replace(".", " ")) if domain else set())
+    ignore = COMMON_WORDS | (_meaningful(domain.replace(".", " ")) if domain else set())
     words = "".join(character if character.isalnum() else " " for character in text.lower())
     return {word for word in words.split() if word not in ignore}
 

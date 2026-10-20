@@ -274,6 +274,22 @@ def test_a_name_that_is_only_trailing_text_still_survives() -> None:
     assert elements[0].value is None
 
 
+@pytest.mark.parametrize("role", ["textbox", "searchbox", "spinbutton"])
+def test_an_unlabelled_field_never_takes_its_contents_as_a_name(role: str) -> None:
+    """Playwright prints an unlabelled password box as `textbox [ref=e2]: hunter2`. Read as
+    a name, the password went to the caller and into the locator written to memory."""
+    element = aria.parse(f"- {role} [ref=e2]: hunter2")[0]
+    assert "hunter2" not in element.name
+    assert element.value == aria.FILLED
+    assert all("hunter2" not in locator.value for locator in element.locators())
+
+
+def test_an_unlabelled_password_box_in_a_real_browser(browser: Browser) -> None:
+    browser.page.set_content("<input type=password id=pw>")
+    browser.page.fill("#pw", "hunter2")
+    assert "hunter2" not in str(browser.snapshot().to_dict())
+
+
 # ------------------------------------------------------------- the parser
 
 
@@ -409,6 +425,33 @@ def test_a_real_frame_is_tied_to_its_iframe() -> None:
 def test_main_page_refs_lose_playwrights_prefix() -> None:
     text = (FIXTURES / "crates_search.txt").read_text(encoding="utf-8")
     assert all(not e.ref.startswith("f") for e in aria.parse(text))
+
+
+def test_an_address_goes_to_the_line_it_is_nested_under() -> None:
+    """The-internet's "Fork me" link has no ref of its own. Its address used to be handed to
+    the last line that HAD a ref, here a plain button, which would then have stored a
+    `structural` locator for somewhere it does not go."""
+    text = (
+        '- button "Save" [ref=e1]\n'
+        '- link "Fork me on GitHub":\n'
+        "  - /url: https://github.com/saucelabs/the-internet\n"
+        '  - img "Fork me on GitHub" [ref=e2] [cursor=pointer]\n'
+    )
+    assert aria.nodes(text)[0].href is None
+    link = next(node for node in aria.lines(text) if node.role == "link")
+    assert link.href == "https://github.com/saucelabs/the-internet"
+    assert not link.aria_ref and not link.ref
+
+
+def test_every_line_carries_its_depth_and_its_callers_ref() -> None:
+    every = aria.lines(NAVIGATED)
+    assert [(node.depth, node.ref) for node in every] == [
+        (0, "e1"),
+        (2, "e2"),
+        (2, "e3"),
+        (4, "f1e2"),
+        (2, "e5"),
+    ]
 
 
 def test_parse_handles_a_quoted_name_with_quotes_in_it() -> None:
