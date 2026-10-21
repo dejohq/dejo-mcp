@@ -374,18 +374,20 @@ def run_claude(name: str, site: Site, attempt: int, memory: str, where: Path) ->
         "--verbose",
     ]
     began = time.perf_counter()
+    child = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=where,
+        encoding="utf-8",
+        errors="replace",
+        **_gently(),
+    )
     try:
-        done = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            timeout=RUN_TIMEOUT_S,
-            cwd=where,
-            encoding="utf-8",
-            errors="replace",
-            **_gently(),
-        )
+        stdout, stderr = child.communicate(timeout=RUN_TIMEOUT_S)
     except subprocess.TimeoutExpired:
+        _kill_tree(child)
         return Session(seconds=time.perf_counter() - began, timed_out=True)
     finally:
         if name == "playwright-cli":
@@ -394,7 +396,19 @@ def run_claude(name: str, site: Site, attempt: int, memory: str, where: Path) ->
             subprocess.run(
                 [_cli("playwright-cli"), "close-all"], cwd=where, capture_output=True, **_gently()
             )
-    return Session(stdout=done.stdout, stderr=done.stderr, seconds=time.perf_counter() - began)
+    return Session(stdout=stdout, stderr=stderr, seconds=time.perf_counter() - began)
+
+
+def _kill_tree(child: subprocess.Popen) -> None:
+    """Stop a timed-out session AND everything it started. Killing only Claude left its MCP
+    server and browser running, and a few of those starved the next sessions of memory."""
+    if sys.platform == "win32":
+        subprocess.run(
+            ["taskkill", "/PID", str(child.pid), "/T", "/F"], capture_output=True, check=False
+        )
+    else:
+        child.kill()
+    child.communicate()
 
 
 def with_claude(name: str, site: Site, attempt: int, memory: str, where: Path) -> Run:

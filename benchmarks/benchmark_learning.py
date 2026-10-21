@@ -2,6 +2,8 @@
 
     .venv/Scripts/python benchmarks/benchmark_learning.py --runs 3
     .venv/Scripts/python benchmarks/benchmark_learning.py --runs 3 --tools playwright
+    .venv/Scripts/python -u benchmarks/benchmark_learning.py --bench real --runs 1 \
+        --tools dejo,playwright,playwright-cli --keep <folder> --append --out <file>
 
 `benchmark_agents.py` answers "which tool is cheaper over ten repeats". This one answers the
 question it could not: what does the FIRST run cost, and where do its tokens go. On 20 Oct a
@@ -19,14 +21,22 @@ re-reads the whole context, so turns decide the bill. Every run here records:
 
 Every run gets its own memory file and its own empty browser profile, so run 1 is cold and
 nothing a developer signed in to leaks in.
+
+A long sweep must survive the machine it runs on. Every run is written to the results file
+the moment it ends; `--append` resumes a stopped sweep and skips the runs already in it;
+`--keep` keeps each run's memory and full transcript in a folder of its own, so a later day
+can replay that memory and every failure can be read back; and no session starts while the
+machine is short of memory (a laptop with 12 GB killed two sweeps on 20-21 Oct).
 """
 
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import re
 import subprocess
+import sys
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import date
@@ -44,6 +54,7 @@ from benchmark_agents import (
     Site,
     run_claude,
 )
+from real_tasks import REAL
 from transcript import Transcript, parse
 
 HERE = Path(__file__).parent
@@ -57,6 +68,11 @@ THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}\b)")
 # count is drawn by script after the document loads, in a few seconds on a normal line.
 LIVE_WAIT_S = 20
 LIVE_POLL_MS = 500
+# A session starts only with this much memory free. One session is Claude Code, an MCP server
+# and a browser, about 1.5 GB at its peak; below this Windows starts swapping, and twice the
+# whole sweep was killed. The sweep waits instead, and says so.
+MIN_FREE_MB = 2_500
+MEMORY_POLL_S = 15
 
 
 @dataclass(frozen=True)
@@ -74,6 +90,12 @@ class Task:
     truth: tuple[str, ...] = ()
     live_url: str = ""
     live_pattern: str = ""
+    id: str = ""
+    """The real bench has two tasks on most sites, so a domain does not name one."""
+
+    @property
+    def name(self) -> str:
+        return self.id or self.site.domain
 
 
 def _journey(domain: str) -> Site:
@@ -94,6 +116,12 @@ TASKS = [
     Task(_journey("quotes.toscrape.com"), truth=("March 14, 1879",)),
 ]
 
+REAL_TASKS = [
+    Task(Site(domain, url, asked), truth=accepted, id=task_id)
+    for task_id, domain, url, asked, accepted in REAL
+]
+BENCHES = {"journeys": TASKS, "real": REAL_TASKS}
+
 
 @dataclass
 class Attempt:
@@ -103,6 +131,9 @@ class Attempt:
     site: str
     run: int
     phase: str  # "learn", or "replay" for Dejo's second session on the same memory
+    task: str = ""
+    folder: str = ""
+    """Where this run's memory and transcripts were kept, with `--keep`."""
     answer: str = ""
     correct: bool = False
     accepted: list[str] = field(default_factory=list)
@@ -150,8 +181,12 @@ def is_correct(answer: str, accepted: list[str]) -> bool:
     """True when one accepted value appears in the answer as a whole value: "170" is in
     "170 open issues" but not in "1170"."""
     text = THOUSANDS.sub("", answer)
+    # Not followed by a word character, or by a dot and a digit: "2.0" is not the answer
+    # "2.0.3", and "1" is not "1.5".
     return any(
-        re.search(rf"(?<![\w.]){re.escape(value)}(?![\w])", text) for value in accepted if value
+        re.search(rf"(?<![\w.]){re.escape(value)}(?![\w]|\.\d)", text)
+        for value in accepted
+        if value
     )
 
 
@@ -176,11 +211,55 @@ def _fill(attempt: Attempt, transcript: Transcript, accepted: list[str]) -> None
     attempt.cost_usd = transcript.cost_usd
 
 
+def free_memory_mb() -> int | None:
+    """Memory the machine can still hand out, in MB. None where it cannot be asked."""
+    if sys.platform == "win32":
+
+        class MemoryStatus(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        status = MemoryStatus()
+        status.dwLength = ctypes.sizeof(MemoryStatus)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            return None
+        return status.ullAvailPhys // (1024 * 1024)
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) // 1024
+    except OSError:
+        return None
+    return None
+
+
+def wait_for_memory() -> None:
+    """Hold the next session until the machine has room for it."""
+    free = free_memory_mb()
+    while free is not None and free < MIN_FREE_MB:
+        print(f"  waiting: {free} MB free, need {MIN_FREE_MB} MB", flush=True)
+        time.sleep(MEMORY_POLL_S)
+        free = free_memory_mb()
+
+
 def session(tool: str, task: Task, run: int, phase: str, memory: str, where: Path) -> Attempt:
-    attempt = Attempt(tool=tool, site=task.site.domain, run=run, phase=phase)
+    attempt = Attempt(tool=tool, site=task.site.domain, run=run, phase=phase, task=task.name)
+    attempt.folder = str(where)
+    wait_for_memory()
     before = read_live(task) if task.live_url else ""
     done = run_claude(tool, task.site, run, memory, where)
     after = read_live(task) if task.live_url else ""
+    # The whole event stream, so a failure can be read back and given its class later.
+    (where / f"{tool}-{phase}.jsonl").write_text(done.stdout, encoding="utf-8")
     attempt.seconds = round(done.seconds, 1)
     if done.timed_out:
         attempt.note = "timed out"
@@ -204,9 +283,13 @@ def browser_calls(attempt: Attempt) -> list[str]:
     ]
 
 
-def run_task(tool: str, task: Task, run: int, replay: bool) -> list[Attempt]:
+def run_task(tool: str, task: Task, run: int, replay: bool, keep: Path | None) -> list[Attempt]:
     """One cold learning session, then for Dejo one warm session on the same memory."""
-    folder = Path(mkdtemp(prefix="dejo-learning-"))
+    if keep is None:
+        folder = Path(mkdtemp(prefix="dejo-learning-"))
+    else:
+        folder = keep / f"{task.name}-{tool}-r{run}"
+        folder.mkdir(parents=True, exist_ok=True)
     memory = str(folder / "memory.db")
     learned = session(tool, task, run, "learn", memory, folder)
     found = [learned]
@@ -244,7 +327,7 @@ def _dejo_version() -> str:
 
 
 def show(attempts: list[Attempt]) -> None:
-    print(f"\n  {'tool':12}{'site':22}{'phase':8}{'run':>4}{'turns':>7}{'tokens':>10}  result")
+    print(f"\n  {'tool':16}{'task':22}{'phase':8}{'run':>4}{'turns':>7}{'tokens':>10}  result")
     print("  " + "-" * 82)
     for a in attempts:
         verdict = "right" if a.correct else f"WRONG {a.note}".strip()
@@ -254,8 +337,9 @@ def show(attempts: list[Attempt]) -> None:
         if a.one_call is not None:
             extra = "  one call" if a.one_call else "  NOT one call"
         print(
-            f"  {a.tool:12}{a.site:22}{a.phase:8}{a.run:>4}{a.turns:>7}{a.tokens:>10,}"
-            f"  {verdict}{extra}"
+            f"  {a.tool:16}{(a.task or a.site)[:21]:22}{a.phase:8}{a.run:>4}{a.turns:>7}"
+            f"{a.tokens:>10,}  {verdict}{extra}",
+            flush=True,
         )
 
 
@@ -271,11 +355,29 @@ def _earlier_runs(out: Path, meta: dict[str, str]) -> list[dict[str, Any]]:
     return list(found["runs"])
 
 
+def _done(earlier: list[dict[str, Any]], tool: str, task: Task, run: int, replay: bool) -> bool:
+    """Is this run already in the results file? Dejo's counts only with its replay too."""
+    phases = {
+        row["phase"]
+        for row in earlier
+        if row["tool"] == tool
+        and (row.get("task") or row["site"]) == task.name
+        and row["run"] == run
+    }
+    wanted = {"learn", "replay"} if tool == "dejo" and replay else {"learn"}
+    return wanted <= phases
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--tools", default="dejo", help=f"comma-separated, from {ALL_TOOLS}")
+    parser.add_argument("--bench", default="journeys", choices=sorted(BENCHES))
     parser.add_argument("--site", default="", help="only tasks whose domain contains this")
+    parser.add_argument("--task", default="", help="comma-separated task ids, e.g. T01,T02")
+    parser.add_argument(
+        "--keep", default="", help="folder that keeps every run's memory and transcripts"
+    )
     parser.add_argument("--no-replay", action="store_true", help="skip Dejo's second session")
     parser.add_argument("--out", default="", help="results file (default: dated, beside this)")
     parser.add_argument(
@@ -289,9 +391,15 @@ def main() -> int:
     unknown = set(tools) - set(ALL_TOOLS)
     if unknown:
         parser.error(f"unknown tool {sorted(unknown)}, have: {ALL_TOOLS}")
-    tasks = [t for t in TASKS if args.site in t.site.domain]
+    chosen = set(filter(None, args.task.split(",")))
+    tasks = [
+        t
+        for t in BENCHES[args.bench]
+        if args.site in t.site.domain and (not chosen or t.id in chosen)
+    ]
     if not tasks:
-        parser.error(f"no task matching {args.site!r}")
+        parser.error(f"no task matching {args.site!r} {args.task!r}")
+    keep = Path(args.keep) if args.keep else None
 
     out = Path(args.out) if args.out else HERE / f"benchmark-learning-{date.today()}.json"
     meta = {
@@ -307,9 +415,12 @@ def main() -> int:
     for task in tasks:
         for tool in tools:
             for run in range(1, args.runs + 1):
+                if _done(earlier, tool, task, run, not args.no_replay):
+                    print(f"  skip {tool} {task.name} run {run}: already in {out.name}")
+                    continue
                 if attempts:
                     time.sleep(COOLDOWN_S)
-                attempts.extend(run_task(tool, task, run, replay=not args.no_replay))
+                attempts.extend(run_task(tool, task, run, not args.no_replay, keep))
                 show(attempts[-2:] if tool == "dejo" and not args.no_replay else attempts[-1:])
                 # Written after every run, so a sweep stopped halfway keeps what it paid for.
                 runs = earlier + [asdict(a) for a in attempts]
