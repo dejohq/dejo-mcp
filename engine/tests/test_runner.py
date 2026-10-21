@@ -353,3 +353,90 @@ def test_state_changes_stop_the_drop(action: str) -> None:
     trace = [entry(action, "/", "/"), entry("goto", "/", "/x")]
     kept, dropped = drop_detours(trace)
     assert len(kept) == 2 and dropped == []
+
+
+# ------------------------------------------------- what the 21 Oct benchmark found
+
+
+def test_an_ambiguous_css_says_first_not_the_old_syntax(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """The old read tool's hint (`" >> nth=0"`) leaked into programs and was copied back."""
+    runner = runner_for(browser, store, "open a book")
+    outcome = run(runner, f'go {demo_server}/books\nread css "p.price" as price')
+    assert "4 matches" in outcome.reason
+    assert ">> nth" not in outcome.text()
+    assert outcome.next_step.startswith("add first, last or nth N")
+
+
+def test_a_control_the_site_redrew_is_found_again_by_role_and_name(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Seen on GitHub: the page redrew a part after the view was printed, so the ref died."""
+    runner = runner_for(browser, store, "open the first book")
+    run(runner, f"go {demo_server}/books\nlook")
+    himalayas = ref_of(runner, "It's Only the Himalayas")
+    browser.page.evaluate(
+        "() => { const a = document.querySelector('article h3 a'); a.replaceWith(a.cloneNode(true)); }"
+    )
+
+    outcome = run(runner, f'click {himalayas}\nread css "#title" as title')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers["title"] == "It's Only the Himalayas"
+
+
+def test_a_stop_says_not_to_resend_the_lines_that_ran(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """An agent resent a whole program, and an old ref pressed a different element."""
+    runner = runner_for(browser, store, "open a book")
+    outcome = run(runner, f'go {demo_server}/books\nclick button "Nope"')
+    assert "Do not send lines 1-1 again" in outcome.next_step
+
+
+def test_a_read_that_could_never_replay_is_not_saved(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """A paragraph with no id among look-alike paragraphs: today it gets a body-anchored
+    path, and if no path at all can be built the read stops rather than saving a trail
+    that breaks on every replay."""
+    runner = runner_for(browser, store, "read the second line")
+    browser.page.goto(f"{demo_server}/books")
+    browser.page.evaluate("() => { document.body.innerHTML = '<p>one</p><p>two</p>'; }")
+    run(runner, "look")
+    second = ref_of_text(runner, "two")
+    outcome = run(runner, f"read {second} as line")
+    assert outcome.ok and outcome.saved is not None
+    assert outcome.saved.steps[-1].locators, "a saved read must be findable again"
+
+
+def ref_of_text(runner: Runner, text: str) -> str:
+    assert runner._view is not None
+    for ref, target in runner._view.targets.items():
+        if text in (target.node.trailing, target.node.name):
+            return ref
+    raise AssertionError(f"no line saying {text!r}")
+
+
+def test_a_read_still_answers_when_the_value_changes(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """GitHub, 21 Oct: the read was stored by the link's name "Open (172)" and by a React id
+    made up for that page load, so the replay found nothing once the count moved."""
+    task = "count the open tickets"
+    runner = runner_for(browser, store, task)
+    run(runner, f"go {demo_server}/tickets?open=3\nlook")
+    count = ref_of(runner, "Open (3)")
+    learned = run(runner, f"read {count} as open")
+    assert learned.ok, learned.text()
+    stored = [loc.value for loc in learned.saved.steps[-1].locators]
+    assert stored and not any("3" in value and "Open" in value for value in stored), stored
+    assert not any("_r_" in value for value in stored), stored
+
+    replay = Executor(store, browser).run(
+        domain_of(demo_server), task=task, start_url=f"{demo_server}/tickets?open=5"
+    )
+
+    assert replay.ok, replay.reason
+    assert replay.answers["open"] == "Open (5)"

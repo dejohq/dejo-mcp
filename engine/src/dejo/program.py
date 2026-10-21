@@ -420,11 +420,18 @@ def _read(reader: _Words, number: int, body: str, reason: str) -> Read:
             found = _read_with_kind(attempt, number, body, reason)
             reader.adopt(attempt)
             return found
-        except ProgramError:
+        except ProgramError as as_kind:
             # Only a word that could also start a target gets a second reading. For any
-            # other kind, what went wrong with the kind is the useful message.
+            # other kind, what went wrong with the kind is the useful message, and it stays
+            # the message when the second reading fails too: `read text as born` is missing
+            # its target, which is what an agent needs to hear, not "ends with as NAME".
             if not starts_target:
                 raise
+            try:
+                target = reader.target()
+                return Read(number, body, "text", _named(reader, number), target, reason=reason)
+            except ProgramError:
+                raise as_kind from None
     target = reader.target()
     return Read(number, body, "text", _named(reader, number), target, reason=reason)
 
@@ -626,6 +633,13 @@ class _Words:
         if word in ROLES or word in TARGET_KINDS:
             value = self.string(f'{word} needs a string after it, like: {word} "Sign in"')
             return Target(word, value, self._pick())
+        if word in ("first", "last", "nth", "has"):
+            # Seen in the 21 Oct benchmark: `click first` and `click first link`.
+            raise ProgramError(
+                self._number,
+                f"{word} goes AFTER a target: click e145 {word} (a ref from a list), or "
+                f'click css "article h3 a" {word}',
+            )
         raise ProgramError(
             self._number,
             f"{word!r} is not a target. Use a ref like e12, or a role, text, label, "

@@ -1,0 +1,1396 @@
+{
+ "meta": {
+  "date": "2026-10-21",
+  "model": "claude-sonnet-5",
+  "effort": "medium",
+  "dejo": "0.1.2",
+  "commit": "52913b3",
+  "playwright_mcp": "@playwright/mcp@0.0.80"
+ },
+ "runs": [
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "171 open issues",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 2,
+   "tokens": 60470,
+   "reported_tokens": 60470,
+   "context_per_turn": [
+    28468,
+    31844
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_019SYLmT6PSTuSdPdCjsNXdZ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 153,
+     "result_chars": 7277,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.9,
+   "cost_usd": 0.09265920000000001,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 1,
+   "phase": "replay",
+   "answer": "Open issues: 171",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 3,
+   "tokens": 95941,
+   "reported_tokens": 95941,
+   "context_per_turn": [
+    28468,
+    31828,
+    35314
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01L1XQ9EyRpGWPKrdhGK4Xrr",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 153,
+     "result_chars": 7277,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019LKQ3PrqTcvFZ1HZ7MLXkF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 133,
+     "result_chars": 7292,
+     "is_error": false
+    }
+   ],
+   "seconds": 32.7,
+   "cost_usd": 0.0484576,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "171 open issues",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 4,
+   "tokens": 131857,
+   "reported_tokens": 131857,
+   "context_per_turn": [
+    28470,
+    31833,
+    35370,
+    35737
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0145e44JChqiDoKXwUwu1jvF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 144,
+     "result_chars": 7268,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AHcE6jP5SVxb8Hf3LKVmkt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 130,
+     "result_chars": 7425,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0128YuYm6F43yaaBTVvosCJs",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 131,
+     "result_chars": 375,
+     "is_error": false
+    }
+   ],
+   "seconds": 35.6,
+   "cost_usd": 0.1245694,
+   "trails": {
+    "github.com": [
+     "Check open issues count for microsoft/playwright repo"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 2,
+   "phase": "replay",
+   "answer": "The Issues tab shows \"Issues (173)\" with 171 open.",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 2,
+   "tokens": 60551,
+   "reported_tokens": 60551,
+   "context_per_turn": [
+    28470,
+    31919
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Hh8Ey2YpsNAu22dgMuRLZh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 7429,
+     "is_error": false
+    }
+   ],
+   "seconds": 30.3,
+   "cost_usd": 0.0268112,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "171 open issues",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 2,
+   "tokens": 60469,
+   "reported_tokens": 60469,
+   "context_per_turn": [
+    28472,
+    31851
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_018Nq3PEXJ5tk2Zp41JhQCDk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 159,
+     "result_chars": 7293,
+     "is_error": false
+    }
+   ],
+   "seconds": 10.0,
+   "cost_usd": 0.09256800000000001,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 3,
+   "phase": "replay",
+   "answer": "171",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 2,
+   "tokens": 60454,
+   "reported_tokens": 60454,
+   "context_per_turn": [
+    28472,
+    31845
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01DZdPW5ahRvjckTdusxSY3h",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 148,
+     "result_chars": 7303,
+     "is_error": false
+    }
+   ],
+   "seconds": 9.9,
+   "cost_usd": 0.026258000000000004,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "github.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "171 open issues",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 5,
+   "tokens": 163713,
+   "reported_tokens": 163713,
+   "context_per_turn": [
+    27921,
+    28889,
+    29162,
+    29413,
+    47990
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01CfMErZQQfg4WcPmZSH4YTe",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UMTyNpMpW5EQgxY4aDaVN1",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 57,
+     "result_chars": 298,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Kze797TcTVHhM8dRuQYScU",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 54,
+     "result_chars": 300,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01JHChs9Uzrk9vTfswfZuBD7",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 48647,
+     "is_error": false
+    }
+   ],
+   "seconds": 23.0,
+   "cost_usd": 0.2184274,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "github.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "171 open issues",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 4,
+   "tokens": 132930,
+   "reported_tokens": 132930,
+   "context_per_turn": [
+    27919,
+    28544,
+    28801,
+    47421
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Lzob9P5SkcjXEp7higZv25",
+     "name": "ToolSearch",
+     "input_chars": 105,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QvTqJ5Bxrpj1R95Ah5UYne",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 57,
+     "result_chars": 298,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012dDQ4GkwjZkfCEd82jwCZH",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 48737,
+     "is_error": false
+    }
+   ],
+   "seconds": 13.0,
+   "cost_usd": 0.16959760000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "github.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "171 open issues",
+   "correct": true,
+   "accepted": [
+    "171"
+   ],
+   "turns": 4,
+   "tokens": 132942,
+   "reported_tokens": 132942,
+   "context_per_turn": [
+    27919,
+    28547,
+    28804,
+    47424
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_016BF8sLEhjpk8Mw6X6d1fuv",
+     "name": "ToolSearch",
+     "input_chars": 105,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013itGAgiFWW735DAMcutvj2",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 57,
+     "result_chars": 298,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HV8CaqEYVqJAzNzkLxjdwZ",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 48737,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.9,
+   "cost_usd": 0.1696408,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 4,
+   "tokens": 118576,
+   "reported_tokens": 118576,
+   "context_per_turn": [
+    28470,
+    29328,
+    29572,
+    30795
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01HnmcjMRodvYpUWVnbresTw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 127,
+     "result_chars": 1564,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016RVTSYrNrRTaejRSNaakNH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 161,
+     "result_chars": 156,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01Uj5xtbXQHoWB7rvcLn2Z7n",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 174,
+     "result_chars": 2277,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.8,
+   "cost_usd": 0.1027808,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 1,
+   "phase": "replay",
+   "answer": "Price: \u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 4,
+   "tokens": 118225,
+   "reported_tokens": 118225,
+   "context_per_turn": [
+    28470,
+    29343,
+    29583,
+    30425
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01KNv9JjLC5si2RYrJKdyHcr",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 131,
+     "result_chars": 1568,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013eizEVq2rgZ1NuCtLpdLNV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 156,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01K67ZroMJgDZqrHhhPp3ZzV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 116,
+     "result_chars": 1496,
+     "is_error": false
+    }
+   ],
+   "seconds": 13.3,
+   "cost_usd": 0.0350476,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 8,
+   "tokens": 247295,
+   "reported_tokens": 247295,
+   "context_per_turn": [
+    28470,
+    29334,
+    29574,
+    30412,
+    30689,
+    31670,
+    32908,
+    33257
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NuFt3xhyuUmRz6z32CBtY1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 1553,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GX2iWffKZxqfCbHdVKTnfK",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 157,
+     "result_chars": 156,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01BgobuFVBKUTTcjXeUmuRmD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 106,
+     "result_chars": 1491,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014eJu5BCe1YUSdgkUjYKPki",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 149,
+     "result_chars": 156,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_017RYpoN9mzX31Q6NAWV33Df",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 131,
+     "result_chars": 1840,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01M3s6JoQ2EQ1PPuD9RVDWZu",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 143,
+     "result_chars": 2246,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014KPoLwBa5afEkK6isPvbYo",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 114,
+     "result_chars": 400,
+     "is_error": false
+    }
+   ],
+   "seconds": 30.4,
+   "cost_usd": 0.1434806,
+   "trails": {
+    "books.toscrape.com": [
+     "Get price of first book in Travel category"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 2,
+   "phase": "replay",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 2,
+   "tokens": 57397,
+   "reported_tokens": 57397,
+   "context_per_turn": [
+    28470,
+    28779
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01LBqCC95kYzscrWhxyjvEMq",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 133,
+     "result_chars": 369,
+     "is_error": false
+    }
+   ],
+   "seconds": 7.8,
+   "cost_usd": 0.0141112,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 5,
+   "tokens": 149821,
+   "reported_tokens": 149821,
+   "context_per_turn": [
+    28466,
+    29347,
+    29589,
+    30435,
+    31448
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01CwwfUrHBJLHuWnbcC3Ryho",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 141,
+     "result_chars": 1585,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JGGAPLhwGK3EnDpFKF2Jva",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 156,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01X83VcJrqXixqzrjrcmVtqg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 126,
+     "result_chars": 1503,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BTswLQz2qrsYYWkyMHxGZL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 1786,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.6,
+   "cost_usd": 0.1127398,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 3,
+   "phase": "replay",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 6,
+   "tokens": 182134,
+   "reported_tokens": 182134,
+   "context_per_turn": [
+    28466,
+    29340,
+    29573,
+    30414,
+    31651,
+    32004
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01CPeaDpMVmFdwp1dxktit5J",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 127,
+     "result_chars": 1564,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JSjDAbUcKGJoffJPxvpE6y",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 125,
+     "result_chars": 156,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_016haUvqFjJsNYHNHnorG24L",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 112,
+     "result_chars": 1496,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011jF3YYBMXiNMcgxjAUJmpL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 150,
+     "result_chars": 2253,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GNaWMXfXaEjTdUtE8urui6",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 120,
+     "result_chars": 406,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.2,
+   "cost_usd": 0.0566156,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "books.toscrape.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "First book is \"It's Only the Himalayas\" priced at \u00a345.17.",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 7,
+   "tokens": 248925,
+   "reported_tokens": 248925,
+   "context_per_turn": [
+    27917,
+    28883,
+    29164,
+    29349,
+    41299,
+    41574,
+    50254
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01UjVDavJHZbTkrriGZpbCzs",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HtLiiu2cyw64PoxmScKgBw",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 37,
+     "result_chars": 350,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BXA86ZEK25mMZckugKqM2j",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 64,
+     "result_chars": 123,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_018Zstw5RLQa4RKbsL6BC7qL",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 31744,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016KXUvWHwnFBFuE4tL8obcZ",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 52,
+     "result_chars": 309,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015bAUx7ZULkEqTYUFsn9Rj6",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 21337,
+     "is_error": false
+    }
+   ],
+   "seconds": 26.1,
+   "cost_usd": 0.20592480000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "books.toscrape.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "First book listed is \"It's Only the Himalayas\" \u2014 price \u00a345.17.\n\n\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 7,
+   "tokens": 248916,
+   "reported_tokens": 248916,
+   "context_per_turn": [
+    27913,
+    28877,
+    29158,
+    29347,
+    41299,
+    41574,
+    50254
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NtMedbmh2hb8GkJKSKbKuQ",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KsdUPe9TZyPTAHmaxbAjU8",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 37,
+     "result_chars": 350,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01P6Ezt7YCpQA4DGcSgWxzZB",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 81,
+     "result_chars": 123,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01GDUTWeSiSPTuP8d29yGFvW",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 31744,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WHPBGtaFCkp6MgoLyJaXnK",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 52,
+     "result_chars": 309,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015FqWACECb61JkxN6b2Uu9x",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 21337,
+     "is_error": false
+    }
+   ],
+   "seconds": 26.0,
+   "cost_usd": 0.20601120000000003,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "books.toscrape.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "First book is \"It's Only the Himalayas\" with price \u00a345.17.",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 6,
+   "tokens": 218798,
+   "reported_tokens": 218798,
+   "context_per_turn": [
+    27919,
+    28870,
+    29151,
+    41087,
+    41362,
+    50042
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Bcw94caxp4XopgGLNezEhf",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RUiBpzhVB2NcbVYEwxDo4m",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 37,
+     "result_chars": 350,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015pQh3c7vP9otzCqQyW5veG",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 31744,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017vni69JPivM4b6pKWtxLtg",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 52,
+     "result_chars": 309,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DH1vdeHDSE7Ci6rVvFo7JQ",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 21337,
+     "is_error": false
+    }
+   ],
+   "seconds": 24.2,
+   "cost_usd": 0.1979338,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 5,
+   "tokens": 148601,
+   "reported_tokens": 148601,
+   "context_per_turn": [
+    28468,
+    29413,
+    29630,
+    30094,
+    30432
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01HSQabgdU55SgdvFYBSxL96",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 149,
+     "result_chars": 1736,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Uxd7tvvW9iiGgFuNZo35VE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 156,
+     "result_chars": 72,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CoQKGSfH15h27Je8xgiJd3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 587,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BQjHpuiAUjmak1mEDwsjVB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 343,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.8,
+   "cost_usd": 0.1089094,
+   "trails": {
+    "quotes.toscrape.com": [
+     "Get the birth date of the author of the first quote on the homepage"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 1,
+   "phase": "replay",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 3,
+   "tokens": 86641,
+   "reported_tokens": 86641,
+   "context_per_turn": [
+    28468,
+    28680,
+    29162
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_013dsYV6fDjJu1it5EamYGBu",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 44,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_014253KkhZqXECWr1mZs9zfw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 162,
+     "result_chars": 549,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.8,
+   "cost_usd": 0.02322,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 3,
+   "tokens": 87942,
+   "reported_tokens": 87942,
+   "context_per_turn": [
+    28470,
+    29434,
+    29745
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Jy4BWFiEiREGSUfS8fK2AE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 134,
+     "result_chars": 1769,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HJrqHrNp7NTeNUdWoADps6",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 167,
+     "result_chars": 303,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.7,
+   "cost_usd": 0.091504,
+   "trails": {
+    "quotes.toscrape.com": [
+     "find first quote's author birth date from about page"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 2,
+   "phase": "replay",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 2,
+   "tokens": 57389,
+   "reported_tokens": 57389,
+   "context_per_turn": [
+    28470,
+    28778
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01G8gpPXpVWq4c9EC4TCQvyi",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 134,
+     "result_chars": 401,
+     "is_error": false
+    }
+   ],
+   "seconds": 10.6,
+   "cost_usd": 0.014037200000000001,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 4,
+   "tokens": 118062,
+   "reported_tokens": 118062,
+   "context_per_turn": [
+    28464,
+    29438,
+    29651,
+    30086
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_011Ksr2AVtvSKuSgUt5vP8xs",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 156,
+     "result_chars": 1791,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AbFWhvvtgciv78k5DEGsKW",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 72,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CjzPyT2uzAGMgkLtp9FxNh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 150,
+     "result_chars": 528,
+     "is_error": false
+    }
+   ],
+   "seconds": 17.2,
+   "cost_usd": 0.1001014,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 3,
+   "phase": "replay",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 4,
+   "tokens": 117926,
+   "reported_tokens": 117926,
+   "context_per_turn": [
+    28464,
+    29407,
+    29612,
+    30039
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01DcGnTdZz4MkeULpN21CS9b",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 118,
+     "result_chars": 1701,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01R3CdtATEUsPgrTxBEFHi8x",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 120,
+     "result_chars": 72,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_016gbyoQxNN5SDJJB9g2B1tU",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 112,
+     "result_chars": 528,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.3,
+   "cost_usd": 0.0335438,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "quotes.toscrape.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 6,
+   "tokens": 187825,
+   "reported_tokens": 187825,
+   "context_per_turn": [
+    27919,
+    28895,
+    29132,
+    32987,
+    33255,
+    35259
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01M1oZL8eTzFGMtMNUrN8eLq",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KHQgZaYP123PtqTyetpDXX",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 39,
+     "result_chars": 240,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RyaHBgdfL1455uDptL1bEy",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 8959,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01A4rQLdRtXXdjXoMRhsC8KT",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 61,
+     "result_chars": 284,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GZ6WdU8RZsfnB21UvYaatj",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 5092,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.8,
+   "cost_usd": 0.1356716,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "quotes.toscrape.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 7,
+   "tokens": 221488,
+   "reported_tokens": 221488,
+   "context_per_turn": [
+    27921,
+    28895,
+    29132,
+    32987,
+    33177,
+    33448,
+    35452
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01UTYUXyJqY73qS2suW26CMe",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NC94rKYERP15JFUK7uCUu3",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 39,
+     "result_chars": 240,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01F31m7MdvxVVUTxZtUVQ4Xk",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 8959,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DB66Gv11C7qErCcacthWxk",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 73,
+     "result_chars": 123,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01D9m6nfkdfA35PML79HMe74",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 64,
+     "result_chars": 280,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PGfsWdwaddRVCN1mbNeEYn",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 5092,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.3,
+   "cost_usd": 0.1441016,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "quotes.toscrape.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 6,
+   "tokens": 187777,
+   "reported_tokens": 187777,
+   "context_per_turn": [
+    27919,
+    28887,
+    29124,
+    32979,
+    33247,
+    35251
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Wj4ARaQSJptGS1uizB8Y5h",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0166qdFhLTBujuAwe92h3Y34",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 39,
+     "result_chars": 240,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016JeaFVmdPdDAawsU1XSRLj",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 8959,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013azuiDUBFnNiJryTVpbK9j",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 61,
+     "result_chars": 284,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KktryRmKUMgqFgzGK8x3Bd",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 5092,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.6,
+   "cost_usd": 0.13555319999999998,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  }
+ ]
+}

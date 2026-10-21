@@ -440,3 +440,20 @@ def test_the_reader_cannot_run_code() -> None:
     }
     assert not imported & {"ast", "subprocess", "os", "importlib", "pickle", "code"}
     assert not called & {"eval", "exec", "compile", "__import__", "getattr"}
+
+
+# ------------------------------------------------- what agents actually wrote, 21 Oct
+
+
+@pytest.mark.parametrize(
+    ("line", "says"),
+    [
+        ("read text as born", 'a target is missing before "as"'),
+        ("click first", "first goes AFTER a target"),
+        ("click first link", "first goes AFTER a target"),
+    ],
+)
+def test_lines_agents_really_wrote_get_the_right_hint(line: str, says: str) -> None:
+    """Each of these was sent by Claude in the 21 Oct benchmark and got a misleading error."""
+    with pytest.raises(ProgramError, match=says):
+        program.parse(line)

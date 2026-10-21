@@ -20,8 +20,9 @@ text into data before this file ever sees it.
 
 from __future__ import annotations
 
+import re
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -64,6 +65,10 @@ _LOCATOR_KIND |= {"title": "title", "css": "css"}
 # Actions that press something, so they can buy, send or delete. The rest only move,
 # type or look.
 PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event"})
+
+# Locator kinds made of an element's own words. Only these can contain the value being
+# read; a css path's numbers are positions, not values.
+_WORDED_LOCATORS = frozenset({"role", "text", "label", "title", "alt", "placeholder"})
 
 # Reads that answer about many elements at once, so several matches are the point.
 _MANY_READS = {"count", "all_text"}
@@ -343,9 +348,51 @@ class Runner:
                 "the read found nothing there",
                 "the value may sit in another element; look at the page below",
             )
+        entry = self.session.trace[-1] if self.session.trace else None
+        kept = entry.element if entry is not None else None
+        if entry is not None and kept is not None and step.kind not in _MANY_READS:
+            entry.locators = self._lasting(kept.locators(), answer)
+        if (
+            element is not None
+            and kept is not None
+            and not (
+                entry.locators
+                if entry is not None and entry.locators is not None
+                else kept.locators()
+            )
+        ):
+            # A read nobody can find again would be saved, report success, and break on
+            # every replay. Seen 21 Oct on a paragraph with no id and no unique path.
+            self.session.trace.pop()
+            raise _Stopped(
+                f"read {step.target.value if step.target else ''} worked, but Dejo found no "
+                "way to find that element again, so it would not replay",
+                'name it with css instead, like: read css ".author-born-date" as born',
+            )
         out.answers[step.name] = ", ".join(answer) if isinstance(answer, list) else str(answer)
         where = _css_hint(element) if element is not None else step.kind
         out.sources[step.name] = f'read from {where} on "{self.browser.page.title()}"'
+
+    def _lasting(self, found: list[Locator], answer: Any) -> list[Locator]:
+        """The ways of finding a read's element that will still find it tomorrow.
+
+        A read is stored to answer again when the value has CHANGED, which is the point of
+        reading it. GitHub's open-issue link is named "Open (172)", and stored by that name
+        it found nothing the day the count was 174. So a locator that contains the value is
+        dropped, and so is one that matched more than one element when it was learned:
+        on replay it would read whichever came first."""
+        said = " ".join(str(answer).split())
+        numbers = re.findall(r"\d+", said)
+        kept = []
+        for locator in found:
+            words = " ".join(locator.value.split())
+            names_it = locator.kind in _WORDED_LOCATORS
+            if names_it and ((said and said in words) or any(n in words for n in numbers)):
+                continue
+            matched = self.browser.matches(replace(locator, nth=locator.nth))
+            if matched is not None and matched.count() == 1:
+                kept.append(locator)
+        return kept
 
     def _note(self, step: Note) -> None:
         if self.store is None or not self.domain:
@@ -372,8 +419,25 @@ class Runner:
         if target.kind == "ref":
             return self._by_ref(target)
         if target.kind == "css" and target.pick is None:
+            self._one_css_match(target, many=many)
             return self.session.element_by_selector(target.value, one=not many)
         return self._by_locator(target, many=many)
+
+    def _one_css_match(self, target: language.Target, *, many: bool) -> None:
+        """Refuse a css target that matches several elements, in this language's words.
+
+        The session's own refusal tells a caller to add `" >> nth=0"`, which is how the old
+        read tool spelt it; an agent writing steps copied that into a program and failed
+        again (21 Oct benchmark). Here the fix is `first`, `last` or `nth N`."""
+        if many:
+            return
+        try:
+            matched = self.browser.page.locator(target.value)
+            count = matched.count()
+        except PlaywrightError:
+            raise _Stopped(f"{target.value!r} is not a CSS selector the browser accepts") from None
+        if count > 1:
+            raise _Stopped(_too_many(target, count, matched), "add first, last or nth N")
 
     def _by_ref(self, target: language.Target) -> Element:
         if self._view is None:
@@ -397,11 +461,43 @@ class Runner:
             href=shown.node.href,
             frame=shown.frame,
         )
+        if not self._still_there(shown.aria_ref):
+            element = self._redrawn(element, target.value)
         if target.pick is None:
             return element
         if target.pick.kind == "has":
             raise _Stopped("has goes with a kind of element, not a ref", 'like: row has "Lagos"')
         return self._by_place(element, target.pick)
+
+    def _still_there(self, aria_ref: str) -> bool:
+        try:
+            return self.browser.page.locator(f"aria-ref={aria_ref}").count() > 0
+        except PlaywrightError:
+            return False
+
+    def _redrawn(self, element: Element, ref: str) -> Element:
+        """The page is the same document, but the site drew this element again, so its ref
+        no longer resolves. Seen on GitHub on 21 Oct: a read of a counter timed out.
+
+        It is found again only by its role and name, and only when exactly one element on
+        the page has both: that is the same control drawn twice, not a look-alike."""
+        gone = _Stopped(
+            f"{ref} is gone: the site redrew that part of the page",
+            'look again for fresh refs, or name it: role "name" or css',
+        )
+        if not element.role or not element.name:
+            raise gone
+        again = Locator("role", f"{element.role}|{element.name}", frame=element.frame)
+        matched = self.browser.matches(again)
+        if matched is None or matched.count() != 1:
+            raise gone
+        return Element(
+            ref=element.ref,
+            role=element.role,
+            name=element.name,
+            found_by=again,
+            frame=element.frame,
+        )
 
     def _by_place(self, element: Element, pick: Pick) -> Element:
         """`e145 first`: the first row's link, whichever book that is on the day."""
@@ -535,6 +631,13 @@ class Runner:
             out.next_step += (
                 ". It failed twice the same way: try look all, look raw, or a one-line "
                 'js "..." program to see the page another way'
+            )
+        if out.passed:
+            # Seen 21 Oct: an agent resent the whole program, and `click e15` from the old
+            # page pressed a different e15 on the new one, which was then saved as a step.
+            out.next_step += (
+                f". Do not send lines 1-{step.line - 1} again: they ran and are kept, and "
+                "the refs below are for the page as it is now"
             )
         if self.browser.captcha_on_page():
             out.reason += "; a captcha is in the way"

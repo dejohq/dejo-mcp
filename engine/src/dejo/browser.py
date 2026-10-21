@@ -300,12 +300,18 @@ _DESCRIBE_JS = """
     return aria ? aria.trim() : null;
   };
 
+  // An id a framework made up for this page load (React's `_r_2o_` or `:r1:`, or a
+  // long run of digits) is different on the next load. GitHub's issue list hangs
+  // its counters off one, and a read stored by it broke on the very next replay.
+  const stableId = (id) => !!id && !/^:|_r_|[0-9]{4,}/.test(id);
+
   // Walks up until the path matches exactly ONE element, and gives up rather than
   // returning one that matches several. A selector that finds the wrong element is worse
   // than no selector: replay takes the first match and clicks something else entirely.
   const cssOf = (node) => {
     const doc = node.ownerDocument;
-    if (node.id && doc.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) {
+    if (stableId(node.id)
+        && doc.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) {
       return `#${CSS.escape(node.id)}`;
     }
     if (node.name && node.tagName === 'INPUT') {
@@ -320,13 +326,22 @@ _DESCRIBE_JS = """
       const parent = walker.parentElement;
 
       // An id anywhere up the chain anchors everything below it in one step.
-      if (walker !== node && walker.id
+      if (walker !== node && stableId(walker.id)
           && doc.querySelectorAll(`#${CSS.escape(walker.id)}`).length === 1) {
         parts.unshift(`#${CSS.escape(walker.id)}`);
         return parts.join(' > ');
       }
 
-      if (tag === 'html' || tag === 'body' || !parent) break;
+      if (tag === 'html' || tag === 'body' || !parent) {
+        // Anchored at the body, a path that matched several elements one level down can
+        // still match exactly one. Giving up here left a paragraph on quotes.toscrape.com
+        // with no path at all, so a read of it was saved and could never be replayed.
+        const anchored = parts.length ? `body > ${parts.join(' > ')}` : '';
+        if (tag === 'body' && anchored && doc.querySelectorAll(anchored).length === 1) {
+          return anchored;
+        }
+        break;
+      }
 
       const siblings = Array.from(parent.children).filter(c => c.tagName === walker.tagName);
       const index = siblings.indexOf(walker) + 1;

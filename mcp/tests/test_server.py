@@ -341,3 +341,35 @@ class TestATrailThatAnswersNothing:
         )
 
         assert extended.startswith(f'saved "{task}"') and "2 steps" in extended
+
+
+def test_steps_sent_with_a_url_on_the_first_call_start_there(mcp_server, demo_server):
+    """Seen in the 21 Oct benchmark: url and steps in one call, and the url was ignored."""
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task="read the next charge",
+        url=f"{demo_server}/payments",
+        steps='read css "#next-charge" as charge',
+    )
+    assert "charge = ₹ 18,400" in said
+
+
+def test_a_url_the_trail_cannot_start_from_falls_back_to_its_own_start(mcp_server, demo_server):
+    """Seen 21 Oct: a trail that starts on the Issues page was replayed with the repo's front
+    page as url, so it stopped, and the agent read a different count off the front page."""
+    task = "read the next charge"
+    call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        url=f"{demo_server}/payments",
+        steps='read css "#next-charge" as charge',
+    )
+
+    done = call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/")
+
+    assert done.startswith(f'done: "{task}"'), done
+    assert "charge = ₹ 18,400" in done

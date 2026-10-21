@@ -418,7 +418,7 @@ def dejo_run(
     # replay of "open the payments page" to the home page.
     first_page = url or (site if "://" in site else None)
     if steps is not None or done:
-        return _run_steps(tools, key, task, steps or "", done)
+        return _run_steps(tools, key, task, steps or "", done, first_page)
     if tools.learning(key, task) and tools.store.load_playbook(key, task) is None:
         # Called again without steps while the task is still being learned and nothing is
         # saved yet: show the page where learning stands. A saved trail always replays.
@@ -426,7 +426,9 @@ def dejo_run(
     return _replay_or_look(tools, key, task, url, first_page)
 
 
-def _run_steps(tools: DejoTools, key: str, task: str, steps: str, done: bool) -> Reply:
+def _run_steps(
+    tools: DejoTools, key: str, task: str, steps: str, done: bool, first_page: str | None
+) -> Reply:
     try:
         written = program.parse(steps) if steps.strip() else program.Program()
     except program.ProgramError as wrong:
@@ -438,6 +440,11 @@ def _run_steps(tools: DejoTools, key: str, task: str, steps: str, done: bool) ->
         resumed = tools.worker.submit(
             lambda _browser: runner.resume(key, profile=tools.secrets_profile)
         )
+        # Steps sent with a url on the very first call mean "start there, then do these".
+        # Only then: an agent that repeats the url on a later call must not be sent back
+        # to the start in the middle of a task.
+        if first_page and not resumed.startswith("draft:"):
+            written = program.parse(f"go {first_page}\n{steps}")
     outcome = tools.worker.submit(lambda _browser: runner.run(written, done=done))
     return Reply(_with_header(tools, outcome.text(), resumed))
 
@@ -456,6 +463,16 @@ def _replay_or_look(
         return _first_look(tools, key, task, first_page, known=known)
     except NoTrailError:
         return _first_look(tools, key, task, first_page)
+    if url and result.wrong_place:
+        # The agent named a url, often just the site's front page, but the trail starts
+        # somewhere else and could not begin there. Seen 21 Oct: a trail that starts on the
+        # Issues page was sent to the repo page, and the agent then read the wrong count off
+        # that page. One more replay from the trail's own start costs no model turn.
+        result = tools.worker.submit(
+            lambda browser: Executor(tools.store, browser, profile=tools.secrets_profile).run(
+                key, task=task
+            )
+        )
     return _after_replay(tools, key, task, result)
 
 
@@ -494,8 +511,10 @@ def _first_look(
     if outcome.ok and outcome.view is not None:
         lines.extend(filter(None, [resumed, outcome.view.text]))
         lines.append(
-            "next: send steps, one per line, in the next dejo_run call. Refs work until the "
-            "page changes. Finish with read T as name: that read is what Dejo keeps."
+            "next: send steps, one per line, in the next dejo_run call. End with read <ref> "
+            "as <name>, EVEN IF the answer is already on this page: that read is what Dejo "
+            "saves, so next time this task is one call with no page reading. Refs work until "
+            "the page changes."
         )
         return Reply(_with_note(tools, "\n".join(lines)))
     return Reply(_with_header(tools, outcome.text(), "\n".join(lines)))

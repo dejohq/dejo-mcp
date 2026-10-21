@@ -263,6 +263,22 @@ def book(request: Request, index: int, variant: str | None = Query(None)) -> HTM
     )
 
 
+@app.get("/tickets", response_class=HTMLResponse)
+def tickets(request: Request, open_count: int = Query(3, alias="open")) -> HTMLResponse:
+    """GitHub's issue list in miniature: the count lives in a link NAMED by the count, under
+    an id React made up for this page load. A read learned at one count has to answer at
+    another, which it cannot do if it was stored by the name "Open (3)" or by that id."""
+    return page(
+        "Tickets",
+        f"""<h1>Tickets</h1>
+            <div id="_r_2o_-list-view-metadata"><ul>
+              <li><a href="/tickets?state=open">Open ({open_count})</a></li>
+              <li><a href="/tickets?state=closed">Closed (40)</a></li>
+            </ul></div>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
     v = variant_of(request, variant)

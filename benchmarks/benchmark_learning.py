@@ -222,10 +222,19 @@ def run_task(tool: str, task: Task, run: int, replay: bool) -> list[Attempt]:
 
 
 def _git_commit() -> str:
+    """The commit measured, marked `-dirty` when the code has changes not yet committed.
+    Otherwise a run of uncommitted fixes would be filed under the commit before them."""
     done = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"], cwd=HERE, capture_output=True, text=True
     )
-    return done.stdout.strip() or "unknown"
+    changed = subprocess.run(
+        ["git", "status", "--porcelain", "--", "engine/src", "mcp/src"],
+        cwd=HERE.parent,
+        capture_output=True,
+        text=True,
+    )
+    commit = done.stdout.strip() or "unknown"
+    return f"{commit}-dirty" if changed.stdout.strip() else commit
 
 
 def _dejo_version() -> str:

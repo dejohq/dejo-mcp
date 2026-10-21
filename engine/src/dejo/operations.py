@@ -97,6 +97,10 @@ class TraceEntry:
     step that used to answer is drift, not success — and reporting it as success is how a
     warm run "works" while handing back nothing."""
     download: str | None = None
+    locators: list[Locator] | None = None
+    """The ways to find the element chosen when the step ran, when they had to be
+    narrowed. Replaces `element.locators()` in the trail. A read is narrowed to the
+    locators that will still find it once its value has changed."""
     expect: Postcondition | None = None
     """The check the agent wrote for this step with an `expect` line. It replaces the one
     `distill` would infer, and it was proven true when the step ran."""

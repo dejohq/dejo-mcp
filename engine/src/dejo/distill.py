@@ -90,6 +90,8 @@ def locators_for(entry: TraceEntry) -> list[Locator]:
     """
     if entry.element is None:
         return []
+    if entry.locators is not None:
+        return entry.locators
     return entry.element.locators()
 
 
