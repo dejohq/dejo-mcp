@@ -1,15 +1,12 @@
 """More than one signed-in identity at a time.
 
-Dejo used to keep a single browser profile. A suite testing a marketplace with a customer,
-a vendor and an admin therefore had to sign out and back in between roles — slow, and worse,
-it made the ORDER of the tests matter: anything that forgot to sign out broke whatever ran
-next.
+A suite testing a marketplace with a customer, a vendor and an admin used to sign out and
+back in between roles: slow, and it made the ORDER of the work matter. A profile is a whole
+browser (its own cookies, session and process), so Dejo keeps them side by side and
+switching between them is free.
 
-A profile is a whole browser: its own cookies, its own session, its own process. Dejo keeps
-them side by side now, so all three stay signed in and switching between them is free.
-
-Memory is deliberately NOT split by profile. The site is one site however many logins reach
-it, which is the same reason the map is one merged map per site.
+Trails and the map are shared by every profile: the site is one site however many logins
+reach it.
 """
 
 from __future__ import annotations
@@ -35,105 +32,91 @@ def server(tmp_path):
     built.dejo_tools.close()
 
 
+def open_page(server, demo_server: str, profile: str, path: str) -> str:
+    """Open a page as one profile, as a new task of that profile's own."""
+    return call(
+        server,
+        "dejo_run",
+        site=demo_server,
+        task=f"open {path} as {profile}",
+        url=f"{demo_server}{path}",
+        profile=profile,
+    )
+
+
 class TestNamingProfiles:
     def test_it_starts_on_the_default_one(self, server):
-        answer = call(server, "dejo_profile")
-
-        assert answer["active"] == DEFAULT_PROFILE_NAME
+        assert call(server, "dejo_profile").startswith(f"profiles: {DEFAULT_PROFILE_NAME} (in use)")
 
     def test_a_new_name_is_made_on_the_spot(self, server):
-        answer = call(server, "dejo_profile", name="vendor")
-
-        assert answer["active"] == "vendor"
-        assert answer["was"] == DEFAULT_PROFILE_NAME
+        said = call(server, "dejo_profile", name="vendor")
+        assert said.startswith(f"now working as vendor (was {DEFAULT_PROFILE_NAME})")
 
     def test_the_default_keeps_the_folder_it_always_had(self, server, tmp_path):
-        """Naming profiles must not quietly move somebody's sign-ins somewhere new."""
         tools = server.dejo_tools
-
         assert tools.path_for(DEFAULT_PROFILE_NAME) == str(tmp_path / "default-profile")
 
     def test_every_other_profile_gets_its_own_folder(self, server, tmp_path):
         tools = server.dejo_tools
-
-        vendor = tools.path_for("vendor")
-        admin = tools.path_for("admin")
-
+        vendor, admin = tools.path_for("vendor"), tools.path_for("admin")
         assert vendor != admin
         assert str(tmp_path / "profiles") in vendor
 
     def test_a_name_with_spaces_still_makes_one_folder(self, server):
-        tools = server.dejo_tools
-
-        assert tools.path_for("Vendor A").endswith("vendor-a")
+        assert server.dejo_tools.path_for("Vendor A").endswith("vendor-a")
 
     def test_listing_says_which_one_is_in_use(self, server):
         call(server, "dejo_profile", name="admin")
+        assert "admin (in use)" in call(server, "dejo_profile")
 
-        listed = call(server, "dejo_profile")["profiles"]
+    def test_dejo_run_can_switch_profile_for_itself(self, server, demo_server):
+        """A multi-role job needs no extra tool load: dejo_run takes the profile."""
+        said = open_page(server, demo_server, "admin", "/")
+        assert "(profile admin)" in said
+        assert server.dejo_tools.active == "admin"
 
-        assert [row["name"] for row in listed if row["active"]] == ["admin"]
 
-
-class TestTheyAreReallySeparateBrowsers:
+class TestSideBySide:
     def test_two_profiles_are_two_browsers_at_the_same_time(self, server, demo_server):
-        """The claim, tested rather than asserted: both open, neither closing the other."""
+        open_page(server, demo_server, "vendor", "/")
+        open_page(server, demo_server, "customer", "/invoices")
+
         tools = server.dejo_tools
-
-        call(server, "dejo_profile", name="vendor")
-        call(server, "dejo_act", intent="open", action="goto", value=f"{demo_server}/")
-        call(server, "dejo_profile", name="customer")
-        call(server, "dejo_act", intent="open", action="goto", value=f"{demo_server}/invoices")
-
         assert tools._workers["vendor"].running
         assert tools._workers["customer"].running
 
     def test_each_keeps_its_own_page(self, server, demo_server):
-        """Switching back must land where that profile left off, not where the other is."""
-        call(server, "dejo_profile", name="vendor")
-        call(server, "dejo_act", intent="open", action="goto", value=f"{demo_server}/")
-        call(server, "dejo_profile", name="customer")
-        call(server, "dejo_act", intent="open", action="goto", value=f"{demo_server}/settings")
+        open_page(server, demo_server, "vendor", "/")
+        open_page(server, demo_server, "customer", "/settings")
 
         call(server, "dejo_profile", name="vendor")
-        where = call(server, "dejo_read", kind="url")["value"]
+        where = call(
+            server, "dejo_run", site=demo_server, task="open / as vendor", steps="read url as here"
+        )
 
-        assert not where.endswith("/settings"), "it landed on the other profile's page"
+        assert "here = " in where and not where.split("here = ")[1].startswith(
+            f"{demo_server}/settings"
+        ), "it landed on the other profile's page"
 
-    def test_each_has_its_own_trace(self, server, demo_server):
-        """A trace belongs to the browser that made it. Sharing one would mix an admin's
-        steps into a customer's trail."""
-        tools = server.dejo_tools
-        call(server, "dejo_profile", name="vendor")
-        call(server, "dejo_act", intent="open", action="goto", value=f"{demo_server}/")
-        call(server, "dejo_read", kind="page")
+    def test_each_learns_its_own_steps(self, server, demo_server):
+        open_page(server, demo_server, "vendor", "/")
+        open_page(server, demo_server, "customer", "/")
 
-        call(server, "dejo_profile", name="customer")
+        runs = server.dejo_tools._runners
+        vendor = next(r for (who, _, _), r in runs.items() if who == "vendor")
+        customer = next(r for (who, _, _), r in runs.items() if who == "customer")
+        assert vendor.session is not customer.session
 
-        assert tools._sessions["vendor"] is not tools._sessions.get("customer")
-
-
-class TestMemoryIsNotSplit:
-    def test_what_one_profile_learned_the_next_one_knows(self, server, demo_server):
-        """One site is one site, however many logins reach it."""
-        call(server, "dejo_profile", name="vendor")
-        call(server, "dejo_act", intent="open", action="goto", value=f"{demo_server}/")
-        call(server, "dejo_read", kind="page")
+    def test_what_one_profile_saw_the_next_one_knows(self, server, demo_server):
+        open_page(server, demo_server, "vendor", "/")
 
         call(server, "dejo_profile", name="customer")
-        mapped = call(server, "dejo_map", site=demo_server)
-
-        assert mapped["ok"] is True
-        assert any(row["path"] == "/" for row in mapped["pages"])
+        assert "pages seen:" in call(server, "dejo_memory", what="map", site=demo_server)
 
 
 class TestRememberingWhoIsInUse:
-    """An MCP server restarts whenever its client does.
-
-    The active profile used to reset to `default` there, silently. An agent that had been
-    an admin for an hour came back signed in to nothing, and the next failure looked like
-    a broken trail or a missing password instead of the identity change it was.
-    """
+    """An MCP server restarts whenever its client does. The active profile used to reset to
+    `default` there, silently, and the next failure looked like a broken trail."""
 
     def test_a_restart_comes_back_as_the_same_profile(self, tmp_path):
         first = build_server(
@@ -152,33 +135,26 @@ class TestRememberingWhoIsInUse:
             profiles_dir=str(tmp_path / "profiles"),
         )
         try:
-            assert call(second, "dejo_profile")["active"] == "admin"
+            assert "admin (in use)" in call(second, "dejo_profile")
         finally:
             second.dejo_tools.close()
 
     def test_a_machine_where_nobody_ever_switched_is_still_the_default(self, server):
-        assert call(server, "dejo_profile")["active"] == DEFAULT_PROFILE_NAME
+        assert f"{DEFAULT_PROFILE_NAME} (in use)" in call(server, "dejo_profile")
 
     def test_the_note_of_who_is_in_use_is_not_itself_a_profile(self, server):
         call(server, "dejo_profile", name="admin")
-
-        listed = call(server, "dejo_profile")["profiles"]
-
-        assert all(not row["name"].startswith(".") for row in listed)
+        assert ".active" not in call(server, "dejo_profile")
 
 
-class TestEveryAnswerSaysWhichIdentity:
-    """Naming it is what makes a remembered profile safe rather than surprising."""
-
+class TestPasswordsFollowTheProfile:
     def test_a_password_lookup_names_the_profile_even_when_it_is_the_default(self, server):
         assert server.dejo_tools.secrets_profile == DEFAULT_PROFILE_NAME
 
     def test_and_the_one_that_was_switched_to(self, server):
         call(server, "dejo_profile", name="vendor")
-
         assert server.dejo_tools.secrets_profile == "vendor"
 
-    def test_a_run_on_an_unknown_site_still_says_who_it_ran_as(self, server, demo_server):
-        answer = call(server, "dejo_run", site=demo_server)
-
-        assert answer["profile"] == DEFAULT_PROFILE_NAME
+    def test_a_new_task_says_who_it_ran_as(self, server, demo_server):
+        said = call(server, "dejo_run", site=demo_server, task="look", url=f"{demo_server}/")
+        assert f"(profile {DEFAULT_PROFILE_NAME})" in said

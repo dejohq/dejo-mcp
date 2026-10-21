@@ -1,0 +1,145 @@
+[
+ {
+  "name": "dejo_run",
+  "description": "Use for ANY website task: read a value, fill a form, download, check a page. A real browser with memory: a task done once is replayed later with no page reading.\n\nCall with site, task and url. Known task: Dejo replays it and returns the answer. New task: Dejo opens the url and returns the page, one line per element, each with a ref (e12). Then call again with steps, one per line. They run in order. Dejo stops at the first step that fails and returns the page there.\n\nSteps:\ngo URL\nclick T | fill T \"text\" | select T \"option\" | check T | press Enter\nread T as name   (the value you will report)\nexpect url \"part\" | expect text \"words\" | expect see T\nlook words       (show the page, these words first)\nAlso: back, hover T, wait T, upload T \"file\", tab N.\nT is a ref, or role \"name\" (link \"Travel\"), text \"...\", label \"...\", css \"...\". Add first, last or nth 3 to mean that place in a list, not that item.\nWrite click! (or fill! etc.) for a step that buys, pays, sends, deletes or submits.\n\nPassed steps are kept. When all steps pass and one is a read (or a file downloads), the task is saved. done=true saves a task that reads nothing.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "site": {
+     "type": "string",
+     "description": "domain or URL"
+    },
+    "task": {
+     "type": "string",
+     "description": "the job in plain words; the trail's name"
+    },
+    "url": {
+     "type": "string",
+     "description": "where to start"
+    },
+    "steps": {
+     "type": "string",
+     "description": "step lines, see above"
+    },
+    "done": {
+     "type": "boolean"
+    },
+    "profile": {
+     "type": "string",
+     "description": "signed-in role to use, e.g. admin"
+    }
+   },
+   "required": [
+    "site",
+    "task"
+   ]
+  },
+  "_meta": {
+   "anthropic/alwaysLoad": true
+  }
+ },
+ {
+  "name": "dejo_login",
+  "description": "Sign in to a website, website login, SSO, Google sign-in, one-time code. Opens a visible browser window so the USER signs in; never type a password you were not given. Call with site, tell the user to sign in there, then call again with done=true. Signs in the current profile only, and it stays signed in.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "site": {
+     "type": "string"
+    },
+    "done": {
+     "type": "boolean",
+     "description": "the user says they are signed in"
+    },
+    "confirmed": {
+     "type": "boolean",
+     "description": "user insists, though a sign-in page still shows"
+    }
+   },
+   "required": [
+    "site"
+   ]
+  }
+ },
+ {
+  "name": "dejo_profile",
+  "description": "Website profiles and roles: customer, vendor, admin. A profile is a whole signed-in browser; several stay signed in side by side. With a name: switch to it (made on first use). Without: list them. Trails are shared by every profile.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "required": []
+  }
+ },
+ {
+  "name": "dejo_memory",
+  "description": "What Dejo remembers about websites. Read only. what=sites lists every trail and its health; what=show gives one trail's steps; what=map lists pages seen on a site (with path: that page's controls); what=commons lists trails other agents shared.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "what": {
+     "type": "string",
+     "enum": [
+      "sites",
+      "show",
+      "map",
+      "commons"
+     ]
+    },
+    "site": {
+     "type": "string"
+    },
+    "task": {
+     "type": "string"
+    },
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "what"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "dejo_manage",
+  "description": "Change what Dejo remembers about a website. do=forget removes a site (or one task) for good; do=note keeps a fact that is not a step (needs 2FA, use the finance account); do=share offers a trail to other agents (typed values never leave); do=borrow takes a shared trail.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "do": {
+     "type": "string",
+     "enum": [
+      "forget",
+      "note",
+      "share",
+      "borrow"
+     ]
+    },
+    "site": {
+     "type": "string"
+    },
+    "task": {
+     "type": "string"
+    },
+    "text": {
+     "type": "string",
+     "description": "the fact, for note"
+    }
+   },
+   "required": [
+    "do",
+    "site"
+   ]
+  },
+  "annotations": {
+   "destructiveHint": true
+  }
+ }
+]

@@ -219,6 +219,7 @@ class Runner:
         outcome = Outcome(task=self.task, domain=self.domain, total=len(written.steps))
         steps = list(written.steps)
         read_something = False
+        trace_before = len(self.session.trace)
         for at, step in enumerate(steps):
             try:
                 if isinstance(step, Look):
@@ -236,7 +237,9 @@ class Runner:
                 break
 
         outcome.domain = self.domain
-        downloaded = any(entry.download for entry in self.session.trace)
+        # Only what THIS program did. A download from an earlier program has already been
+        # saved, and counting it again saved a later look as a new step.
+        downloaded = any(entry.download for entry in self.session.trace[trace_before:])
         if outcome.ok and (read_something or downloaded or done) and self._has_steps():
             self._save(outcome)
         else:
@@ -275,6 +278,7 @@ class Runner:
         if element is not None and not step.risky:
             self._refuse_unmarked_risk(step, element)
         written = len(self.session.trace)
+        was = self.browser.page.url
         self.session.act_on(
             step.reason or _intent_of(step, element),
             step.action,
@@ -287,11 +291,30 @@ class Runner:
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
         self.domain = self.domain or domain_of(self.browser.page.url)
+        if self.browser.page.url != was:
+            self._map_this_page()
         if step.action == "goto" and (self.browser.last_status or 0) >= HTTP_ERROR_FROM:
             raise _Stopped(
                 f"the page answered HTTP {self.browser.last_status} instead of the page",
                 "check the address; nothing on an error page is worth learning",
             )
+
+    def _map_this_page(self) -> None:
+        """Write the page a step just arrived on into the site's map, without showing it.
+
+        A program walks through pages nobody looks at. Before programs, every page was
+        looked at, so every page reached the map, and the map is what lets the NEXT task on
+        a site start from known pages instead of from nothing. This keeps that: it costs a
+        moment of browser time and no model tokens, since nothing here goes to the agent."""
+        try:
+            raw, frames = self.browser.raw_snapshot()
+            controls = parse_controls(raw, frames=frames)
+            page = self.browser.page
+            self.session.remember_page(
+                Snapshot(url=page.url, title=page.title(), elements=controls)
+            )
+        except PlaywrightError:
+            return
 
     def _expect(self, step: Expect, before: language.Step | None) -> None:
         check = self._postcondition(step)
@@ -573,7 +596,18 @@ class Runner:
         if self.store is not None and self.domain:
             self.store.drop_draft(self.domain, self.task)
 
-    def resume(self, domain: str) -> str:
+    def continue_from(self, domain: str, steps: list[Step]) -> None:
+        """Carry on from steps that have just run in this browser, without running them again.
+
+        Two cases put the browser at the end of known steps: a trail that replayed (the agent
+        may now add a read to it), and a trail that broke at step k (steps 1 to k-1 ran and
+        held). Either way the next save must keep those steps, or a one-line addition would
+        replace the whole trail with that one line."""
+        self.domain = domain
+        self._kept = [Step.from_dict(step.to_dict()) for step in steps]
+        self.session.trace.clear()
+
+    def resume(self, domain: str, *, profile: str | None = None) -> str:
         """Walk an earlier session's draft back to where it stopped, with no model calls.
 
         Replayed against a throwaway copy of memory: replay writes its run statistics back
@@ -595,7 +629,9 @@ class Runner:
             throwaway = DejoStore(db_path=str(Path(scratch) / "draft.db"))
             try:
                 throwaway.save_playbook(Playbook(domain=domain, task=self.task, steps=draft.steps))
-                result = Executor(throwaway, self.browser).run(domain, task=self.task)
+                result = Executor(throwaway, self.browser, profile=profile).run(
+                    domain, task=self.task
+                )
             finally:
                 throwaway.close()
         if not result.ok:
