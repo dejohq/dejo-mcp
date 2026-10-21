@@ -20,7 +20,7 @@ gets stored is the durable descriptors in `describe.py`.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from .models import Locator, link_target
@@ -133,6 +133,13 @@ class Element:
     the caller would know the button was there and still have to read the whole page to get
     a ref before pressing it."""
 
+    by_place: bool = False
+    """Found by its PLACE in a list ("the first book"), not as this particular item.
+
+    Then `found_by` is the only thing worth storing. Its title, link target or test id would
+    quietly point replay back at the item that happened to be first on the day the trail
+    was learned, which is wrong for "open the first book" the moment the list changes."""
+
     href: str | None = None
     clickable: bool = False
     frame: str | None = None
@@ -182,6 +189,9 @@ class Element:
         Replay reorders these by measured confidence once they have a track record, so the
         order here only decides what gets tried on the very first replay.
         """
+        if self.by_place and self.found_by is not None:
+            return [replace(self.found_by, frame=self.frame)]
+
         found: list[Locator] = []
 
         if self.test_id:
@@ -190,7 +200,9 @@ class Element:
             found.append(Locator("structural", f"href={link_target(self.href)}"))
         if self.label:
             found.append(self._pin(Locator("label", self.label)))
-        if self.name:
+        # Only with a role: an element found by its label or text has none of its own,
+        # and `|Password` is a locator that can never match.
+        if self.role and self.name:
             found.append(self._pin(Locator("role", f"{self.role}|{self.name}")))
         if self.placeholder:
             found.append(self._pin(Locator("placeholder", self.placeholder)))

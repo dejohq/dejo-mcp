@@ -196,6 +196,73 @@ def checkout(request: Request, variant: str | None = Query(None)) -> HTMLRespons
     )
 
 
+# Orders placed through /shop, so a test can count how many times "Pay" really ran. A
+# risky step must happen exactly once, and the only honest proof is the shop's own count.
+ORDERS = {"placed": 0}
+
+BOOKS = ["It's Only the Himalayas", "Full Moon over Noah's Ark", "See America", "Vagabonding"]
+
+
+@app.get("/shop", response_class=HTMLResponse)
+def shop(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    """A form that POSTs an order, next to a search form that only GETs.
+
+    The search button says "Submit" on purpose: a plain search must never be treated as a
+    risky step, while "Pay now" always is."""
+    return page(
+        "Shop",
+        f"""<h1>Shop</h1>
+            <p class="sub">Orders placed: <span id="orders">{ORDERS["placed"]}</span></p>
+            <form method="get" action="/shop/search"><label for="q">Search</label>
+              <input id="q" name="q"><button type="submit">Submit</button></form>
+            <form method="post" action="/shop/pay"><button type="submit">Pay now</button></form>""",
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/shop/search", response_class=HTMLResponse)
+def shop_search(request: Request, q: str = "", variant: str | None = Query(None)) -> HTMLResponse:
+    return page(
+        "Search", f"<h1>Results for {q or 'nothing'}</h1>", variant=variant_of(request, variant)
+    )
+
+
+@app.post("/shop/pay", response_class=HTMLResponse)
+def shop_pay(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    ORDERS["placed"] += 1
+    return page(
+        "Paid",
+        f'<h1>Paid</h1><p class="ok" id="receipt">Order {ORDERS["placed"]} placed</p>',
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/books", response_class=HTMLResponse)
+def books(request: Request, order: str = "a", variant: str | None = Query(None)) -> HTMLResponse:
+    """A list whose order changes: `?order=b` reverses it. "Open the first book" learned on
+    one order has to open whatever is first on the other, not the book it opened before."""
+    listed = BOOKS if order == "a" else list(reversed(BOOKS))
+    rows = "".join(
+        f'<li class="row"><article class="book"><h3><a href="/books/{index}">{title}</a></h3>'
+        f'<p class="price">£{40 + index}.00</p></article></li>'
+        for index, title in ((BOOKS.index(title), title) for title in listed)
+    )
+    return page(
+        "Books",
+        f'<h1>Books</h1><ul class="rows">{rows}</ul>',
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/books/{index}", response_class=HTMLResponse)
+def book(request: Request, index: int, variant: str | None = Query(None)) -> HTMLResponse:
+    return page(
+        BOOKS[index],
+        f'<h1 id="title">{BOOKS[index]}</h1><p class="price" id="price">£{40 + index}.00</p>',
+        variant=variant_of(request, variant),
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
     v = variant_of(request, variant)

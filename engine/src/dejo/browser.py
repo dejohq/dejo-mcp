@@ -26,6 +26,7 @@ Three things here matter more than the rest:
 from __future__ import annotations
 
 import json
+import secrets
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -162,6 +163,113 @@ DEFAULT_PROFILE_NAME = "default"
 # has run out. Used only after a step has already failed, so a login page we navigated to
 # on purpose is never mistaken for one.
 _SIGNED_OUT_HINTS = ("/login", "/signin", "/sign-in", "/sign_in", "/auth", "/sso", "/oauth")
+
+# Where a view's token is kept in the page. A ref is only good for the page it was printed
+# from, and a new document wipes everything on `window`, so a missing or different token
+# means the page under the ref has been replaced.
+_VIEW_TOKEN_JS = "(token) => { window.__dejoView = token; }"
+_READ_VIEW_TOKEN_JS = "() => window.__dejoView || ''"
+
+# One CSS path that matches an element AND its look-alikes in every other row of a list, and
+# nothing else on the page. That path plus a position ("the first") is how "open the first
+# book" is stored: by place, so replay opens whatever is first next month, not the book that
+# was first today. Built from tag names, classes every row shares and positions every row
+# shares, walking up from the element, then cut to the shortest tail that still matches
+# exactly those elements. Classes with digits are skipped: those are usually generated per
+# build (`css-1x2y3`) and change on the next deploy.
+_PLACE_JS = """
+(el, peers) => {
+  const all = [el, ...peers];
+  const doc = el.ownerDocument;
+  const chain = (node) => {
+    const out = [];
+    for (let n = node; n && n.nodeType === 1 && n !== doc.body; n = n.parentElement) out.push(n);
+    return out;
+  };
+  const chains = all.map(chain);
+  const depth = Math.min(...chains.map((c) => c.length));
+  const position = (n) => {
+    let i = 1;
+    for (let s = n.previousElementSibling; s; s = s.previousElementSibling) {
+      if (s.tagName === n.tagName) i++;
+    }
+    return i;
+  };
+  const parts = [];
+  for (let level = 0; level < depth; level++) {
+    const nodes = chains.map((c) => c[level]);
+    const tag = nodes[0].tagName.toLowerCase();
+    if (nodes.some((n) => n.tagName.toLowerCase() !== tag)) return null;
+    const shared = [...nodes[0].classList].filter(
+      (c) => !/[0-9]/.test(c) && nodes.every((n) => n.classList.contains(c))
+    );
+    let piece = tag + shared.slice(0, 2).map((c) => "." + CSS.escape(c)).join("");
+    const first = position(nodes[0]);
+    if (nodes.every((n) => position(n) === first)) piece += ":nth-of-type(" + first + ")";
+    parts.unshift(piece);
+  }
+  for (let start = parts.length - 1; start >= 0; start--) {
+    const selector = parts.slice(start).join(" > ");
+    const found = [...doc.querySelectorAll(selector)];
+    if (found.length === all.length && all.every((n) => found.includes(n))) {
+      return { selector, index: found.indexOf(el), count: found.length };
+    }
+  }
+  return null;
+}
+"""
+
+# Words that say a click does something that cannot be taken back: money moves, a message
+# leaves, something is deleted or published. Matched as whole words or phrases on the real
+# element, never on the agent's wording. A false alarm costs the agent one resend with `!`;
+# a miss can cost a real order, so the list leans to safe. Plain "Search", "Add", "Apply" or
+# "Sort order" are deliberately not here.
+RISKY_WORDS = (
+    "buy",
+    "purchase",
+    "pay",
+    "checkout",
+    "place order",
+    "order now",
+    "subscribe",
+    "unsubscribe",
+    "send",
+    "submit",
+    "post",
+    "publish",
+    "delete",
+    "remove",
+    "cancel",
+    "confirm",
+    "transfer",
+    "withdraw",
+    "deactivate",
+    "close account",
+    "book now",
+    "reserve",
+    "donate",
+)
+
+# What one element would do if pressed: its words, and whether it submits a form and how.
+_RISK_JS = """
+(el) => {
+  const words = [el.innerText, el.value, el.getAttribute("aria-label"), el.title]
+    .filter(Boolean).join(" ").toLowerCase();
+  const form = el.form || el.closest("form");
+  const tag = el.tagName;
+  const type = (el.getAttribute("type") || "").toLowerCase();
+  const submits = !!form && (
+    (tag === "BUTTON" && (type === "" || type === "submit")) ||
+    (tag === "INPUT" && (type === "submit" || type === "image"))
+  );
+  const method = form ? (form.getAttribute("method") || "get").toLowerCase() : "";
+  const signsIn = !!form && !!form.querySelector("input[type=password]");
+  return {
+    words, submits, method, signsIn,
+    field: !!form && (tag === "INPUT" || tag === "TEXTAREA"),
+  };
+}
+"""
 
 # Reads the durable descriptors for ONE element, the ones a locator is built from.
 #
@@ -929,13 +1037,76 @@ class Browser:
         iframes, and reports a pointer cursor — which is how a `div` acting as a button
         gets found at all.
         """
-        raw = self.page.locator("body").aria_snapshot(mode="ai")
+        raw, frames = self.raw_snapshot()
         return Snapshot(
             url=self.page.url,
             title=self.page.title(),
-            elements=aria.parse(raw, frames=self._frame_selectors(raw)),
+            elements=aria.parse(raw, frames=frames),
             text=self.readable_text(),
         )
+
+    def raw_snapshot(self) -> tuple[str, dict[str, str]]:
+        """Playwright's own ai snapshot of the page, and a selector for each of its iframes.
+
+        The raw text is what the page view (`view.render`) is drawn from, so the view and the
+        controls a caller acts on always come from the same look."""
+        raw = self.page.locator("body").aria_snapshot(mode="ai")
+        return raw, self._frame_selectors(raw)
+
+    def mark_view(self) -> str:
+        """Leave a token in the page for the view just printed, and return it."""
+        token = secrets.token_hex(8)
+        with suppress(PlaywrightError):
+            self.page.evaluate(_VIEW_TOKEN_JS, token)
+        return token
+
+    def view_is_current(self, token: str) -> bool:
+        """Is the page still the document the view with this token was printed from?"""
+        try:
+            return self.page.evaluate(_READ_VIEW_TOKEN_JS) == token
+        except PlaywrightError:
+            return False
+
+    def place_of(self, element: PWLocator, peers: list[PWLocator]) -> dict[str, Any] | None:
+        """One CSS path for `element` and its look-alikes in `peers`, and where it stands.
+
+        Returns `{"selector", "index", "count"}`, or None when no single path matches all of
+        them and nothing else. See `_PLACE_JS`."""
+        try:
+            handles = [peer.element_handle() for peer in peers]
+            return element.evaluate(_PLACE_JS, handles)
+        except PlaywrightError:
+            return None
+
+    def risk_of(self, target: PWLocator, *, pressing_enter: bool = False) -> str | None:
+        """What a press of this element would do that cannot be undone, or None.
+
+        A form that POSTs is the strongest signal and it decides both ways: its submit (or
+        Enter in one of its fields) is risky whatever the button says, and the submit of a
+        GET form, which is a search, never is. Otherwise the element's own words decide.
+
+        A POST form with a password field is a sign-in, and nearly every sign-in on the web
+        POSTs. Calling it risky would stop every learning run at the login and cost a turn;
+        an order, a message or a delete has no password field in its form."""
+        try:
+            seen = target.evaluate(_RISK_JS)
+        except PlaywrightError:
+            return None
+        if seen["submits"] or (pressing_enter and seen["field"]):
+            if seen["method"] == "post" and not seen["signsIn"]:
+                return "submits a form that sends data (POST)"
+            return None
+        if pressing_enter:
+            return None
+        words = f" {' '.join(seen['words'].split())} "
+        for risky in RISKY_WORDS:
+            if f" {risky} " in words or words.strip() == risky:
+                return f'is "{risky}"'
+        return None
+
+    def matches(self, locator: Locator) -> PWLocator | None:
+        """Everything on the page a stored locator matches, refinements applied."""
+        return self._to_playwright(locator)
 
     def _frame_selectors(self, raw: str) -> dict[str, str]:
         """Map each iframe's Playwright ref to a selector for that iframe.

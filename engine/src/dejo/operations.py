@@ -97,6 +97,11 @@ class TraceEntry:
     step that used to answer is drift, not success — and reporting it as success is how a
     warm run "works" while handing back nothing."""
     download: str | None = None
+    expect: Postcondition | None = None
+    """The check the agent wrote for this step with an `expect` line. It replaces the one
+    `distill` would infer, and it was proven true when the step ran."""
+    risky: bool = False
+    """Marked with `!`: the agent says this step buys, pays, sends, deletes or submits."""
     at: str = field(default_factory=utc_now)
 
     @property
@@ -171,6 +176,33 @@ class Session:
         it than a CSS selector is.
         """
         self.tool_calls += 1
+        spec = self._spec(action)
+        element: Element | None = None
+        second: Element | None = None
+        if not spec.session_handled:
+            # `evaluate` and `screenshot` may name an element without requiring one.
+            if spec.needs_target or ref is not None:
+                element = self._element_for(ref)
+            if spec.needs_second_target:
+                second = self._element_for(to)
+        return self.act_on(intent, action, element=element, value=value, second=second)
+
+    def act_on(
+        self,
+        intent: str,
+        action: Action,
+        *,
+        element: Element | None = None,
+        value: str | None = None,
+        second: Element | None = None,
+        expect: Postcondition | None = None,
+        risky: bool = False,
+    ) -> dict[str, Any]:
+        """Do one thing to an element that has already been found, and report what changed.
+
+        `act` finds the element from a ref or a selector first. A program finds its elements
+        its own way (by place in a list, by role, strictly one match) and then comes here,
+        so both write exactly the same trace entry."""
         url_before = self.browser.page.url if action != "goto" else ""
         text_before = self.browser.text() if action != "goto" else ""
         self.browser.flush_downloads()
@@ -179,7 +211,7 @@ class Session:
         self.browser.last_dialog = None
         self.last_result = None
 
-        element = self._perform(action, ref=ref, value=value, to=to)
+        element = self._perform(action, element=element, value=value, second=second)
 
         # An anchor was clicked and the address has not moved. Either it went nowhere, or
         # this is a single-page app that will change the URL in a moment — a React Router
@@ -211,6 +243,8 @@ class Session:
             text_gained=_first_new_line(text_before, text_after),
             download=self.browser.last_download,
             dialog=self.browser.last_dialog,
+            expect=expect,
+            risky=risky,
         )
         # An action that changes nothing is not a step. Replaying `highlight` would draw a
         # box for nobody and then have its postcondition checked anyway.
@@ -237,24 +271,26 @@ class Session:
             ),
         }
 
+    def _spec(self, action: Action) -> actions.ActionSpec:
+        try:
+            return actions.spec_for(action)
+        except actions.UnknownAction as unknown:
+            raise ActionFailed(str(unknown)) from unknown
+
     def _perform(
         self,
         action: Action,
         *,
-        ref: str | None,
+        element: Element | None,
         value: str | None,
-        to: str | None = None,
+        second: Element | None = None,
     ) -> Element | None:
-        """Resolve the element, then hand the doing to the registry.
+        """Describe the element, then hand the doing to the registry.
 
         Finding things is Dejo's job because a durable descriptor has to be recorded at the
         same moment. Performing is Playwright's job. This method is the seam between them.
         """
-        try:
-            spec = actions.spec_for(action)
-        except actions.UnknownAction as unknown:
-            raise ActionFailed(str(unknown)) from unknown
-
+        spec = self._spec(action)
         if spec.session_handled:
             self._do_here(action, value)
             return None
@@ -262,16 +298,13 @@ class Session:
         # Describe before acting. The durable descriptors have to be read while the
         # element is still on the page as it was — a click can navigate away, and then
         # there is nothing left to describe.
-        element = self.browser.describe(self._element_for(ref)) if spec.needs_target else None
-        # `evaluate` and `screenshot` may name an element without requiring one.
-        if element is None and ref is not None:
-            element = self.browser.describe(self._element_for(ref))
+        element = self.browser.describe(element) if element is not None else None
         target = self.browser.locate(element) if element else None
-        second = self.browser.locate(self._element_for(to)) if spec.needs_second_target else None
+        second_target = self.browser.locate(second) if second is not None else None
 
         try:
             self.last_result = actions.perform(
-                action, page=self.browser.page, target=target, value=value, second=second
+                action, page=self.browser.page, target=target, value=value, second=second_target
             )
         except actions.ActionNeedsMore as incomplete:
             raise ActionFailed(str(incomplete)) from incomplete
@@ -421,7 +454,7 @@ class Session:
         if remembered is not None:
             return self._element_by_memory(ref, remembered)
 
-        return self._element_by_selector(ref, one=one)
+        return self.element_by_selector(ref, one=one)
 
     def _element_by_memory(self, wording: str, locator: Locator) -> Element:
         """Find a control by what the MAP calls it, rather than by a ref from this page.
@@ -448,7 +481,7 @@ class Session:
         role, _, name = locator.value.partition("|") if locator.kind == "role" else ("", "", "")
         return Element(ref=wording, role=role, name=name or wording, found_by=locator)
 
-    def _element_by_selector(self, selector: str, *, one: bool = True) -> Element:
+    def element_by_selector(self, selector: str, *, one: bool = True) -> Element:
         """Build an element from a CSS selector the caller wrote themselves.
 
         Refuses an AMBIGUOUS selector rather than quietly taking the first match. This was
@@ -500,19 +533,27 @@ class Session:
         stops, and the caller has to work the answer out again every single time.
         """
         self.tool_calls += 1
-        try:
-            spec = reads.spec_for(kind)
-        except reads.UnknownRead as unknown:
-            raise ActionFailed(str(unknown)) from unknown
-
+        spec = self._read_spec(kind)
         # `count` and `all_text` are ABOUT matching many, so ambiguity is not an error for
         # them. Every other read is about one element, and reading the first of several
         # silently is how a caller ends up believing the wrong number.
-        element = (
-            self.browser.describe(self._element_for(ref, one=not spec.many))
-            if spec.needs_target
-            else None
+        element = self._element_for(ref, one=not spec.many) if spec.needs_target else None
+        return self.read_on(
+            kind, element=element, attribute=attribute, remember=remember, intent=intent
         )
+
+    def read_on(
+        self,
+        kind: str,
+        *,
+        element: Element | None = None,
+        attribute: str | None = None,
+        remember: bool = False,
+        intent: str = "",
+    ) -> Any:
+        """Read from an element that has already been found. See `act_on` for why."""
+        spec = self._read_spec(kind)
+        element = self.browser.describe(element) if element is not None else None
         target = self.browser.locate(element, one=not spec.many) if element else None
         try:
             answer = reads.read(kind, page=self.browser.page, target=target, attribute=attribute)
@@ -521,6 +562,12 @@ class Session:
 
         self._keep(kind, intent, element, attribute, answer, marked=remember)
         return answer
+
+    def _read_spec(self, kind: str) -> reads.ReadSpec:
+        try:
+            return reads.spec_for(kind)
+        except reads.UnknownRead as unknown:
+            raise ActionFailed(str(unknown)) from unknown
 
     def _keep(
         self,

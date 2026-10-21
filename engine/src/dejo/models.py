@@ -340,6 +340,12 @@ class Step:
     real shop, where a stored link locator matched nine product cards and replay read the
     empty one."""
 
+    risky: bool = False
+    """The agent marked this step as one that buys, pays, sends, deletes or submits.
+
+    Replay still runs it, since the user asked for the task, but every reply names it so
+    nobody is surprised, and nothing ever runs it twice on its own after a later step fails."""
+
     hits: int = 0
     misses: int = 0
     """This step's own record, used only when it has no locators to speak for it.
@@ -426,6 +432,7 @@ class Step:
             "misses": self.misses,
             "dialog_message": self.dialog_message,
             "dialog_choice": self.dialog_choice,
+            "risky": self.risky,
             "health": round(self.health, 3),
         }
 
@@ -446,6 +453,7 @@ class Step:
             misses=raw.get("misses", 0),
             dialog_message=raw.get("dialog_message"),
             dialog_choice=raw.get("dialog_choice"),
+            risky=raw.get("risky", False),
         )
 
 
