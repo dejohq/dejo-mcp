@@ -134,13 +134,41 @@ class TestTheSiteChanging:
         fixed = call(
             mcp_server, "dejo_run", site=demo_server, task=TASK, steps='click link "Get PDF"'
         )
-        assert fixed.startswith(f'saved "{TASK}"'), fixed
-        assert "6 steps" in fixed
+        assert fixed.startswith("repaired step 6 of 6"), fixed
 
         again = call(
             mcp_server, "dejo_run", site=demo_server, task=TASK, url=f"{demo_server}/?variant=b"
         )
         assert "6 steps replayed" in again
+
+    def test_a_fix_in_the_middle_runs_the_rest_in_the_same_call(self, mcp_server, demo_server):
+        """Before, a fix replaced every step from the broken one on, or cost a second replay
+        call. One line now repairs the step and Dejo walks the rest itself."""
+        task = "download the invoice and say its month"
+        call(
+            mcp_server,
+            "dejo_run",
+            site=demo_server,
+            task=task,
+            url=f"{demo_server}/",
+            steps='fill label "Email" "finance@acme.com"\nfill label "Password" "hunter2"\n'
+            'click button "Sign in"\nclick link "September 2026"\nclick link "Download"\n'
+            'read css "h1" as month',
+        )
+        call(mcp_server, "dejo_run", site=demo_server, task=task)
+
+        broke = call(
+            mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/?variant=b"
+        )
+        assert broke.startswith("broke at step 6 of 7"), broke
+        assert "runs steps 7-7 itself" in broke
+
+        fixed = call(
+            mcp_server, "dejo_run", site=demo_server, task=task, steps='click link "Get PDF"'
+        )
+        assert fixed.startswith("repaired step 6 of 7"), fixed
+        assert "done: steps 7-7 replayed" in fixed
+        assert "month = September 2026" in fixed
 
 
 class TestTheGateThroughMCP:

@@ -13,6 +13,8 @@ the agent send everything it can already see in one call. This file runs one:
   site from scratch.
 - A step that buys, pays, sends, deletes or submits runs only when the agent marked it with
   `!`, and never runs twice on its own.
+- After a replay broke at one step, a one-line program doing what that step did is its fix:
+  the step is repaired in place and the rest of the trail replays in the same call.
 
 There is no model here, and nothing an agent wrote is evaluated: `program.py` turned the
 text into data before this file ever sees it.
@@ -25,7 +27,7 @@ import tempfile
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
 
 from playwright.sync_api import Error as PlaywrightError
@@ -33,13 +35,23 @@ from playwright.sync_api import Error as PlaywrightError
 from . import program as language
 from . import view as pageview
 from .browser import NoSuchElement, domain_of
-from .distill import distill
+from .distill import distill, locators_for, postcondition_for
 from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, utc_now
-from .operations import ActionFailed, Session, TraceEntry, settles_into
+from .operations import (
+    READ_ACTION,
+    ActionFailed,
+    Session,
+    TraceEntry,
+    check_postcondition,
+    settles_into,
+)
 from .program import Action, Expect, Look, Note, Pick, Program, Read
 from .snapshot import Element, Snapshot
 from .snapshot import parse as parse_controls
 from .store import DejoStore
+
+if TYPE_CHECKING:
+    from .executor import ReplayResult
 
 # A first page that answers with one of these is not a page to learn on.
 HTTP_ERROR_FROM = 400
@@ -84,6 +96,16 @@ class _Stopped(Exception):
 
 
 @dataclass
+class _Broken:
+    """A replay that stopped at one step, waiting for the line that fixes it."""
+
+    step: Step
+    answers: dict[str, str]
+    """What the reads before the broken step said. The fix does not run them again."""
+    profile: str | None = None
+
+
+@dataclass
 class Outcome:
     """What one program did. `text()` is the reply the agent reads."""
 
@@ -103,6 +125,12 @@ class Outcome:
     view: pageview.View | None = None
     raw: str = ""
     risky_steps: list[str] = field(default_factory=list)
+    repaired: Step | None = None
+    """The trail step this program fixed in place, as it was saved."""
+    trail_total: int = 0
+    tail: ReplayResult | None = None
+    """The replay of the steps after the repaired one. When it did not finish, the reply
+    about why is the server's, the same one a plain replay that stopped would get."""
 
     @property
     def ok(self) -> bool:
@@ -110,6 +138,8 @@ class Outcome:
 
     def text(self) -> str:
         """The reply, always in the same order so an agent can read it at a glance."""
+        if self.repaired is not None:
+            return "\n".join(self._repaired_lines())
         lines: list[str] = []
         if self.stopped_at is not None:
             lines.append(
@@ -157,6 +187,29 @@ class Outcome:
             found.append("this task " + "; ".join(self.risky_steps) + " every time it runs")
         return found
 
+    def _repaired_lines(self) -> list[str]:
+        assert self.repaired is not None
+        step = self.repaired
+        lines = [
+            f"repaired step {step.index} of {self.trail_total} ({step.intent}): the new way "
+            "goes first and the old ones stay as backups."
+        ]
+        if self.tail is not None and not self.tail.ok:
+            return lines
+        if self.tail is not None:
+            lines.append(
+                f"done: steps {step.index + 1}-{self.trail_total} replayed in "
+                f"{self.tail.metrics.duration_ms} ms, no page reading."
+            )
+            lines.extend(f"saved file: {path}" for path in self.tail.saved_files)
+        lines.extend(self._answer_lines())
+        lines.append(
+            "next: report the answer and stop."
+            if self.answers
+            else "next: the task is done, and the trail is saved with the fix."
+        )
+        return lines
+
     def _answer_lines(self) -> list[str]:
         return [
             f"{name} = {value}" + (f"  ({self.sources[name]})" if name in self.sources else "")
@@ -184,6 +237,8 @@ class Runner:
         self._last_entry: TraceEntry | None = None
         """The trace entry the latest action wrote, which an `expect` line right after it
         gives its check to."""
+        self._broken: _Broken | None = None
+        """Set while a replay that broke waits for its fix. See `fix_from`."""
 
     # ------------------------------------------------------------------- looking
 
@@ -223,6 +278,7 @@ class Runner:
         """Run every line in order. Stop at the first that fails. Save when finished."""
         outcome = Outcome(task=self.task, domain=self.domain, total=len(written.steps))
         steps = list(written.steps)
+        fixing = self._fix_for(written)
         read_something = False
         trace_before = len(self.session.trace)
         for at, step in enumerate(steps):
@@ -245,7 +301,9 @@ class Runner:
         # Only what THIS program did. A download from an earlier program has already been
         # saved, and counting it again saved a later look as a new step.
         downloaded = any(entry.download for entry in self.session.trace[trace_before:])
-        if outcome.ok and (read_something or downloaded or done) and self._has_steps():
+        if fixing is not None and outcome.ok:
+            self._repair(fixing, outcome)
+        elif outcome.ok and (read_something or downloaded or done) and self._has_steps():
             self._save(outcome)
         else:
             outcome.kept_in_draft = self._write_draft()
@@ -257,6 +315,63 @@ class Runner:
                     "nothing."
                 )
         return outcome
+
+    def _fix_for(self, written: Program) -> _Broken | None:
+        """The broken step this program fixes in place, if it is one line doing what that
+        step did: the same action on a new target, with the same value. Anything else, a
+        different action or several lines, replaces the steps from the broken one on."""
+        broken = self._broken
+        if broken is None or len(written.steps) != 1:
+            return None
+        line, step = written.steps[0], broken.step
+        if isinstance(line, Read) and line.target is not None:
+            kind = f"{line.kind}:{line.attribute}" if line.attribute else line.kind
+            return broken if step.action == READ_ACTION and step.value == kind else None
+        if isinstance(line, Action) and line.target is not None and line.action == step.action:
+            # A password is never stored, so a fill of a secret matches whatever was typed.
+            same_value = step.secret is not None or (line.value or None) == (step.value or None)
+            return broken if same_value else None
+        return None
+
+    def _repair(self, broken: _Broken, out: Outcome) -> None:
+        """Write the line that just ran into the broken step, then walk the rest of the trail.
+
+        Only that step changes. The new ways of finding its element go first, the old ones
+        that ever worked stay behind them as backups (a site that moves back finds them
+        again), and the steps before it do not run again: a risky one among them already
+        happened once. Before this, a fix was a second call that replayed from step 1."""
+        from .executor import Executor  # local import keeps the module graph acyclic
+
+        assert self.store is not None
+        entry, step = self.session.trace[-1], broken.step
+        # The old check stays when it still holds. A read is checked by its element's css
+        # path, often the very thing that moved, and then the check is taken from what the
+        # fix did, as a newly learned step's would be.
+        holds = check_postcondition(self.browser, step.postcondition)
+        executor = Executor(self.store, self.browser, profile=broken.profile)
+        playbook = executor.apply_repair(
+            self.domain,
+            step.index,
+            locators_for(entry),
+            task=self.task,
+            postcondition=None if holds else postcondition_for(entry),
+        )
+        self.store.drop_draft(self.domain, self.task)
+        self._broken = None
+        out.answers = {**broken.answers, **out.answers}
+        out.repaired = next(saved for saved in playbook.steps if saved.index == step.index)
+        out.trail_total = len(playbook.steps)
+        if step.index < len(playbook.steps):
+            tail = executor.run(self.domain, task=self.task, resume_at=step.index + 1)
+            out.answers.update({name: str(value) for name, value in tail.answers.items()})
+            # A tail that breaks again waits for its own fix, and must still hand every
+            # answer so far to the reply that finally finishes the task.
+            tail.answers = dict(out.answers)
+            out.tail = tail
+            if not tail.ok:
+                return
+        saved = self.store.load_playbook(self.domain, self.task) or playbook
+        self.continue_from(self.domain, saved.steps)
 
     def _run_one(self, step: language.Step, before: language.Step | None, out: Outcome) -> None:
         if isinstance(step, Action):
@@ -674,6 +789,7 @@ class Runner:
         return steps, dropped
 
     def _save(self, out: Outcome) -> None:
+        self._broken = None
         steps, dropped = self._steps()
         playbook = Playbook(domain=self.domain, task=self.task, steps=steps)
         if self.store is not None:
@@ -709,6 +825,29 @@ class Runner:
         self.domain = domain
         self._kept = [Step.from_dict(step.to_dict()) for step in steps]
         self.session.trace.clear()
+        self._broken = None
+
+    def fix_from(
+        self,
+        domain: str,
+        playbook: Playbook,
+        index: int,
+        *,
+        answers: dict[str, Any],
+        profile: str | None = None,
+    ) -> None:
+        """A replay of `playbook` broke at step `index`, and the browser stands there.
+
+        Steps before it ran and are kept. The next program, if it is one line doing what
+        that step did, repairs the step and replays the rest (`_repair`); several lines
+        replace the steps from `index` on, exactly as learning would."""
+        self.continue_from(domain, playbook.steps[: index - 1])
+        step = next(step for step in playbook.steps if step.index == index)
+        self._broken = _Broken(
+            step=Step.from_dict(step.to_dict()),
+            answers={name: str(value) for name, value in answers.items()},
+            profile=profile,
+        )
 
     def resume(self, domain: str, *, profile: str | None = None) -> str:
         """Walk an earlier session's draft back to where it stopped, with no model calls.

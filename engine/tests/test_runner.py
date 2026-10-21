@@ -440,3 +440,128 @@ def test_a_read_still_answers_when_the_value_changes(
 
     assert replay.ok, replay.reason
     assert replay.answers["open"] == "Open (5)"
+
+
+# ------------------------------------------------------------------- repair in place
+
+INVOICE_AND_MONTH = "download the invoice and say its month"
+
+
+def learn_invoice_and_month(browser: Browser, store: DejoStore, demo_server: str):
+    """Seven steps whose sixth is the one variant b breaks, so a fix has a step after it."""
+    outcome = run(
+        runner_for(browser, store, INVOICE_AND_MONTH),
+        f"go {demo_server}/\n"
+        'fill label "Email" "finance@acme.com"\n'
+        'fill label "Password" "hunter2"\n'
+        'click button "Sign in"\n'
+        'click link "September 2026"\n'
+        'click link "Download"\n'
+        'read css "h1" as month\n',
+    )
+    assert outcome.ok and outcome.saved is not None, outcome.text()
+    domain = domain_of(demo_server)
+    # One clean replay, so the old ways have a record to be kept as backups by.
+    assert Executor(store, browser).run(domain, task=INVOICE_AND_MONTH).ok
+    broken = Executor(store, browser).run(
+        domain, task=INVOICE_AND_MONTH, start_url=f"{demo_server}/?variant=b"
+    )
+    assert broken.repair is not None and broken.repair.step_index == 6
+    return domain, broken
+
+
+def fixer(browser: Browser, store: DejoStore, domain: str, task: str, broken) -> Runner:
+    runner = runner_for(browser, store, task)
+    playbook = store.load_playbook(domain, task)
+    runner.fix_from(domain, playbook, broken.repair.step_index, answers=broken.answers)
+    return runner
+
+
+def test_one_line_repairs_the_step_and_replays_the_rest_in_the_same_call(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    domain, broken = learn_invoice_and_month(browser, store, demo_server)
+    runner = fixer(browser, store, domain, INVOICE_AND_MONTH, broken)
+
+    fixed = run(runner, 'click link "Get PDF"')
+
+    assert fixed.ok and fixed.repaired is not None, fixed.text()
+    assert fixed.text().startswith("repaired step 6 of 7"), fixed.text()
+    assert "done: steps 7-7 replayed" in fixed.text()
+    assert fixed.answers == {"month": "September 2026"}
+    step = store.load_playbook(domain, INVOICE_AND_MONTH).steps[5]
+    assert step.repairs == 1
+    assert step.locators[0].value == "href=/invoices/2026-09/download", step.locators[0]
+    kept = {loc.value for loc in step.locators}
+    assert "href=/invoices/2026-09/file" in kept, "the way that had worked is the backup"
+    assert "#download-btn" not in kept, "a way that never once worked is dropped"
+
+
+def test_after_a_fix_both_the_new_site_and_the_old_one_replay(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """The old ways stay as backups, so a site that moves back costs nothing either."""
+    domain, broken = learn_invoice_and_month(browser, store, demo_server)
+    run(fixer(browser, store, domain, INVOICE_AND_MONTH, broken), 'click link "Get PDF"')
+
+    for variant in ("b", "a"):
+        again = Executor(store, browser).run(
+            domain, task=INVOICE_AND_MONTH, start_url=f"{demo_server}/?variant={variant}"
+        )
+        assert again.ok, (variant, again.reason)
+        assert again.answers["month"] == "September 2026"
+
+
+def test_a_fixed_read_gets_a_check_that_holds(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """A read is checked by its element's css path. Kept after a fix, that check named the
+    element that had gone, and the very next replay called the fixed step broken."""
+    task = "pay and read the receipt"
+    placed = ORDERS["placed"]
+    learned = run(
+        runner_for(browser, store, task),
+        f'go {demo_server}/shop\nclick! button "Pay now"\nread css "#receipt" as receipt',
+    )
+    assert learned.ok, learned.text()
+    domain = domain_of(demo_server)
+    broken = Executor(store, browser).run(
+        domain, task=task, start_url=f"{demo_server}/shop?variant=b"
+    )
+    assert broken.repair is not None and broken.repair.step_index == 3
+    assert ORDERS["placed"] == placed + 2
+
+    fixed = run(fixer(browser, store, domain, task, broken), 'read css "#order-receipt" as receipt')
+
+    assert fixed.ok and fixed.repaired is not None, fixed.text()
+    assert ORDERS["placed"] == placed + 2, "the fix paid again"
+    assert fixed.answers["receipt"] == f"Order {placed + 2} placed"
+    again = Executor(store, browser).run(
+        domain, task=task, start_url=f"{demo_server}/shop?variant=b"
+    )
+    assert again.ok, again.reason
+
+
+def test_several_lines_replace_the_steps_from_the_broken_one(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    domain, broken = learn_invoice_and_month(browser, store, demo_server)
+    runner = fixer(browser, store, domain, INVOICE_AND_MONTH, broken)
+
+    replaced = run(runner, 'click link "Get PDF"\nread css "h1" as month')
+
+    assert replaced.ok and replaced.repaired is None, replaced.text()
+    assert replaced.saved is not None and len(replaced.saved.steps) == 7
+    assert replaced.saved.steps[5].repairs == 0, "a replaced step is new, not repaired"
+
+
+def test_one_line_of_another_action_is_not_taken_as_a_fix(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    domain, broken = learn_invoice_and_month(browser, store, demo_server)
+    runner = fixer(browser, store, domain, INVOICE_AND_MONTH, broken)
+
+    other = run(runner, 'read css "h1" as month')
+
+    assert other.repaired is None
+    assert other.saved is not None and len(other.saved.steps) == 6, other.text()

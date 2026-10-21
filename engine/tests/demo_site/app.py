@@ -209,14 +209,15 @@ def shop(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
 
     The search button says "Submit" on purpose: a plain search must never be treated as a
     risky step, while "Pay now" always is."""
+    v = variant_of(request, variant)
     return page(
         "Shop",
         f"""<h1>Shop</h1>
             <p class="sub">Orders placed: <span id="orders">{ORDERS["placed"]}</span></p>
             <form method="get" action="/shop/search"><label for="q">Search</label>
               <input id="q" name="q"><button type="submit">Submit</button></form>
-            <form method="post" action="/shop/pay"><button type="submit">Pay now</button></form>""",
-        variant=variant_of(request, variant),
+            <form method="post" action="{link("/shop/pay", v)}"><button type="submit">Pay now</button></form>""",
+        variant=v,
     )
 
 
@@ -229,11 +230,15 @@ def shop_search(request: Request, q: str = "", variant: str | None = Query(None)
 
 @app.post("/shop/pay", response_class=HTMLResponse)
 def shop_pay(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    # Variant b renames the receipt, so a trail that pays and then reads it breaks AFTER
+    # the payment: the fix must not pay a second time.
     ORDERS["placed"] += 1
+    v = variant_of(request, variant)
+    receipt = "receipt" if v == "a" else "order-receipt"
     return page(
         "Paid",
-        f'<h1>Paid</h1><p class="ok" id="receipt">Order {ORDERS["placed"]} placed</p>',
-        variant=variant_of(request, variant),
+        f'<h1>Paid</h1><p class="ok" id="{receipt}">Order {ORDERS["placed"]} placed</p>',
+        variant=v,
     )
 
 

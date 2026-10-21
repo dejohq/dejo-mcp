@@ -404,12 +404,22 @@ class Executor:
     """Substituted steps nothing on the page could confirm."""
 
     def run(
-        self, domain: str, *, task: str | None = None, start_url: str | None = None
+        self,
+        domain: str,
+        *,
+        task: str | None = None,
+        start_url: str | None = None,
+        resume_at: int = 1,
     ) -> ReplayResult:
         """Walk the remembered trail for one task on one site.
 
         `start_url` overrides the first step's destination. That is how the demo points a
         trail learned on the normal site at the redesigned one, without editing memory.
+
+        `resume_at` starts the walk at that step, for a browser that already stands where
+        the step before it left off: a replay broke at step k, the agent fixed step k in
+        place, and steps k+1 to the end are all that is left. Running 1 to k again would
+        cost time, and would press a risky step before k a second time.
         """
         self._domain = domain
         self.answers: dict[str, Any] = {}
@@ -453,6 +463,8 @@ class Executor:
         )
 
         for step in playbook.steps:
+            if step.index < resume_at:
+                continue
             self.events.emit(StepStarted(index=step.index, intent=step.intent))
             outcome = self._replay_step(step, start_url=start_url)
 
@@ -643,6 +655,9 @@ class Executor:
                 repair=request,
                 reason=outcome.reason,
                 saved_files=list(self.browser.saved_files),
+                # Reads before the broken step did answer. The fix carries on from that
+                # step, so these are the only copy of them the final reply will have.
+                answers=dict(self.answers),
                 # A run that stopped BECAUSE it was aimed somewhere new has to say so.
                 # Without this the caller sees "this step went stale" and repairs a trail
                 # that is perfectly healthy — it was simply pointed at a subject that is
@@ -1264,12 +1279,17 @@ class Executor:
         locator: Locator | list[Locator],
         *,
         task: str | None = None,
+        postcondition: Postcondition | None = None,
     ) -> Playbook:
         """Save the fix the host AI worked out, for that one step only.
 
         The new locators go to the front with a hit already recorded, and the dead ones
         are kept rather than dropped — a locator that fails today may be the one that
         works again after the site is reverted, and its miss count is evidence.
+
+        `postcondition` replaces the step's check, for a fix after which the old check no
+        longer holds. A read is checked by its element's css path, and that path is often
+        exactly what moved: kept, it would call the repaired step broken on the next run.
         """
         fresh = [locator] if isinstance(locator, Locator) else list(locator)
         if not fresh:
@@ -1286,6 +1306,8 @@ class Executor:
         # Only the first is credited with the hit — it is the one actually confirmed.
         fresh[0].record_hit()
         step.locators = fresh + step.locators
+        if postcondition is not None:
+            step.postcondition = postcondition
         step.repairs += 1
         playbook.repairs += 1
         playbook.touch()

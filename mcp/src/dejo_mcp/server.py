@@ -293,6 +293,16 @@ class DejoTools:
             self._runners[key] = existing
         return existing
 
+    def carry_on(self, domain: str, task: str, ran: str) -> Runner:
+        """The runner for the trail `ran`, reachable by the words the agent used too.
+
+        The agent asks in its own words and a trail with other words answers ("the same
+        job"). Its next call uses its own words again, and if that found no runner, a fix
+        meant for the trail started a new task of its own instead."""
+        runner = self.runner(domain, ran)
+        self._runners[(self.active, domain, task)] = runner
+        return runner
+
     def learning(self, domain: str, task: str) -> bool:
         return (self.active, domain, task) in self._runners
 
@@ -446,7 +456,12 @@ def _run_steps(
         if first_page and not resumed.startswith("draft:"):
             written = program.parse(f"go {first_page}\n{steps}")
     outcome = tools.worker.submit(lambda _browser: runner.run(written, done=done))
-    return Reply(_with_header(tools, outcome.text(), resumed))
+    said = outcome.text()
+    if outcome.tail is not None and not outcome.tail.ok:
+        # The fix held and the rest of the trail stopped later on. Why it stopped is said
+        # exactly as for any replay, including a second "broke at step".
+        said += "\n" + _after_replay(tools, key, task, outcome.tail).text
+    return Reply(_with_header(tools, said, resumed))
 
 
 def _replay_or_look(
@@ -582,7 +597,7 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
     if result.stale:
         return _first_look(tools, key, task, None)
     if result.repair is not None:
-        return _broke(tools, key, ran, result)
+        return _broke(tools, key, task, result)
     return Reply(f"stopped: {result.reason}", error=True)
 
 
@@ -590,8 +605,7 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
     ran = result.metrics.task
     playbook = tools.store.load_playbook(key, ran)
     if playbook is not None:
-        runner = tools.runner(key, ran)
-        runner.continue_from(key, playbook.steps)
+        tools.carry_on(key, task, ran).continue_from(key, playbook.steps)
     lines = [
         f'done: "{ran}" on {key} (profile {tools.active}), {result.metrics.steps_replayed} '
         f"steps replayed in {result.metrics.duration_ms} ms, no page reading."
@@ -614,27 +628,33 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
     return "\n".join(lines)
 
 
-def _broke(tools: DejoTools, key: str, ran: str, result: ReplayResult) -> Reply:
-    """Replay broke at one step: keep the steps before it and show the page there."""
+def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply:
+    """Replay broke at one step: keep the steps before it and show the page there.
+
+    The browser stays where it broke, so the agent's next call is a fix for that step and
+    nothing more: one line repairs it in place and Dejo replays the rest itself."""
     assert result.repair is not None
-    broken = result.repair
+    broken, ran = result.repair, result.metrics.task
+    at = broken.step_index
     playbook = tools.store.load_playbook(key, ran)
-    total = len(playbook.steps) if playbook is not None else broken.step_index
-    runner = tools.runner(key, ran)
+    total = len(playbook.steps) if playbook is not None else at
+    runner = tools.carry_on(key, task, ran)
     if playbook is not None:
-        runner.continue_from(key, playbook.steps[: broken.step_index - 1])
+        runner.fix_from(key, playbook, at, answers=result.answers, profile=tools.secrets_profile)
     view = tools.worker.submit(lambda _browser: runner.look(focus=broken.intent))
     shown = view.text if hasattr(view, "text") else str(view)
     tried = f" (tried {len(broken.tried)} ways)" if broken.tried else ""
-    return Reply(
-        _with_note(
-            tools,
-            f"broke at step {broken.step_index} of {total}: {broken.intent}{tried}\n"
-            f"steps 1-{broken.step_index - 1} passed and are kept.\n{shown}\n"
-            f"next: send the steps from step {broken.step_index} on. They replace steps "
-            f"{broken.step_index}-{total} and the trail is saved again.",
-        )
-    )
+    lines = [f"broke at step {at} of {total}: {broken.intent}{tried}"]
+    if at > 1:
+        lines.append(f"steps 1-{at - 1} passed and are kept.")
+    rest = f"runs steps {at + 1}-{total} itself" if at < total else "saves the trail with the fix"
+    lines += [
+        shown,
+        f"next: send ONE line that does step {at} on this page: the same action, aimed at "
+        f"what replaced it. Dejo keeps the old ways as backups and {rest}. Several lines "
+        f"replace steps {at}-{total} instead.",
+    ]
+    return Reply(_with_note(tools, "\n".join(lines)))
 
 
 def _with_header(tools: DejoTools, text: str, header: str) -> str:
