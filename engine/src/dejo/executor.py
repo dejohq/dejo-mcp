@@ -30,7 +30,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
@@ -239,6 +239,28 @@ def _same_page(here: str, recorded: str) -> bool:
     return page_path(here).rstrip("/") == page_path(recorded).rstrip("/")
 
 
+def _leaves_out_of(url: str, playbook: Playbook) -> bool:
+    """Is `url` this trail's own first address with parts left out?
+
+    Agents pass the address they were given, usually a site's front page or a list's first
+    page, while the trail starts deeper, at `/pages/forms/?page_num=5`. Taken as the start,
+    that url sent the replay to page 1, where it read the first team and said done
+    (real-site bench, 22 Oct 2026). A url that adds or changes something is a real new
+    start, `?variant=b` on the demo site for one, and is kept."""
+    first = playbook.steps[0] if playbook.steps else None
+    if first is None or first.action != "goto" or not first.value:
+        return False
+    given, own = urlparse(url), urlparse(first.value)
+    if given.netloc and given.netloc.removeprefix("www.") != own.netloc.removeprefix("www."):
+        return False
+    asked = [part for part in given.path.split("/") if part]
+    mine = [part for part in own.path.split("/") if part]
+    if asked != mine[: len(asked)]:
+        return False
+    have = set(parse_qsl(own.query, keep_blank_values=True))
+    return set(parse_qsl(given.query, keep_blank_values=True)) <= have
+
+
 def _trail_origin(playbook: Playbook) -> str | None:
     """Where this trail's site starts: the scheme and host of its first address."""
     for step in playbook.steps:
@@ -426,6 +448,8 @@ class Executor:
         self._went_back = False
         self._unverified = []
         playbook = self._load(domain, task)
+        if start_url and _leaves_out_of(start_url, playbook):
+            start_url = None
 
         # Same route, different subject. "message riya" against a trail saved as "message
         # ankush" is not a rephrasing and must not be replayed unchanged — that is how a
@@ -808,6 +832,13 @@ class Executor:
             step.record_hit()
             return self._StepOutcome(matched_by="page", duration_ms=elapsed)
 
+        # An action aimed at no element (Enter in the field that has focus, a scroll of the
+        # page) has nothing to find either. It is done to the page and judged by its check.
+        # Treated as "no locator matched", it could never replay: a trail with a bare
+        # `press Enter` broke at that step every time (real-site bench, 22 Oct 2026).
+        if not step.locators:
+            return self._do_to_the_page(step, began)
+
         outcome = self._StepOutcome()
         # A step that answered a confirm box last time expects the same wording this time.
         self.browser.dialog_policy = step.dialog_choice or ACCEPT
@@ -844,6 +875,19 @@ class Executor:
         self._blame(missed, step)
         outcome.reason = "every remembered way of finding this went stale"
         return outcome
+
+    def _do_to_the_page(self, step: Step, began: float) -> _StepOutcome:
+        try:
+            self._do(step, None, domain=self._domain)
+        except PlaywrightError as failed:
+            step.record_miss()
+            return self._StepOutcome(reason=str(failed).splitlines()[0])
+        if not settles_into(self.browser, step.postcondition):
+            step.record_miss()
+            return self._StepOutcome(reason="the page did not change the way it did when learned")
+        step.record_hit()
+        elapsed = int((time.perf_counter() - began) * 1000)
+        return self._StepOutcome(matched_by="page", duration_ms=elapsed)
 
     def _note_if_unproven(self, step: Step) -> None:
         """A step took the new subject, passed, and nothing on the page vouched for it.

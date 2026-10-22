@@ -284,6 +284,43 @@ def tickets(request: Request, open_count: int = Query(3, alias="open")) -> HTMLR
     )
 
 
+@app.get("/challenge", response_class=HTMLResponse)
+def challenge() -> HTMLResponse:
+    """What Cloudflare shows a browser it does not trust yet, with no widget a page can see:
+    only its title and its heading say what it is (three real sites, 22 Oct 2026)."""
+    return HTMLResponse(
+        "<html><head><title>Just a moment...</title></head><body>"
+        "<h1>example.org</h1><h2>Performing security verification</h2>"
+        "<p>This website uses a security service to protect against malicious bots.</p>"
+        "</body></html>"
+    )
+
+
+@app.get("/refused", response_class=HTMLResponse)
+def refused() -> HTMLResponse:
+    """A site that turns automated browsers away with a plain 403."""
+    return HTMLResponse("<h1>403 Forbidden</h1>", status_code=403)
+
+
+CATALOG = {1: "Degrees", 2: "Courses", 3: "Policies"}
+
+
+@app.get("/catalog", response_class=HTMLResponse)
+def catalog(nav: int = 0) -> HTMLResponse:
+    """Every page at one address, told apart only by its query, the way catalog.ccv.edu
+    serves all of its pages as `/content.php?navoid=N`. Every menu link has the same path, so
+    a step stored by that path clicks whichever link comes first."""
+    links = "".join(
+        f'<li><a href="/catalog?nav={n}">{name}</a></li>' for n, name in CATALOG.items()
+    )
+    title = CATALOG.get(nav, "Catalog")
+    return page(
+        title,
+        f'<ul class="menu">{links}</ul><h1 id="heading">{title}</h1>',
+        variant="a",
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
     v = variant_of(request, variant)

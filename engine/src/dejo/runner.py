@@ -55,6 +55,10 @@ if TYPE_CHECKING:
 
 # A first page that answers with one of these is not a page to learn on.
 HTTP_ERROR_FROM = 400
+# Answers that mean "not you", not "not here". Told "check the address" for a 403, an agent
+# tried four other addresses on a site that turns every automated browser away (22 Oct).
+SIGN_IN_FIRST = 401
+REFUSED = frozenset({403, 429})
 
 # `look all` and `look raw` hand back far more than a normal view. Past this a client stores
 # the reply in a file and the agent spends a turn opening it (Claude Code saves results
@@ -84,6 +88,14 @@ _WORDED_LOCATORS = frozenset({"role", "text", "label", "title", "alt", "placehol
 
 # Reads that answer about many elements at once, so several matches are the point.
 _MANY_READS = {"count", "all_text"}
+
+# Every reply that shows a page and saved nothing ends with this. Seen 21-22 Oct: a call that
+# ended with `look` got only "send steps", the agent read the answer off that view, and the
+# task was never saved, so the next run learned it again from nothing.
+KEEP_THE_ANSWER = (
+    "send more steps, one per line. If the answer is on this page, send read <ref> as "
+    "<name>: that read is what Dejo keeps. Answering from this view saves nothing."
+)
 
 
 class _Stopped(Exception):
@@ -287,7 +299,10 @@ class Runner:
                     self._finish_with_look(step, outcome)
                     outcome.passed.append(step)
                     break
+                written, was = len(self.session.trace), self.browser.page.url
                 self._run_one(step, steps[at - 1] if at else None, outcome)
+                if isinstance(step, Action) and self.browser.page.url != was:
+                    self._refuse_a_human_check(written)
                 read_something = read_something or isinstance(step, Read)
                 outcome.passed.append(step)
             except _Stopped as stop:
@@ -309,11 +324,8 @@ class Runner:
             outcome.kept_in_draft = self._write_draft()
             if outcome.ok and outcome.view is None and not outcome.raw:
                 self._show_page(outcome)
-                outcome.next_step = (
-                    "send more steps. If the answer is on this page, send read <ref> as "
-                    "<name>: that read is what Dejo keeps. Answering from this view saves "
-                    "nothing."
-                )
+            if outcome.ok:
+                outcome.next_step = KEEP_THE_ANSWER
         return outcome
 
     def _fix_for(self, written: Program) -> _Broken | None:
@@ -413,11 +425,34 @@ class Runner:
         self.domain = self.domain or domain_of(self.browser.page.url)
         if self.browser.page.url != was:
             self._map_this_page()
-        if step.action == "goto" and (self.browser.last_status or 0) >= HTTP_ERROR_FROM:
+        status = self.browser.last_status or 0
+        if step.action == "goto" and status == SIGN_IN_FIRST:
             raise _Stopped(
-                f"the page answered HTTP {self.browser.last_status} instead of the page",
+                "the site answered HTTP 401: it wants a sign-in first",
+                "call dejo_login so the user signs in, then run this again",
+            )
+        if step.action == "goto" and status in REFUSED:
+            raise _Stopped(
+                f"the site refused this browser (HTTP {status})",
+                "it is not the address: this site turns automated browsers away. Tell the "
+                "user, and do not try other addresses on it",
+            )
+        if step.action == "goto" and status >= HTTP_ERROR_FROM:
+            raise _Stopped(
+                f"the page answered HTTP {status} instead of the page",
                 "check the address; nothing on an error page is worth learning",
             )
+
+    def _refuse_a_human_check(self, written: int) -> None:
+        """Stop the moment a step lands on a human check instead of the page.
+
+        Seen 22 Oct on three real sites: Cloudflare's "Performing security verification" was
+        shown to the agent as if it were the site, the agent sent `wait` three times, and
+        the waits went into the draft. Nothing done on that page is a step."""
+        if self.browser.captcha_on_page() is None:
+            return
+        del self.session.trace[written:]
+        raise _Stopped("the site showed a human check instead of the page")
 
     def _map_this_page(self) -> None:
         """Write the page a step just arrived on into the site's map, without showing it.
@@ -524,7 +559,6 @@ class Runner:
             out.raw = shown
         else:
             out.view = shown
-        out.next_step = "send steps, one per line. Refs work until the page changes."
 
     # ------------------------------------------------------------------- finding
 

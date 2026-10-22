@@ -13,6 +13,8 @@ can check itself. Two jobs:
 
 from __future__ import annotations
 
+from urllib.parse import parse_qsl, urlencode, urlparse
+
 from .models import Locator, Playbook, Postcondition, Step, href_path
 from .operations import READ_ACTION, TraceEntry
 
@@ -67,7 +69,7 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
         # the URL it was told to, the site redirected, and the step was called broken on a
         # page that was perfectly correct. Either one arriving is arrival.
         asked = href_path(entry.value) if entry.action == "goto" and entry.value else None
-        landed = href_path(entry.url_after)
+        landed = _landing(entry)
         return Postcondition("url_contains", landed, target=asked if asked != landed else None)
 
     if entry.action == "fill" and entry.element is not None:
@@ -81,6 +83,29 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
         return Postcondition("element_present", entry.element.css)
 
     return Postcondition("url_contains", href_path(entry.url_after))
+
+
+def _landing(entry: TraceEntry) -> str:
+    """Where a navigation landed, in the form its check compares.
+
+    The path and nothing more when the path changed: what follows `?` is then usually a
+    session id or tracking. When the path did NOT change, the query is all that tells the
+    two pages apart (page 5 of a list, a price filter, or a site that serves every page as
+    `/content.php?navoid=N`). Dropping it there made the check true on every page, and a
+    replay that clicked the wrong link was called right (real-site bench, 22 Oct 2026: a
+    price filter, page 2 of a shop, a college catalog). Only the values that changed are
+    kept, so a parameter the site adds on its own does not fail the check later."""
+    landed = href_path(entry.url_after)
+    before, after = urlparse(entry.url_before), urlparse(entry.url_after)
+    if before.path != after.path or not after.query:
+        return landed
+    was = dict(parse_qsl(before.query, keep_blank_values=True))
+    changed = [
+        (key, value)
+        for key, value in parse_qsl(after.query, keep_blank_values=True)
+        if was.get(key) != value
+    ]
+    return f"{landed}?{urlencode(changed)}" if changed else landed
 
 
 def locators_for(entry: TraceEntry) -> list[Locator]:

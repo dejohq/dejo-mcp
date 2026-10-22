@@ -87,6 +87,16 @@ CAPTCHA_MARKERS = (
     ".cf-turnstile",
     "#challenge-running",
 )
+# Cloudflare's full-page check carries none of the widgets above where a page can see them:
+# it says who it is in its title and its heading. Seen on three real sites on 22 Oct 2026
+# ("Just a moment..." / "Performing security verification"), shown to the agent as if it
+# were the site.
+CHALLENGE_TITLES = ("just a moment",)
+CHALLENGE_HEADINGS = (
+    "performing security verification",
+    "verify you are human",
+    "checking your browser before",
+)
 
 # Stops the browser advertising that a program is driving it. Without these,
 # `navigator.webdriver` is true and Google refuses to let the USER sign in by hand, which
@@ -1408,10 +1418,18 @@ class Browser:
     def captcha_on_page(self) -> str | None:
         """The name of the human check standing in the way, if there is one.
 
-        Only ever asked after a step has already failed. "Prove you are human" is not
-        drift and cannot be repaired: the honest answer is to say what happened and stop,
-        rather than hand an AI a page it has no way through.
+        Asked after a step fails, and while learning after a step lands on a new page.
+        "Prove you are human" is not drift and cannot be repaired: the honest answer is to
+        say what happened and stop, rather than hand an AI a page it has no way through.
         """
+        try:
+            if self.page.title().strip().lower().startswith(CHALLENGE_TITLES):
+                return "a security check page"
+            headings = " ".join(self.page.locator("h1, h2").all_inner_texts()).lower()
+        except PlaywrightError:
+            return None
+        if any(words in headings for words in CHALLENGE_HEADINGS):
+            return "a security check page"
         for marker in CAPTCHA_MARKERS:
             try:
                 found = self.page.locator(marker)

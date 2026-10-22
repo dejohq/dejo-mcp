@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from time import monotonic
 from typing import Any, get_args
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
@@ -215,7 +215,7 @@ class Session:
         self.browser.last_dialog = None
         self.last_result = None
 
-        element = self._perform(action, element=element, value=value, second=second)
+        element, lasting = self._perform(action, element=element, value=value, second=second)
 
         # An anchor was clicked and the address has not moved. Either it went nowhere, or
         # this is a single-page app that will change the URL in a moment — a React Router
@@ -249,6 +249,7 @@ class Session:
             dialog=self.browser.last_dialog,
             expect=expect,
             risky=risky,
+            locators=lasting,
         )
         # An action that changes nothing is not a step. Replaying `highlight` would draw a
         # box for nobody and then have its postcondition checked anyway.
@@ -288,21 +289,30 @@ class Session:
         element: Element | None,
         value: str | None,
         second: Element | None = None,
-    ) -> Element | None:
+    ) -> tuple[Element | None, list[Locator] | None]:
         """Describe the element, then hand the doing to the registry.
 
         Finding things is Dejo's job because a durable descriptor has to be recorded at the
         same moment. Performing is Playwright's job. This method is the seam between them.
+        Returns the described element, and the ways of finding it the trail should keep.
         """
         spec = self._spec(action)
         if spec.session_handled:
             self._do_here(action, value)
-            return None
+            return None, None
+        if action == "goto":
+            # Through the browser, as replay does, so the page's HTTP status is kept. The
+            # registry's goto dropped it, so an error page (or a 403 from a site that turns
+            # automated browsers away) was learned on as if it were the page (22 Oct 2026).
+            self.browser.goto(value or "")
+            self.browser.settle()
+            return None, None
 
         # Describe before acting. The durable descriptors have to be read while the
         # element is still on the page as it was — a click can navigate away, and then
         # there is nothing left to describe.
         element = self.browser.describe(element) if element is not None else None
+        lasting = self._only_ones(element)
         target = self.browser.locate(element) if element else None
         second_target = self.browser.locate(second) if second is not None else None
 
@@ -316,7 +326,29 @@ class Session:
         # Every action, not a chosen few. A download event can arrive after the click has
         # already returned, and a select can navigate just as a click can.
         self.browser.settle()
-        return element
+        return element, lasting
+
+    def _only_ones(self, element: Element | None) -> list[Locator] | None:
+        """The ways of finding this element that match it and nothing else on the page.
+
+        Read before the step changes the page. A way that matches several elements finds
+        whichever comes first on replay: on catalog.ccv.edu every menu link points at
+        `/content.php`, so the stored link target of "Courses" clicked "Associate Degrees"
+        (real-site bench, 22 Oct 2026). None when nothing needs dropping, or when nothing
+        would be left: the css path is built to match one element, so that is rare, and a
+        step with no way back at all would be worse than an ambiguous one."""
+        if element is None or element.by_place:
+            return None
+        found = element.locators()
+        unique = [locator for locator in found if self._matches_once(locator)]
+        return unique if unique and len(unique) < len(found) else None
+
+    def _matches_once(self, locator: Locator) -> bool:
+        try:
+            matched = self.browser.matches(locator)
+            return matched is not None and matched.count() == 1
+        except PlaywrightError:
+            return False
 
     def _do_here(self, action: str, value: str | None) -> None:
         """The few actions that need Dejo's own state rather than just the page."""
@@ -902,6 +934,21 @@ def address_to_check(url: str, wanted: str) -> str:
     return f"{parts.scheme}://{parts.netloc}{parts.path}" if parts.netloc else url
 
 
+def at_address(url: str, wanted: str) -> bool:
+    """Is `url` the address a check expects?
+
+    `wanted` is a path, or a path and the query values that told the page apart from the
+    one before it (`/books?price=50-`). Those values are compared one by one, so the site
+    adding a parameter of its own, or writing them in another order, does not fail it."""
+    path, _, query = wanted.partition("?")
+    if not query or "#" in wanted:
+        return wanted in address_to_check(url, wanted)
+    if path not in address_to_check(url, path):
+        return False
+    have = set(parse_qsl(urlparse(url).query, keep_blank_values=True))
+    return set(parse_qsl(query, keep_blank_values=True)) <= have
+
+
 def check_postcondition(browser: Browser, expected: Postcondition) -> bool:
     """Did the page actually end up where it should have?
 
@@ -915,8 +962,8 @@ def check_postcondition(browser: Browser, expected: Postcondition) -> bool:
         # `target` holds the OTHER acceptable URL when a step navigated through a
         # redirect. Arriving at either end of that redirect is arriving.
         here = browser.page.url
-        return expected.value in address_to_check(here, expected.value) or bool(
-            expected.target and expected.target in address_to_check(here, expected.target)
+        return at_address(here, expected.value) or bool(
+            expected.target and at_address(here, expected.target)
         )
     if expected.kind == "text_present":
         return expected.value.lower() in browser.text().lower()

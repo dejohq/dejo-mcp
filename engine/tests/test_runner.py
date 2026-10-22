@@ -565,3 +565,104 @@ def test_one_line_of_another_action_is_not_taken_as_a_fix(
 
     assert other.repaired is None
     assert other.saved is not None and len(other.saved.steps) == 6, other.text()
+
+
+# ------------------------------------------------------------------- the query part of an address
+
+
+def test_a_site_that_serves_every_page_at_one_path_replays_the_right_link(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """catalog.ccv.edu, 22 Oct: every menu link is /content.php?navoid=N. The trail stored
+    "Courses" by that path, replay clicked the first menu link, and the check, also only the
+    path, passed on the wrong page."""
+    task = "the heading of the courses page"
+    learned = run(
+        runner_for(browser, store, task),
+        f'go {demo_server}/catalog\nclick link "Courses"\nread css "#heading" as heading',
+    )
+    assert learned.ok, learned.text()
+    step = learned.saved.steps[1]
+    assert "href=/catalog" not in [loc.value for loc in step.locators], step.locators
+    assert step.postcondition.value == "/catalog?nav=2", step.postcondition
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task=task)
+
+    assert replay.ok, replay.reason
+    assert replay.answers["heading"] == "Courses"
+
+
+def test_a_url_that_leaves_out_part_of_the_trail_start_does_not_replace_it(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """scrapethissite, 22 Oct: a trail that starts on page 5 was replayed with page 1's
+    address, read page 1's first team and said done."""
+    task = "the first book in reverse order"
+    learned = run(
+        runner_for(browser, store, task),
+        f'go {demo_server}/books?order=b\nread css "article.book h3 a" first as title',
+    )
+    assert learned.ok, learned.text()
+
+    replay = Executor(store, browser).run(
+        domain_of(demo_server), task=task, start_url=f"{demo_server}/books"
+    )
+
+    assert replay.ok, replay.reason
+    assert replay.answers["title"] == "Vagabonding"
+
+
+def test_a_call_that_ends_with_look_says_how_to_keep_the_answer(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """21-22 Oct: "look" ended a call, the agent read the answer off that view, and nothing
+    was saved."""
+    outcome = run(runner_for(browser, store, "the price"), f"go {demo_server}/books/0\nlook")
+
+    assert outcome.ok and outcome.saved is None
+    assert "that read is what Dejo keeps" in outcome.next_step
+
+
+# ------------------------------------------------------------------- walls and bare keys
+
+
+def test_a_human_check_stops_the_first_call_and_keeps_nothing(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """22 Oct: Cloudflare's check page was shown as if it were the site, the agent sent
+    `wait` three times, and the waits went into the draft."""
+    runner = runner_for(browser, store, "the bus fare")
+    outcome = run(runner, f"go {demo_server}/challenge\nlook")
+
+    assert not outcome.ok
+    assert "human check" in outcome.reason
+    assert "dejo_login" in outcome.next_step
+    assert runner.session.trace == [], "nothing done on a check page is a step"
+    assert store.load_draft(domain_of(demo_server), "the bus fare") is None
+
+
+def test_a_refusal_is_not_called_a_wrong_address(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = run(runner_for(browser, store, "the decoy date"), f"go {demo_server}/refused\nlook")
+
+    assert not outcome.ok
+    assert "refused this browser (HTTP 403)" in outcome.reason
+    assert "do not try other addresses" in outcome.next_step
+
+
+def test_a_bare_press_enter_replays(browser: Browser, store: DejoStore, demo_server: str) -> None:
+    """22 Oct: `press Enter` names no element, and replay only knew how to find elements,
+    so every trail with one broke at that step."""
+    task = "search the shop for atlas"
+    learned = run(
+        runner_for(browser, store, task),
+        f'go {demo_server}/shop\nfill label "Search" "atlas"\npress Enter\n'
+        'read css "h1" as heading',
+    )
+    assert learned.ok, learned.text()
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task=task)
+
+    assert replay.ok, replay.reason
+    assert replay.answers["heading"] == "Results for atlas"
