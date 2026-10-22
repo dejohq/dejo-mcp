@@ -536,8 +536,6 @@ def _check_order(steps: list[Step]) -> None:
         if isinstance(step, Action) and step.action in ALONE and len(steps) > 1:
             verb = "js" if step.action == "evaluate" else step.action
             raise ProgramError(step.line, f"{verb} must be the only line of a program")
-        if isinstance(step, Look) and at != len(steps) - 1:
-            raise ProgramError(step.line, "look ends a program, so it must be the last line")
         if isinstance(step, Expect):
             before = steps[at - 1] if at else None
             if not isinstance(before, Action):

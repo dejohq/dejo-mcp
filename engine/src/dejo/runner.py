@@ -36,7 +36,7 @@ from . import program as language
 from . import view as pageview
 from .browser import NoSuchElement, domain_of
 from .distill import distill, locators_for, postcondition_for
-from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, utc_now
+from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, href_path, utc_now
 from .operations import (
     READ_ACTION,
     ActionFailed,
@@ -88,6 +88,12 @@ _WORDED_LOCATORS = frozenset({"role", "text", "label", "title", "alt", "placehol
 
 # Reads that answer about many elements at once, so several matches are the point.
 _MANY_READS = {"count", "all_text"}
+
+# A read is one value the user asked for: a price, a date, a name, a short note. Past this it
+# is a section or the whole page, and every replay would hand all of it back. Seen 23 Oct:
+# `read css "body"` was saved as the answer to "which BCP is about DNSSEC".
+LONGEST_ANSWER = 2_000
+WHOLE_PAGE = frozenset({"body", "html", ":root"})
 
 # Every reply that shows a page and saved nothing ends with this. Seen 21-22 Oct: a call that
 # ended with `look` got only "send steps", the agent read the answer off that view, and the
@@ -295,6 +301,12 @@ class Runner:
         trace_before = len(self.session.trace)
         for at, step in enumerate(steps):
             try:
+                if isinstance(step, Look) and at < len(steps) - 1:
+                    # Agents write "look, then read". The page is shown when the program ends
+                    # or stops anyway, so a look in the middle has nothing to add, and refusing
+                    # it cost a whole turn (real-site bench, 21-23 Oct 2026).
+                    outcome.passed.append(step)
+                    continue
                 if isinstance(step, Look):
                     self._finish_with_look(step, outcome)
                     outcome.passed.append(step)
@@ -497,6 +509,14 @@ class Runner:
             raise _Stopped(
                 "the read found nothing there",
                 "the value may sit in another element; look at the page below",
+            )
+        if step.kind not in _MANY_READS and _whole_page(element, answer):
+            if self.session.trace:
+                self.session.trace.pop()
+            raise _Stopped(
+                f"that read is the whole page ({len(str(answer)):,} characters), and every "
+                "replay would hand all of it back",
+                "read the element that holds the answer instead",
             )
         entry = self.session.trace[-1] if self.session.trace else None
         kept = entry.element if entry is not None else None
@@ -817,7 +837,13 @@ class Runner:
     def _steps(self) -> tuple[list[Step], list[str]]:
         entries, dropped = drop_detours(self.session.trace)
         fresh = distill(entries, domain=self.domain, task=self.task).steps if entries else []
-        steps = [*self._kept, *fresh]
+        steps = _latest_reads([*self._kept, *fresh])
+        if steps and steps[0].action != "goto" and not self._kept:
+            # A trail that does not open its own page starts wherever the browser happens to
+            # be, which on replay is a blank page (real-site bench, 23 Oct 2026).
+            start = next((e.url_before for e in entries if e.url_before.startswith("http")), "")
+            if start:
+                steps.insert(0, _go_to(start))
         for index, step in enumerate(steps, start=1):
             step.index = index
         return steps, dropped
@@ -834,6 +860,15 @@ class Runner:
         out.risky_steps = [
             f"does step {step.index} ({step.intent})" for step in steps if step.risky
         ]
+        if out.answers:
+            # Seen 23 Oct: the saved read said 205 (the wrong column), the agent answered 261
+            # from the view, and every replay then answered 205.
+            said = "; ".join(f"{name} = {value}" for name, value in out.answers.items())
+            out.next_step = (
+                f"every replay will answer {_capped_line(said)}. If that is the answer, report "
+                "it exactly as read and stop. If it is not, send the right read now with the "
+                "same name: it replaces this one."
+            )
 
     def _write_draft(self) -> int:
         if self.store is None or not self.domain or not self._has_steps():
@@ -934,6 +969,10 @@ def drop_detours(trace: list[TraceEntry]) -> tuple[list[TraceEntry], list[str]]:
     2. A `goto` removes the run of pure navigation just before it (link clicks that moved,
        goto, back, forward), as long as nothing in that run changed anything: a goto names
        its own destination, so the way there was never needed.
+    3. A field typed into again removes the first try and the key presses and clicks after
+       it, when all of them stayed on the same page and none is risky: the second try
+       replaces the first. Seen 23 Oct on a shop: one search typed twice, with a click on the
+       "Searched for:" heading between, all kept, and the replay landed on the wrong product.
     """
     kept = list(trace)
     dropped: list[str] = []
@@ -957,7 +996,71 @@ def drop_detours(trace: list[TraceEntry]) -> tuple[list[TraceEntry], list[str]]:
                 del kept[start:index]
                 index = start
         index += 1
+    index = 0
+    while index < len(kept):
+        again = _typed_again(kept, index)
+        if again is not None:
+            dropped.extend(entry.intent for entry in kept[index:again])
+            del kept[index:again]
+            continue
+        index += 1
     return kept, dropped
+
+
+def _typed_again(trace: list[TraceEntry], first: int) -> int | None:
+    """Where the same field is typed into again after `trace[first]`, if only key presses
+    and clicks that stayed on the page come between. None otherwise."""
+    entry = trace[first]
+    if entry.action not in ("fill", "type") or entry.element is None or entry.risky:
+        return None
+    page = href_path(entry.url_before)
+    for later in range(first + 1, len(trace)):
+        other = trace[later]
+        if (
+            other.action == entry.action
+            and other.element is not None
+            and (other.element.css == entry.element.css)
+        ):
+            return later
+        same_page = href_path(other.url_after) == page and href_path(other.url_before) == page
+        if other.risky or other.action not in ("press", "click") or not same_page:
+            return None
+    return None
+
+
+def _latest_reads(steps: list[Step]) -> list[Step]:
+    """Each read name once: a read sent again under the same name replaces the earlier one."""
+    later: set[str] = set()
+    kept: list[Step] = []
+    for step in reversed(steps):
+        if step.action == READ_ACTION:
+            if step.intent in later:
+                continue
+            later.add(step.intent)
+        kept.append(step)
+    return kept[::-1]
+
+
+def _go_to(url: str) -> Step:
+    """The first step of a trail that did not begin with one: open the page its first step
+    was taken on."""
+    return Step(
+        index=0,
+        intent=f"go {url}",
+        action="goto",
+        value=url,
+        postcondition=Postcondition("url_contains", href_path(url)),
+    )
+
+
+def _whole_page(element: Element | None, answer: Any) -> bool:
+    if element is not None and (element.css or "").strip().lower() in WHOLE_PAGE:
+        return True
+    return len(str(answer)) > LONGEST_ANSWER
+
+
+def _capped_line(text: str, limit: int = 200) -> str:
+    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 def _pure_navigation(entry: TraceEntry) -> bool:

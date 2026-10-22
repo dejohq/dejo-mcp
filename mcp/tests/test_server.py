@@ -354,7 +354,7 @@ class TestATrailThatAnswersNothing:
 
         done = call(mcp_server, "dejo_run", site=demo_server, task=task)
         assert "charge = ₹ 18,400" in done
-        assert "report the answer and stop" in done
+        assert "report the answer exactly as read and stop" in done
         assert "reads no value" not in done
 
     def test_a_read_added_after_a_replay_extends_the_trail(self, mcp_server, demo_server):

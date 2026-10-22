@@ -331,7 +331,6 @@ def test_a_whole_line_comment_is_skipped() -> None:
     [
         ('js "1"\nclick e1', "js must be the only line"),
         ("screenshot\nclick e1", "screenshot must be the only line"),
-        ("look\nclick e1", "must be the last line"),
         ('expect url "x"', "expect checks the action on the line just before it"),
         ('click e1\nread e2 as x\nexpect url "y"', "expect checks the action"),
         ('click e1\nexpect url "a"\nexpect url "b"', "expect checks the action"),
@@ -342,6 +341,11 @@ def test_a_whole_line_comment_is_skipped() -> None:
 def test_order_rules(text: str, says: str) -> None:
     with pytest.raises(ProgramError, match=says):
         program.parse(text)
+
+
+def test_a_look_may_come_before_other_lines() -> None:
+    """Agents write "look, then read". Refusing it cost a turn; the runner skips it."""
+    assert len(program.parse("look price\nread e2 as price").steps) == 2
 
 
 def test_after_a_risky_line_checks_and_reads_may_follow() -> None:

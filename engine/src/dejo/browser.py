@@ -492,6 +492,14 @@ NO_SCREEN_ADVICE = (
 )
 
 
+def _arrived(here: str, asked: str) -> bool:
+    """Is the browser on the site it was sent to, even if that page has not finished?"""
+    there, wanted = urlparse(here), urlparse(asked)
+    if there.scheme not in ("http", "https"):
+        return False
+    return there.netloc.removeprefix("www.") == wanted.netloc.removeprefix("www.")
+
+
 def _stuck_profile_advice(profile: Path, url: str) -> str:
     """Say which profile is stuck, and both ways out of it."""
     return (
@@ -1035,6 +1043,11 @@ class Browser:
             # document that is gone with a 404 page at the document's own address.
             self.last_status = response.status if response is not None else None
         except PlaywrightTimeout as stuck:
+            if _arrived(self.page.url, url):
+                # A slow site: the page is there and still loading its last parts. Failing
+                # here left the first `go` out of a trail the agent then learned anyway, so
+                # every replay began on a blank page (real-site bench, 23 Oct 2026).
+                return
             if self._profile is None or not self._loads_without_profile(url):
                 raise
             raise ProfileStuck(_stuck_profile_advice(self._profile, url)) from stuck

@@ -15,6 +15,7 @@ from dejo.browser import Browser, domain_of
 from dejo.executor import Executor
 from dejo.operations import Session, TraceEntry
 from dejo.runner import Outcome, Runner, drop_detours
+from dejo.snapshot import Element
 from dejo.store import DejoStore
 
 TASK = "download this month's invoice"
@@ -666,3 +667,98 @@ def test_a_bare_press_enter_replays(browser: Browser, store: DejoStore, demo_ser
 
     assert replay.ok, replay.reason
     assert replay.answers["heading"] == "Results for atlas"
+
+
+# ------------------------------------------------------------------- re-run findings, 23 Oct
+
+
+def test_a_look_in_the_middle_is_skipped_not_refused(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = run(
+        runner_for(browser, store, "the price"),
+        f'go {demo_server}/books/0\nlook price\nread css "#price" as price',
+    )
+    assert outcome.ok and outcome.saved is not None, outcome.text()
+
+
+def test_a_read_of_the_whole_page_is_refused(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """23 Oct: `read css "body"` was saved as the answer, and every replay handed back the
+    whole page."""
+    outcome = run(
+        runner_for(browser, store, "the price"),
+        f'go {demo_server}/books/0\nread css "body" as page',
+    )
+    assert not outcome.ok and outcome.saved is None
+    assert "whole page" in outcome.reason
+
+
+def test_a_saved_read_says_what_replays_will_answer_and_can_be_replaced(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """23 Oct: the saved read was the wrong column; the agent answered from the view and
+    every replay answered the wrong number."""
+    runner = runner_for(browser, store, "the price")
+    first = run(runner, f'go {demo_server}/books/0\nread css "#title" as price')
+    assert "every replay will answer price = It's Only the Himalayas" in first.next_step
+
+    fixed = run(runner, 'read css "#price" as price')
+
+    reads = [step for step in fixed.saved.steps if step.action == "read"]
+    assert [step.intent for step in reads] == ["price"], "the later read replaces the earlier"
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the price")
+    assert replay.answers == {"price": "£40.00"}
+
+
+def test_a_trail_that_did_not_open_its_page_gets_a_start(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """23 Oct: a slow site's first `go` failed, the agent went on from the page anyway, and
+    the trail began with a click, so every replay started on a blank page."""
+    task = "the heading of the courses page"
+    browser.goto(f"{demo_server}/catalog")
+    learned = run(
+        runner_for(browser, store, task), 'click link "Courses"\nread css "#heading" as heading'
+    )
+    assert learned.ok, learned.text()
+    assert learned.saved.steps[0].action == "goto"
+    assert learned.saved.steps[0].value == f"{demo_server}/catalog"
+
+    browser.goto("about:blank")
+    replay = Executor(store, browser).run(domain_of(demo_server), task=task)
+    assert replay.ok, replay.reason
+    assert replay.answers["heading"] == "Courses"
+
+
+def typed(css: str, before: str = "/shop", after: str = "/shop", intent: str = "") -> TraceEntry:
+    field = Element(ref="e1", role="textbox", name="Search", css=css)
+    return TraceEntry(
+        intent=intent or "fill", action="fill", element=field, url_before=before, url_after=after
+    )
+
+
+def test_a_field_typed_into_again_drops_the_first_try() -> None:
+    """23 Oct, a shop: the same search typed twice with a click between, all kept."""
+    trace = [
+        entry("goto", "", "/shop"),
+        typed("#q", intent="first try"),
+        entry("press", "/shop", "/shop", "enter"),
+        entry("click", "/shop", "/shop", "the heading"),
+        typed("#q", intent="second try"),
+        entry("press", "/shop", "/shop", "enter again"),
+    ]
+    kept, dropped = drop_detours(trace)
+    assert [e.intent for e in kept] == ["goto", "second try", "enter again"]
+    assert dropped == ["first try", "enter", "the heading"]
+
+
+def test_a_field_typed_again_after_moving_on_is_kept() -> None:
+    trace = [
+        typed("#q", intent="search"),
+        entry("click", "/shop", "/shop/search", "result page"),
+        typed("#q", "/shop/search", "/shop/search", intent="search again"),
+    ]
+    kept, _ = drop_detours(trace)
+    assert len(kept) == 3

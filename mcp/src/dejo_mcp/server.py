@@ -619,7 +619,9 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
         if risky:
             lines.append("this task does " + ", ".join(risky) + " every time it runs")
     if result.answers:
-        lines.append("next: report the answer and stop. Every step was checked as it ran.")
+        lines.append(
+            "next: report the answer exactly as read and stop. Every step was checked as it ran."
+        )
     else:
         lines.append(
             "next: the trail reads no value. If the task needs one, send steps: read T as "
