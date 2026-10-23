@@ -1,0 +1,1117 @@
+{
+ "meta": {
+  "date": "2026-10-23",
+  "model": "claude-sonnet-5",
+  "effort": "medium",
+  "dejo": "0.2.0",
+  "commit": "b83b436",
+  "playwright_mcp": "@playwright/mcp@0.0.80"
+ },
+ "runs": [
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T07",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T07-dejo-r1",
+   "answer": "1880-1890",
+   "correct": true,
+   "accepted": [
+    "1880-1890",
+    "1880\u20131890",
+    "1880 to 1890"
+   ],
+   "turns": 9,
+   "tokens": 383881,
+   "reported_tokens": 383881,
+   "context_per_turn": [
+    39432,
+    40341,
+    41007,
+    41704,
+    42636,
+    43110,
+    44118,
+    44655,
+    45514
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_011ESU334Ast6n8GZ7kv4HtV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 1835,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YHX5DHwAEkCw2dr2DeR3Jx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 205,
+     "result_chars": 1099,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EgycrtfdYLqG9VZtKofHhE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 166,
+     "result_chars": 1162,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016Qjsi2hXDtjenCAZ15YUNa",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 136,
+     "result_chars": 1538,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PPeYz7kw9Zr4doYxYpZRsk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 132,
+     "result_chars": 710,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RpdCi8eJmFGwNq36xDmJkR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 140,
+     "result_chars": 1553,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UHesMH24jZvXGD89UdjW8w",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 123,
+     "result_chars": 685,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01B1Y1DtZRj6fZyAMNp6ZHN8",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 135,
+     "result_chars": 1182,
+     "is_error": false
+    }
+   ],
+   "seconds": 38.6,
+   "cost_usd": 0.2631214,
+   "trails": {
+    "talbothistory.pastperfectonline.com": [
+     "find date for catalog number 1979.003.000018"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T07",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T07-dejo-r1",
+   "answer": "1880-1890",
+   "correct": true,
+   "accepted": [
+    "1880-1890",
+    "1880\u20131890",
+    "1880 to 1890"
+   ],
+   "turns": 8,
+   "tokens": 333083,
+   "reported_tokens": 333083,
+   "context_per_turn": [
+    39432,
+    40261,
+    40727,
+    41127,
+    41524,
+    42185,
+    42878,
+    43790
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_018MKej6dhAt3NQynefZuarM",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 1581,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Kc7XHcD2pveFUU8GwYP5bi",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 653,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Ry5mMD8XkzLvAyU21iLZh4",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 170,
+     "result_chars": 549,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014f14rbTqZRMxNpFHv5a1f5",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 175,
+     "result_chars": 549,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NuuwQTsFGTXbt3wCZ3cxt7",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 189,
+     "result_chars": 970,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VJ4RGcbs7MSfcvZCh5wxvm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 175,
+     "result_chars": 1162,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01A3yoJaaTkbufLQ2tWmeMNJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 145,
+     "result_chars": 1552,
+     "is_error": false
+    }
+   ],
+   "seconds": 45.8,
+   "cost_usd": 0.094564,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T08",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T08-dejo-r1",
+   "answer": "The Sunday Sun (Baltimore)",
+   "correct": false,
+   "accepted": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "turns": 12,
+   "tokens": 550293,
+   "reported_tokens": 550293,
+   "context_per_turn": [
+    39439,
+    40378,
+    41087,
+    42467,
+    44356,
+    45381,
+    46497,
+    47153,
+    48122,
+    50024,
+    50990,
+    51867
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01HYBVwLrgn4orNX2oFvB7kH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 198,
+     "result_chars": 1875,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XGnzVo9X2FHea8aae7VvWm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 251,
+     "result_chars": 1137,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TiFPhqy3K9R5tJm2m3HUQG",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 224,
+     "result_chars": 2555,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015jz3WahExQxM1bXtWiK4Xz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 233,
+     "result_chars": 3296,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AaJbYS4bM5ohbAx5wCePx9",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 197,
+     "result_chars": 1489,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GN33rFhsiuLX5824EpQQNS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 206,
+     "result_chars": 1616,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UdEQkzSrSBg1NqGP32qQJh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 163,
+     "result_chars": 927,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WdZPvTDzHmEzZKuxG6bkqz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 203,
+     "result_chars": 1612,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0158fDdZD7xUxhsMrQHjZQNT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 215,
+     "result_chars": 3395,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VpSvs6KjqKFJSvzFnS2Ec8",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 208,
+     "result_chars": 1514,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GKu7n7qvTLhDEEs9VroMua",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 181,
+     "result_chars": 1296,
+     "is_error": false
+    }
+   ],
+   "seconds": 51.4,
+   "cost_usd": 0.2711416,
+   "trails": {
+    "talbothistory.pastperfectonline.com": [
+     "search collection for Emma Giles steamboat, open magazine record, find magazine name"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T08",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T08-dejo-r1",
+   "answer": "Good Housekeeping Magazine, Feb. 1922",
+   "correct": false,
+   "accepted": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "turns": 11,
+   "tokens": 485306,
+   "reported_tokens": 485306,
+   "context_per_turn": [
+    39439,
+    40277,
+    41053,
+    41315,
+    42706,
+    44264,
+    45194,
+    46263,
+    46978,
+    47526,
+    48162
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01DPBBzfwW8aEMwKdNNkL4eM",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 206,
+     "result_chars": 1581,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RwJmYYidzmwvPofCXuKzTw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 269,
+     "result_chars": 1142,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019qPzqrT3irqhvMdgswSWtS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 282,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01JrFMTxoAXUU9k2GthPnLEy",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 261,
+     "result_chars": 2547,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BbP8jsk6dTtxeELSqW9tP5",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 278,
+     "result_chars": 2684,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DuczHQULdgJ3bfyjrx7GCx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 242,
+     "result_chars": 1427,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Xp4w54ezVa8dnyCrVdq9ne",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 229,
+     "result_chars": 1624,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XsSzoXwBN3riv2Ym4yfA2P",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 171,
+     "result_chars": 927,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MtC2PrzWMQWHUFtR9QGoNk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 187,
+     "result_chars": 914,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HEEsr7b9SjzudUgX6256x4",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 229,
+     "result_chars": 961,
+     "is_error": false
+    }
+   ],
+   "seconds": 54.0,
+   "cost_usd": 0.1511124,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T11",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T11-dejo-r1",
+   "answer": "Brian Moore",
+   "correct": true,
+   "accepted": [
+    "Brian Moore"
+   ],
+   "turns": 6,
+   "tokens": 274339,
+   "reported_tokens": 274339,
+   "context_per_turn": [
+    39415,
+    42002,
+    44962,
+    47913,
+    49407,
+    49945
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Cw6GfpJX1jL6YgnE6Cx679",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 134,
+     "result_chars": 5586,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EscRH6yhLWAEXjKViR1Uky",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 143,
+     "result_chars": 6421,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015sZMbAmv5zepyY7NG3o6hp",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 136,
+     "result_chars": 6424,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013qWqgHUhegy2Lw84bDv6dj",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 137,
+     "result_chars": 3025,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VK5VCK84LYAwAEDWYYsvMT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 125,
+     "result_chars": 915,
+     "is_error": false
+    }
+   ],
+   "seconds": 28.6,
+   "cost_usd": 0.190623,
+   "trails": {
+    "doververmont.com": [
+     "find who the Road Foreman is in the highway department"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T11",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T11-dejo-r1",
+   "answer": "Brian Moore\n\nSkipped: didn't manually verify beyond the replayed Dejo trail; risk is low since the page content hasn't changed since the trail was recorded.",
+   "correct": true,
+   "accepted": [
+    "Brian Moore"
+   ],
+   "turns": 2,
+   "tokens": 79428,
+   "reported_tokens": 79428,
+   "context_per_turn": [
+    39415,
+    39818
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01QJxNmPazQUaz8rW57Vjhe2",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 124,
+     "result_chars": 606,
+     "is_error": false
+    }
+   ],
+   "seconds": 11.8,
+   "cost_usd": 0.0193352,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T12",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T12-dejo-r1",
+   "answer": "$55 each for mattresses or box springs.",
+   "correct": true,
+   "accepted": [
+    "$55 each",
+    "$55",
+    "55",
+    "$55.00"
+   ],
+   "turns": 17,
+   "tokens": 839296,
+   "reported_tokens": 839296,
+   "context_per_turn": [
+    39418,
+    42089,
+    42312,
+    44909,
+    46366,
+    46659,
+    47258,
+    48816,
+    50453,
+    50818,
+    51181,
+    51573,
+    52029,
+    53097,
+    54856,
+    56593,
+    57459
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01MK2D5szwz4o5REX2CXwyWp",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 142,
+     "result_chars": 5678,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BDCcSsyRVVsqTCcY8tahUp",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 171,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_012qPwzMv5ZjtCexSebGnd8F",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 5544,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JRpMn6F9Cx4dNaNWt7Mebc",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 152,
+     "result_chars": 2845,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LY5375P3UVczq1Tbx8hVjz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 153,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01LFFU6kc7LAWMDkeXvGRMQs",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 132,
+     "result_chars": 1070,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01F2JhPveN183M2KPBqMJqCR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 237,
+     "result_chars": 2879,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GGPnETrP5Ui5f8Amqtpymg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 256,
+     "result_chars": 3071,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011k79RBqwd4vMucWef4kjmN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 307,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TwxWiQD8FGAffyrkzx8JYK",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 224,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TFGWk6Bj52mX5VVyEaGEFP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 192,
+     "result_chars": 312,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Kcc5FNDrMyv2LLB6T2tgYY",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 196,
+     "result_chars": 198,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PrjznoP23a4j9H8JUVe17k",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 210,
+     "result_chars": 1696,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AEqKaG9WUTgEA4ptDBXFCs",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 296,
+     "result_chars": 3151,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MsRfPHRcWYD9ySbG6mkwgA",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 297,
+     "result_chars": 3079,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016fVTiF8fBKyWyoKCfBkj94",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 241,
+     "result_chars": 1377,
+     "is_error": false
+    }
+   ],
+   "seconds": 65.9,
+   "cost_usd": 0.35881419999999997,
+   "trails": {
+    "doververmont.com": [
+     "check transfer station hours and fees page for mattress box spring fee",
+     "find transfer station fee to drop off a mattress or box spring"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T12",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T12-dejo-r1",
+   "answer": "$55 each",
+   "correct": true,
+   "accepted": [
+    "$55 each",
+    "$55",
+    "55",
+    "$55.00"
+   ],
+   "turns": 28,
+   "tokens": 1593042,
+   "reported_tokens": 1593042,
+   "context_per_turn": [
+    39418,
+    39903,
+    40471,
+    41186,
+    41879,
+    44804,
+    44986,
+    47478,
+    48754,
+    49459,
+    50616,
+    50919,
+    51246,
+    51593,
+    52200,
+    52798,
+    53129,
+    58000,
+    58249,
+    63115,
+    63884,
+    64206,
+    76127,
+    76864,
+    79060,
+    80230,
+    81621,
+    82585
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01SKmEtSQnyJn1xeTuNvEZ78",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 152,
+     "result_chars": 826,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MMDpQ67XddFFVuZeDANjcr",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 828,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015upDVJnTPwp9nHqMTns6vE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 187,
+     "result_chars": 860,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EShpFxQzqwn8Q1DcJ4VWmb",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 167,
+     "result_chars": 833,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RgRwp3wFxdY85ih9rQSRK4",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 203,
+     "result_chars": 5442,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NPPFQJpJGpGKBoJtXKAE4n",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 140,
+     "result_chars": 53,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CnTTdcDBH7LPEq4fPAx1i5",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 212,
+     "result_chars": 5269,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013dnL7wXwb3byX1ZoCC3T4E",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 213,
+     "result_chars": 2261,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016WBR5i4vZEXJUzX2vSZvuF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 183,
+     "result_chars": 972,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JnQUDB3KNUMdfnotybXevN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 2003,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018m399gM3yj1ACdbwhzxpxL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HaAgxxLuMSmgmFj4cR5oCh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 200,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JfL41Sef6d9dJJMiEj7jyS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 180,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Su769Ynp1vkDcsL5v6Vy2W",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 188,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017PtnD83ax6UEfwwDtSejGm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 200,
+     "result_chars": 72,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CRKYzWQ4NfrK3veTsaTRrY",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 225,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XvBDQxLWs5Mcz4ZqTcjNwa",
+     "name": "ToolSearch",
+     "input_chars": 58,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01E4pfbuQrdGDuwqPC9tbJ44",
+     "name": "ToolSearch",
+     "input_chars": 42,
+     "result_chars": 32,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011twC1z8j6o5kzTpYjRczNA",
+     "name": "ToolSearch",
+     "input_chars": 68,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01399ueHPuKH9ChMAtjN1xJB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 188,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XTRZpruhpyD24qzA2AK9MG",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 200,
+     "result_chars": 196,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BT3Wob7ESt5wjDZpizADNs",
+     "name": "ToolSearch",
+     "input_chars": 71,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011ttMsRugpuPLj2mabBu1tS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 201,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011Woce1jB3J7XJdt2BKSiGt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 283,
+     "result_chars": 2249,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014A6jEcSYssULLFFhN8aTzj",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 2206,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GgasbzqNMoszpJM7yq33HU",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 187,
+     "result_chars": 2421,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SCG4Db8GzmRJQRCtSdLgpY",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 198,
+     "result_chars": 1689,
+     "is_error": false
+    }
+   ],
+   "seconds": 158.9,
+   "cost_usd": 0.5637114000000002,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T23",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T23-dejo-r1",
+   "answer": "Dotson Park, across from Danby Town Hall",
+   "correct": true,
+   "accepted": [
+    "Dotson Park, across from Danby Town Hall",
+    "Dotson Park"
+   ],
+   "turns": 5,
+   "tokens": 211228,
+   "reported_tokens": 211228,
+   "context_per_turn": [
+    39410,
+    41221,
+    42374,
+    43593,
+    44042
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Cou2ZZA942A5gFtgoxjESq",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 3383,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VzpwqYYQZCY47aF2uq2FHE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 2015,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KWCtdT5z6vFjseNqe4fyKg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 156,
+     "result_chars": 2229,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FhC1HMPxVV2CB8smW7UWBc",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 129,
+     "result_chars": 655,
+     "is_error": false
+    }
+   ],
+   "seconds": 32.0,
+   "cost_usd": 0.1545172,
+   "trails": {
+    "tcatbus.com": [
+     "find where TCAT's park and ride lot in Danby is located"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T23",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T23-dejo-r1",
+   "answer": "Dotson Park, across from Danby Town Hall\n\nSkipped: didn't independently verify the saved trail's answer against the live page since Dejo replayed it with checks passing; risk is low if the site conten",
+   "correct": true,
+   "accepted": [
+    "Dotson Park, across from Danby Town Hall",
+    "Dotson Park"
+   ],
+   "turns": 2,
+   "tokens": 79404,
+   "reported_tokens": 79404,
+   "context_per_turn": [
+    39410,
+    39767
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01HANEk1QUhVWtVZBK8XUNTT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 116,
+     "result_chars": 450,
+     "is_error": false
+    }
+   ],
+   "seconds": 14.2,
+   "cost_usd": 0.019469200000000002,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T24",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T24-dejo-r1",
+   "answer": "$17.50",
+   "correct": true,
+   "accepted": [
+    "$17.50",
+    "17.50"
+   ],
+   "turns": 4,
+   "tokens": 169340,
+   "reported_tokens": 169340,
+   "context_per_turn": [
+    39409,
+    40957,
+    44098,
+    44483
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_018VcgNXCTz4h3TDw6Dvc6eT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 92,
+     "result_chars": 2901,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WXwHDLnmnHyRTCZ9U7jykZ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 141,
+     "result_chars": 7240,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PjBfWpEscXnWvZETgDmJQH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 102,
+     "result_chars": 483,
+     "is_error": false
+    }
+   ],
+   "seconds": 30.1,
+   "cost_usd": 0.1459008,
+   "trails": {
+    "tcatbus.com": [
+     "find weekly bus pass price"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T24",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-agent\\T24-dejo-r1",
+   "answer": "$17.50\n\nSkipped: didn't verify this against other fare pages on the site. Risk: price could be stale if the cached replay predates a fare change.",
+   "correct": true,
+   "accepted": [
+    "$17.50",
+    "17.50"
+   ],
+   "turns": 2,
+   "tokens": 79379,
+   "reported_tokens": 79379,
+   "context_per_turn": [
+    39409,
+    39756
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_019dqMsaYWcHsTnHsV9Bn4EB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 105,
+     "result_chars": 349,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.7,
+   "cost_usd": 0.019298799999999998,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  }
+ ]
+}
