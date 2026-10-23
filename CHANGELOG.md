@@ -27,6 +27,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   waited Playwright's full 15 seconds and then returned the bare "Locator.select_option:
   Timeout 15000ms exceeded". Plain words now also match what the option shows, not only the
   value behind it, so `select e3 "September"` picks the option whose value is `sep`.
+- **What a `js` line returns is in the reply** (`js returned: ["January", "September"]`,
+  as JSON, capped at 2,000 characters). It was thrown away, so agents wrote it into the page
+  title just to see it.
 
 ## 0.2.1 — 2026-10-23
 

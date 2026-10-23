@@ -430,3 +430,17 @@ def test_an_option_picked_by_its_words_is_learned_and_replayed(mcp_server, demo_
 
     replayed = call(mcp_server, "dejo_run", site=demo_server, task=task)
     assert "month = September" in replayed, replayed
+
+
+def test_what_a_js_line_returns_is_in_the_reply(mcp_server, demo_server):
+    """Agents wrote the result into document.title to see it at all (23 Oct)."""
+    task = "count the statement months"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/preferences")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='js "() => [...document.querySelectorAll(`option`)].map(o => o.label)"',
+    )
+    assert 'js returned: ["Choose one", "January", "September"]' in said

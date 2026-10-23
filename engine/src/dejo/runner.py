@@ -22,6 +22,7 @@ text into data before this file ever sees it.
 
 from __future__ import annotations
 
+import json
 import re
 import tempfile
 from dataclasses import dataclass, field, replace
@@ -93,6 +94,10 @@ _MANY_READS = {"count", "all_text"}
 # is a section or the whole page, and every replay would hand all of it back. Seen 23 Oct:
 # `read css "body"` was saved as the answer to "which BCP is about DNSSEC".
 LONGEST_ANSWER = 2_000
+
+# What a `js` line returned, as printed. Agents used to write it into document.title to see
+# it at all (23 Oct), so it is shown; past this it would crowd out the page view.
+JS_RESULT_LIMIT = 2_000
 WHOLE_PAGE = frozenset({"body", "html", ":root"})
 
 # Every reply that shows a page and saved nothing ends with this. Seen 21-22 Oct: a call that
@@ -145,6 +150,8 @@ class Outcome:
     risky_steps: list[str] = field(default_factory=list)
     repaired: Step | None = None
     """The trail step this program fixed in place, as it was saved."""
+    js_result: str | None = None
+    """What a `js` line returned, as JSON. Not an answer: it is never saved or replayed."""
     trail_total: int = 0
     tail: ReplayResult | None = None
     """The replay of the steps after the repaired one. When it did not finish, the reply
@@ -178,6 +185,8 @@ class Outcome:
                 " steps in the draft)."
             )
         lines.extend(self._answer_lines())
+        if self.js_result is not None:
+            lines.append(f"js returned: {_capped_line(self.js_result, JS_RESULT_LIMIT)}")
         if self.raw:
             lines.append(self.raw)
         elif self.view is not None:
@@ -399,7 +408,7 @@ class Runner:
 
     def _run_one(self, step: language.Step, before: language.Step | None, out: Outcome) -> None:
         if isinstance(step, Action):
-            self._act(step)
+            self._act(step, out)
         elif isinstance(step, Expect):
             self._expect(step, before)
         elif isinstance(step, Read):
@@ -407,7 +416,7 @@ class Runner:
         elif isinstance(step, Note):
             self._note(step)
 
-    def _act(self, step: Action) -> None:
+    def _act(self, step: Action, out: Outcome) -> None:
         if step.risky:
             self._refuse_a_repeat(step)
         element = self._element(step.target) if step.target else None
@@ -423,7 +432,7 @@ class Runner:
             self._refuse_unmarked_risk(step, element)
         written = len(self.session.trace)
         was = self.browser.page.url
-        self.session.act_on(
+        did = self.session.act_on(
             step.reason or _intent_of(step, element),
             step.action,
             element=element,
@@ -432,6 +441,8 @@ class Runner:
             risky=step.risky,
         )
         self._last_entry = self.session.trace[-1] if len(self.session.trace) > written else None
+        if step.action == "evaluate":
+            out.js_result = _as_text(did["result"])
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
         self.domain = self.domain or domain_of(self.browser.page.url)
@@ -1057,6 +1068,11 @@ def _whole_page(element: Element | None, answer: Any) -> bool:
     if element is not None and (element.css or "").strip().lower() in WHOLE_PAGE:
         return True
     return len(str(answer)) > LONGEST_ANSWER
+
+
+def _as_text(value: Any) -> str:
+    """A script's return as JSON, the way it would print in a browser console."""
+    return json.dumps(value, ensure_ascii=False, default=str)
 
 
 def _capped_line(text: str, limit: int = 200) -> str:
