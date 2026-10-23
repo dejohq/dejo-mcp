@@ -17,6 +17,12 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   at close and every few seconds while it waits (for a person who shuts the window
   themselves). They stay in Chrome's own encrypted cookie store; nothing is written anywhere
   else.
+- **A plain dropdown shows its choices.** The options of a native `<select>` have no ref in
+  Playwright's snapshot, so the page view left them all out and an agent could not see what
+  to pick. Its line now lists them and the one chosen:
+  `e3 combobox "Category" [chosen "Productivity"]: options Choose one · Development · …`,
+  cut with "+N more" on long lists, and every option counts when the view ranks lines by
+  the task.
 
 ## 0.2.1 — 2026-10-23
 

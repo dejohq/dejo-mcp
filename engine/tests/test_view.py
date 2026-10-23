@@ -347,6 +347,30 @@ def test_a_filled_field_never_shows_what_is_in_it() -> None:
     assert 'e6 combobox "Choose a month"' in text, "a widget's own label is not typed text"
 
 
+def test_a_native_select_lists_its_options_and_the_chosen_one() -> None:
+    """Playwright gives a `<select>`'s options no ref, so they were never printed: an agent
+    could not pick a category on mcpservers.org/submit it could not see."""
+    raw = (  # Chromium's ai snapshot of two real <select>s and a custom combobox
+        '- combobox "Category" [ref=e3]:\n'
+        '  - option "Choose one"\n'
+        '  - option "Development"\n'
+        '  - option "Productivity" [selected]\n'
+        '  - option "Other"\n'
+        '- heading "Where" [level=2] [ref=e4]\n'
+        '- combobox "Country" [ref=e5]:\n'
+        + "".join(f'  - option "Country number {n}"\n' for n in range(1, 250))
+    )
+    whole = view.render(raw, url="https://x.test/", title="t").text.split("\n")
+    assert (
+        'e3 combobox "Category" [chosen "Productivity"]:'
+        " options Choose one · Development · Productivity · Other"
+    ) in whole
+    country = next(line for line in whole if line.startswith('e5 combobox "Country"'))
+    assert country.endswith(" · +244 more") and len(country) <= 150
+    cut = view.render(raw, url="https://x.test/", title="t", focus="number 200", budget=10)
+    assert "e5" in cut.text.split("\n")[1], "the options count when ranking by the task"
+
+
 def test_a_picture_is_dropped_unless_it_can_be_clicked() -> None:
     assert " img " not in look("books_travel").text
     assert '\ne5 img "Fork me on GitHub"\n' in look("internet_iframe").text

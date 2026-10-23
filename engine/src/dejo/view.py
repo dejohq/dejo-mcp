@@ -39,6 +39,10 @@ ALL_BUDGET = 27_000
 # label, short enough that one paragraph cannot eat the budget.
 TEXT_LIMIT = 120
 
+# Characters of a native select's options printed on its line. Under TEXT_LIMIT so the
+# " · +246 more" ending always fits before the line is cut (a country list has 249).
+CHOICES_LIMIT = 100
+
 # Siblings of the same shape that make a fold. Three is where a run reads as a list.
 FOLD_MIN = 3
 # Rows a fold shows. The first rows are what "the first X" tasks need; `look gK` shows all.
@@ -394,16 +398,22 @@ class _Page:
         states = [f"[{flag}]" for flag in node.flags.split() if flag.split("=")[0] in STATES]
         if filled:
             states.append("[filled]")
+        choices = _choices(branch)
+        chosen = next((name for name, picked in choices if picked), "")
+        if chosen:
+            states.append(f"[chosen {_quoted(chosen)}]")
         return Item(
             ref=node.ref,
             role=node.role,
             kind=node.role,
             node=node,
             order=branch.order,
-            words=label,
+            # Every option, uncut: "look India" must find the country select.
+            words=" ".join([label, *(name for name, _ in choices)]),
             control=True,
             name=label,
             tail="".join(f" {state}" for state in states),
+            said=_choice_line([name for name, _ in choices]),
         )
 
     def _heading(self, branch: _Branch) -> Item | None:
@@ -535,6 +545,33 @@ def _walk(branch: _Branch) -> Iterator[_Branch]:
         current = stack.pop()
         yield current
         stack.extend(reversed(current.children))
+
+
+def _choices(branch: _Branch) -> list[tuple[str, bool]]:
+    """A native `<select>`'s options, each with whether it is the one chosen.
+
+    Playwright gives them no ref, and a line without a ref is never printed, so before this
+    the choices of every plain dropdown were missing from the view (mcpservers.org's
+    "Category"). A custom listbox's options have refs and lines of their own."""
+    if branch.node.role != "combobox":
+        return []
+    return [
+        (_clean(kid.node.name), "selected" in kid.node.flags.split())
+        for kid in _walk(branch)
+        if kid.node.role == "option" and not kid.node.ref and _clean(kid.node.name)
+    ]
+
+
+def _choice_line(names: Sequence[str]) -> str:
+    """`options A · B · C`, cut to CHOICES_LIMIT with how many were left out."""
+    if not names:
+        return ""
+    shown = [names[0]]
+    for name in names[1:]:
+        if len(" · ".join([*shown, name])) > CHOICES_LIMIT:
+            return f"options {' · '.join(shown)} · +{len(names) - len(shown)} more"
+        shown.append(name)
+    return f"options {' · '.join(shown)}"
 
 
 def _iframe_numbers(root: _Branch) -> dict[str, int]:
