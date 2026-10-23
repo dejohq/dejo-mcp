@@ -2,6 +2,69 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## 0.2.0 — 2026-10-23
+
+**Learning a website now costs fewer tokens, on average, than using a browser tool with no
+memory at all.**
+On 19 tasks across 12 lesser-known real websites (Claude Sonnet 5, medium), Dejo got 19 of 19
+right; the first run averaged 251k tokens against Playwright MCP's 409k (17 of 19 right) and
+Playwright CLI's 559k (18 of 19), and 17 of 19 repeats were a single tool call at about 81k
+tokens. Tasks and raw results are in `benchmarks/` (`real_tasks.py`,
+`benchmark-real-2026-10-2*.json`).
+
+### Breaking: five tools instead of sixteen
+
+Every tool name is read on every turn, and choosing between sixteen was where agents went
+wrong. The old names are gone:
+
+| 0.1.x | 0.2.0 |
+|---|---|
+| `dejo_run`, `dejo_act`, `dejo_read`, `dejo_save`, `dejo_repair` | `dejo_run` (steps, one per line) |
+| `dejo_login`, `dejo_login_done` | `dejo_login` (then `done=true`) |
+| `dejo_profile` | `dejo_profile` |
+| `dejo_sites`, `dejo_show`, `dejo_map`, `dejo_commons` | `dejo_memory` (`what=sites/show/map/commons`) |
+| `dejo_forget`, `dejo_note`, `dejo_share`, `dejo_borrow` | `dejo_manage` (`do=forget/note/share/borrow`) |
+
+Replies are plain text, not JSON: the whole tool list is about 3,900 characters (was 29,000).
+`dejo_run` is marked to load up front in Claude Code. The CLI (`dejo run`, `dejo sites`,
+`dejo show`, `dejo forget`, `dejo map`, `dejo login`) is unchanged, and memory from 0.1.x is
+kept.
+
+### Added
+
+- **Steps.** Your agent sends many steps in one call (`click link "Issues"`, `read css ".count"
+  as open`). They run in order; Dejo stops at the first that fails, keeps the ones that passed,
+  and shows the page there, so the next call sends only the rest. A step that reads the answer
+  saves the task by itself; `done=true` saves one that reads nothing.
+- **A new page view.** One line per control, each with a ref, the words of the task first, long
+  pages folded and paged. `look` shows it on purpose, also in the middle of steps.
+- **Picks by place.** `click css "article h3 a" first` stores "the first one", so a list in a
+  new order still opens its first item.
+- **Repair in place.** When a replay breaks at one step, one line fixes it. The new way goes
+  first, the old ways that worked stay as backups, and the rest of the task replays in the same
+  call.
+- **Risky steps.** A step that buys, pays, sends, deletes or submits must be marked with `!`;
+  unmarked, it is not done, and a marked one never runs twice on its own.
+- After saving, Dejo says what every replay will answer, and a read sent again with the same
+  name replaces the old one.
+
+### Fixed (found on real websites)
+
+- Address checks keep the part after `?` that changed (page 5, a price filter, sites that serve
+  every page as `/content.php?navoid=N`), and a stored way of finding an element must match only
+  that element. Before, a replay could click the wrong link and call it right.
+- A url given on replay that is only the trail's own start with parts left out no longer
+  replaces the start (it sent "page 5" back to page 1).
+- A Cloudflare "Performing security verification" page is recognised: Dejo stops at once and
+  keeps nothing done on it. A 403 or 429 says the site refused this browser, a 401 asks for a
+  sign-in.
+- Learning's `go` records the page's HTTP status, so an error page is no longer learned on.
+- A slow first page that did arrive counts as arrived, and a saved task always starts with a
+  `go`.
+- A bare `press Enter` replays, and Dejo waits for the page it submits to.
+- A read of the whole page is refused; a field typed into again drops the first try.
+- A locator that worked once is kept as a backup after one miss (it used to be dropped).
+
 ## 0.1.2 — 2026-10-18
 
 - **A run that ends with a click waits for the address to stop moving.** An app that redirects

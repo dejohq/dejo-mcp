@@ -224,6 +224,15 @@ class Session:
         # one when it did not.
         if element is not None and element.href and self.browser.page.url == url_before:
             self.browser.await_url_change(url_before)
+        # Enter in a form field submits it, and the browser starts loading the answer only
+        # after the key press has returned. Without this wait the next line ran on the page
+        # being replaced: `read css "h1"` found nothing on CI on all three systems (23 Oct).
+        if (
+            action == "press"
+            and (value or "").lower() == "enter"
+            and (self.browser.await_url_change(url_before))
+        ):
+            self.browser.settle()
 
         # A password is remembered as "there is a password here", never as the password.
         secret = secret_name(element) if action in _TEXT_ENTRY else None
@@ -476,7 +485,7 @@ class Session:
         there is. Refusing one meant the numbers could not be read at all.
         """
         if ref is None:
-            raise ActionFailed("this action needs a ref from dejo_read, or a CSS selector")
+            raise ActionFailed("this action needs a ref from the page, or a CSS selector")
 
         if aria.is_ref(ref):
             if self._snapshot is None:
@@ -508,8 +517,7 @@ class Session:
         if found is None:
             raise ActionFailed(
                 f"nothing on this page matches {wording!r}. The map says what was here "
-                f"last time, so look at the page with dejo_read(kind='page') — it may "
-                f"have moved."
+                f"last time, so look at the page again: it may have moved."
             )
         # `describe` reads the real page a moment later and overwrites these with what is
         # actually there, so the saved step gets all nine durable locators exactly as a
@@ -753,7 +761,7 @@ def _too_many(selector: str, matches: int, found: Any) -> str:
         f"which one you mean. The first few are — {'; '.join(names)}. "
         f'Say which you mean. The shortest way is to add " >> nth=0" to the end for the '
         f'first, " >> nth=-1" for the last; or narrow the selector with a parent; or use '
-        f"a `ref` from dejo_read(kind='page'); or a `use` string from dejo_map such as "
+        f"a ref from the page; or a `use` string from the site map such as "
         f'"role=button|Save changes".'
     )
 
@@ -774,8 +782,8 @@ def _nothing_matches(selector: str) -> str:
             f'"role=button|{selector}" — or role=link, role=textbox, whichever it is.'
         )
     return (
-        f"nothing on this page matches {selector!r}.{hint} Refs come from "
-        f"dejo_read(kind='page'), and `use` strings from dejo_map."
+        f"nothing on this page matches {selector!r}.{hint} Look at the page again for fresh "
+        'refs, or name it: role "name", text "...", label "..." or css "...".'
     )
 
 
@@ -793,8 +801,8 @@ def _not_a_selector(selector: str) -> str:
     return (
         f"{selector!r} is not a selector this page understands. If that is the NAME of a "
         f'control rather than CSS, say it as "role=button|{selector}" — that is the form '
-        f"dejo_map hands back, and Dejo resolves it the same way replay does. Otherwise "
-        f"use a `ref` from dejo_read(kind='page')."
+        f"the site map hands back, and Dejo resolves it the same way replay does. "
+        f"Otherwise use a ref from the page."
     )
 
 

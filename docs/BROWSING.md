@@ -2,6 +2,10 @@
 
 Written 2026-09-01, after a test proved the browsing layer was far weaker than assumed.
 
+**Since 0.2.0** every action and read below is a step line in one tool, `dejo_run`
+(`engine/src/dejo/program.py`), and the tools named `dejo_act` and `dejo_read` are gone.
+The capability list is current; the decision notes keep the tool names of their time.
+
 ## Why this document exists
 
 Dejo was tested against a page containing a React-style dropdown, a shadow DOM, an iframe,
@@ -95,7 +99,7 @@ that is worth being honest about rather than quietly rewriting.
 ### Also built, beyond this table: 6 page-level actions
 
 `Locator` is only half the story — a trail has to move between pages too. These take no
-element, and live in the same registry so that one `dejo_act` covers a whole flow:
+element, and live in the same registry so that one `dejo_run` program covers a whole flow:
 
 | Dejo verb | why |
 |---|---|
@@ -329,7 +333,7 @@ than replaying a saved blob.
 Counted from the code on 2026-09-01, not from the plan above — the plan was written before
 any of it existed and undercounted.
 
-**Actions (31)**, all behind one `dejo_act`:
+**Actions (31)**, all as step lines in `dejo_run`:
 
 - *element* — click, double_click, hover, tap, fill, type, clear, press, select_text,
   check, uncheck, set_checked, select, upload, scroll_to, drag, focus, blur,
@@ -337,9 +341,9 @@ any of it existed and undercounted.
 - *page* — goto, back, forward, reload, scroll, wait, wait_for, new_tab, switch_tab,
   dismiss_when_seen
 
-**Reads (12 kinds)**, all behind one `dejo_read` — text, all_text, value, checked,
-visible, enabled, editable, attribute, count, url, title, page_text. Plus `page`, the
-control list, which is the tool's default.
+**Reads (12 kinds)**, all as `read` steps in `dejo_run` — text, all_text, value, checked,
+visible, enabled, editable, attribute, count, url, title, page_text. The page itself, one
+line per control, comes back from every call that stops or ends with `look`.
 
 **Waits (5)** — element, gone, text, url, idle. None of them is a sleep.
 
@@ -469,7 +473,8 @@ Nothing on this list is missing by accident, and none of it is needed to use a w
    tool with an `action` argument.** Never sixteen tools. Tool choice is the most fragile
    part of the whole system - a host AI ignored Dejo entirely and reached for `curl` on the
    first live test. Sixteen more names to choose between makes that worse. The action list
-   lives in one description where it can be read at a glance.
+   lives in one description where it can be read at a glance. *(Taken further in 0.2.0:
+   one `dejo_run` tool, every action a step line, five tools in all.)*
 
 ---
 

@@ -425,7 +425,7 @@ def _select(page: Page, t: _T, value: str | None, second: _T | None) -> None:
         raise ActionNeedsMore(
             "this is not a real <select>, so there is nothing to choose from. It is a "
             "custom dropdown built out of a button and a list — click the button, then "
-            "dejo_read(kind='page') and click the option you want."
+            "look at the page again and click the option you want."
         ) from not_a_dropdown
 
 

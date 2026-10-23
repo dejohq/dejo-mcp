@@ -570,7 +570,7 @@ class TestActingOnWhatTheMapRemembers:
         with pytest.raises(ActionFailed) as refused:
             session.act("press what is not there", "click", ref="role=button|Long Gone")
 
-        assert "dejo_read" in str(refused.value)
+        assert "look at the page again" in str(refused.value)
 
 
 # ------------------------------------------------------------- from a terminal

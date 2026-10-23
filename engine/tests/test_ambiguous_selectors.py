@@ -58,7 +58,6 @@ class TestItRefusesToGuess:
 
         said = str(refused.value)
         assert "nth=0" in said, "the shortest fix has to be the one it names first"
-        assert "dejo_map" in said
 
     def test_reading_one_thing_is_refused_the_same_way(self, hard: Session) -> None:
         """Reading the first of several silently is how a caller comes to believe the
@@ -116,7 +115,7 @@ class TestWhenTheRefIsNotASelectorAtAll:
 
         said = str(refused.value)
         assert "role=button|" in said
-        assert "dejo_map" in said
+        assert "site map" in said
 
 
 class TestControlsWithNoNameOfTheirOwn:
@@ -180,4 +179,4 @@ class TestWhenNothingMatchesAtAll:
 
         said = str(refused.value)
         assert "LABEL" not in said
-        assert "dejo_read" in said
+        assert "look at the page again" in said.lower()

@@ -1186,8 +1186,10 @@ class Executor:
         # This step is recorded as one that changes the address. If it has not changed
         # yet, the app may be doing it itself a moment later — which is how every
         # single-page sidebar link works. Cheap when it was going to change anyway.
-        if step.postcondition.kind == "url_contains" and self.browser.page.url == was:
-            self.browser.await_url_change(was)
+        # The address moving is the start of the load, not the end of it.
+        moved = step.postcondition.kind == "url_contains" and self.browser.page.url == was
+        if moved and self.browser.await_url_change(was):
+            self.browser.settle()
         return True
 
     def _retire(self, playbook: Playbook, started: float) -> ReplayResult:
