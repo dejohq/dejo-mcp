@@ -32,7 +32,7 @@ sibyl = ["sibyl-memory-client>=0.8.0"]
 # the tests write sample Sibyl files the way Cairn-era Sibyl did, and 0.9.0 refuses to write
 # anything until `sibyl init` has made an account, which a CI machine never has. Dejo's own
 # import of an old Sibyl file reads it directly and needs no Sibyl package at all.
-dev = ["pytest>=8.0", "fastapi>=0.141.1", "uvicorn>=0.52.4", "sibyl-memory-client>=0.8.0,<0.9"]
+dev = ["pytest>=8.0", "fastapi>=0.141.1", "uvicorn>=0.52.4", "sibyl-memory-client>=0.8.0,<0.10"]
 
 [project.urls]
 Homepage = "https://dejo.run"
