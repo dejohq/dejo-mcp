@@ -23,9 +23,11 @@ the engine (`engine/`, PyPI `dejo`) and the MCP server (`mcp/`, PyPI `dejo-mcp`)
    renders them. The MCP server never prints to stdout, because stdout is the MCP transport.
 7. **One MCP server for every agent.** Supporting another agent costs install docs, never a
    separate build.
-8. **Two browsing tools, never one per action.** `dejo_act` and `dejo_read` carry every action
-   and read, and their descriptions are generated from `actions.ACTIONS` and `reads.READS`.
-   Tool choice is the most fragile part of an agent's day; more tool names make it worse.
+8. **One browsing tool, never one per action.** `dejo_run` carries every action and read as a
+   step line (`engine/src/dejo/program.py`), and every verb comes from `actions.ACTIONS` and
+   `reads.READS`. Five tools in all (`mcp/tests/fixtures/tools.json` pins them byte for byte),
+   with `dejo_run` loaded up front. Every turn re-reads the whole tool list and costs a model
+   turn, so fewer names and fewer calls are the product.
 9. **`mcp/` is a thin wrapper.** It imports the engine only. If a tool needs real logic, that
    logic belongs in the engine.
 10. **Everything Dejo writes on a user's machine lives under `~/.dejo`**, named in

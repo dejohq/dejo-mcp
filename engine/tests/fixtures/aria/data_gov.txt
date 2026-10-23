@@ -1,0 +1,794 @@
+- generic [ref=f3e1]:
+  - link "Skip to main content" [ref=f3e2] [cursor=pointer]:
+    - /url: "#content"
+  - region "Official website of the United States government" [ref=f3e3]:
+    - generic [ref=f3e4]:
+      - generic [ref=f3e6]:
+        - img "U.S. flag" [ref=f3e8]
+        - paragraph [ref=f3e10]: An official website of the United States government
+        - button "Here’s how you know" [ref=f3e11] [cursor=pointer]
+      - text: 
+  - banner [ref=f3e12]:
+    - generic [ref=f3e13]:
+      - link "Home" [ref=f3e16] [cursor=pointer]:
+        - /url: https://data.gov
+      - navigation "Primary navigation" [ref=f3e17]:
+        - list [ref=f3e18]:
+          - listitem [ref=f3e19]:
+            - link "Data" [ref=f3e20] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=f3e22]:
+            - link "Metrics" [ref=f3e23] [cursor=pointer]:
+              - /url: https://data.gov/metrics
+          - listitem [ref=f3e25]:
+            - link "Organizations" [ref=f3e26] [cursor=pointer]:
+              - /url: /organization
+          - listitem [ref=f3e28]:
+            - link "User Guide" [ref=f3e29] [cursor=pointer]:
+              - /url: https://data.gov/user-guide/
+          - listitem [ref=f3e31]:
+            - link "Contact" [ref=f3e32] [cursor=pointer]:
+              - /url: https://data.gov/contact/
+  - main [ref=f3e34]:
+    - generic [ref=f3e37]:
+      - generic [ref=f3e38]:
+        - generic [ref=f3e39]:
+          - heading "Search datasets" [level=1] [ref=f3e40]
+          - generic [ref=f3e42]:
+            - textbox "Search datasets" [active] [ref=f3e44]:
+              - /placeholder: Search Data.gov...
+            - button "Search" [ref=f3e46] [cursor=pointer]:
+              - generic [aria-hidden] [ref=f3e47]: 
+          - text: 
+        - generic [ref=f3e49]:
+          - generic [ref=f3e50]:
+            - paragraph [ref=f3e52]: "413,530 datasets available on Data.gov. These are the most popular:"
+            - generic [ref=f3e53]:
+              - generic [ref=f3e54]: Sort by
+              - combobox "Sort by" [ref=f3e55]:
+                - option "Relevance" [selected]
+                - option "Popularity"
+                - option "Last Published Date"
+                - option "Distance (select geography)" [disabled]
+          - text:    
+          - list [ref=f3e57]:
+            - listitem [ref=f3e58]:
+              - generic [ref=f3e59]:
+                - generic [ref=f3e60]:
+                  - generic [ref=f3e61]: "#1"
+                  - generic [ref=f3e62]: Federal
+                - generic [ref=f3e63]:
+                  - heading "Supply Chain Greenhouse Gas Emission Factors v1.3 by NAICS-6 Trending" [level=3] [ref=f3e65]:
+                    - link "Supply Chain Greenhouse Gas Emission Factors v1.3 by NAICS-6" [ref=f3e66] [cursor=pointer]:
+                      - /url: /dataset/supply-chain-greenhouse-gas-emission-factors-v1-3-by-naics-6
+                    - generic [aria-hidden] [ref=f3e67]: 
+                    - generic [ref=f3e68]: Trending
+                  - list [ref=f3e69]:
+                    - listitem [ref=f3e70]:
+                      - strong [ref=f3e71]: "Organization:"
+                      - link "U.S. Environmental Protection Agency" [ref=f3e72] [cursor=pointer]:
+                        - /url: /organization/epa
+                    - listitem [ref=f3e73]:
+                      - strong [ref=f3e74]: "Dataset Last Updated:"
+                      - text: July 05, 2024
+                  - paragraph [ref=f3e75]: The datasets comprise greenhouse gas (GHG) emission factors (Factors) for 1,016 U.S. commodities as defined by the 2017 version of the North American Industry Classification System (NAICS). The...
+                  - list [ref=f3e76]:
+                    - listitem [ref=f3e77]:
+                      - link "CSV" [ref=f3e78] [cursor=pointer]:
+                        - /url: /dataset/supply-chain-greenhouse-gas-emission-factors-v1-3-by-naics-6
+                    - listitem [ref=f3e79]:
+                      - link "CSV" [ref=f3e80] [cursor=pointer]:
+                        - /url: /dataset/supply-chain-greenhouse-gas-emission-factors-v1-3-by-naics-6
+                  - generic [ref=f3e81]: "Search relevance: 1.00 | Views last month: 4324 | Catalog Last Checked: September 10, 2026 at 07:01 PM"
+            - listitem [ref=f3e82]:
+              - generic [ref=f3e83]:
+                - generic [ref=f3e84]:
+                  - generic [ref=f3e85]: "#2"
+                  - generic [ref=f3e86]: State
+                - generic [ref=f3e87]:
+                  - 'heading "Lottery Powerball Winning Numbers: Beginning 2010 Trending" [level=3] [ref=f3e89]':
+                    - 'link "Lottery Powerball Winning Numbers: Beginning 2010" [ref=f3e90] [cursor=pointer]':
+                      - /url: /dataset/lottery-powerball-winning-numbers-beginning-2010
+                    - generic [aria-hidden] [ref=f3e91]: 
+                    - generic [ref=f3e92]: Trending
+                  - list [ref=f3e93]:
+                    - listitem [ref=f3e94]:
+                      - strong [ref=f3e95]: "Organization:"
+                      - link "State of New York" [ref=f3e96] [cursor=pointer]:
+                        - /url: /organization/new-york
+                    - listitem [ref=f3e97]:
+                      - strong [ref=f3e98]: "Dataset Last Updated:"
+                      - text: October 13, 2026
+                  - paragraph [ref=f3e99]: Go to http://on.ny.gov/1GpWiHD on the New York Lottery website for past Powerball results and payouts.
+                  - list [ref=f3e100]:
+                    - listitem [ref=f3e101]:
+                      - link "JSON" [ref=f3e102] [cursor=pointer]:
+                        - /url: /dataset/lottery-powerball-winning-numbers-beginning-2010
+                    - listitem [ref=f3e103]:
+                      - link "XML" [ref=f3e104] [cursor=pointer]:
+                        - /url: /dataset/lottery-powerball-winning-numbers-beginning-2010
+                    - listitem [ref=f3e105]:
+                      - link "CSV" [ref=f3e106] [cursor=pointer]:
+                        - /url: /dataset/lottery-powerball-winning-numbers-beginning-2010
+                  - generic [ref=f3e107]: "Search relevance: 1.00 | Views last month: 3984 | Catalog Last Checked: October 14, 2026 at 07:01 PM"
+            - listitem [ref=f3e108]:
+              - generic [ref=f3e109]:
+                - generic [ref=f3e110]:
+                  - generic [ref=f3e111]: "#3"
+                  - generic [ref=f3e112]: State
+                - generic [ref=f3e113]:
+                  - heading "Electric Vehicle Population Data Trending" [level=3] [ref=f3e115]:
+                    - link "Electric Vehicle Population Data" [ref=f3e116] [cursor=pointer]:
+                      - /url: /dataset/electric-vehicle-population-data
+                    - generic [aria-hidden] [ref=f3e117]: 
+                    - generic [ref=f3e118]: Trending
+                  - list [ref=f3e119]:
+                    - listitem [ref=f3e120]:
+                      - strong [ref=f3e121]: "Organization:"
+                      - link "State of Washington" [ref=f3e122] [cursor=pointer]:
+                        - /url: /organization/washington
+                    - listitem [ref=f3e123]:
+                      - strong [ref=f3e124]: "Dataset Last Updated:"
+                      - text: September 15, 2026
+                  - paragraph [ref=f3e125]: This dataset shows the Battery Electric Vehicles (BEVs) and Plug-in Hybrid Electric Vehicles (PHEVs) that are currently registered through Washington State Department of Licensing (DOL).
+                  - list [ref=f3e126]:
+                    - listitem [ref=f3e127]:
+                      - link "JSON" [ref=f3e128] [cursor=pointer]:
+                        - /url: /dataset/electric-vehicle-population-data
+                    - listitem [ref=f3e129]:
+                      - link "XML" [ref=f3e130] [cursor=pointer]:
+                        - /url: /dataset/electric-vehicle-population-data
+                    - listitem [ref=f3e131]:
+                      - link "CSV" [ref=f3e132] [cursor=pointer]:
+                        - /url: /dataset/electric-vehicle-population-data
+                    - listitem [ref=f3e133]:
+                      - link "KML" [ref=f3e134] [cursor=pointer]:
+                        - /url: /dataset/electric-vehicle-population-data
+                    - listitem [ref=f3e135]:
+                      - link "KML" [ref=f3e136] [cursor=pointer]:
+                        - /url: /dataset/electric-vehicle-population-data
+                    - listitem [ref=f3e137]:
+                      - link "GEOJSON" [ref=f3e138] [cursor=pointer]:
+                        - /url: /dataset/electric-vehicle-population-data
+                  - generic [ref=f3e139]: "Search relevance: 1.00 | Views last month: 3904 | Catalog Last Checked: September 15, 2026 at 11:00 PM"
+            - listitem [ref=f3e140]:
+              - generic [ref=f3e141]:
+                - generic [ref=f3e142]:
+                  - generic [ref=f3e143]: "#4"
+                  - generic [ref=f3e144]: Federal
+                - generic [ref=f3e145]:
+                  - heading "FY 2025 Disability Compensation Recipients by County Trending" [level=3] [ref=f3e147]:
+                    - link "FY 2025 Disability Compensation Recipients by County" [ref=f3e148] [cursor=pointer]:
+                      - /url: /dataset/fy-2025-disability-compensation-recipients-by-county
+                    - generic [aria-hidden] [ref=f3e149]: 
+                    - generic [ref=f3e150]: Trending
+                  - list [ref=f3e151]:
+                    - listitem [ref=f3e152]:
+                      - strong [ref=f3e153]: "Organization:"
+                      - link "Department of Veterans Affairs" [ref=f3e154] [cursor=pointer]:
+                        - /url: /organization/va
+                    - listitem [ref=f3e155]:
+                      - strong [ref=f3e156]: "Dataset Last Updated:"
+                      - text: August 11, 2026
+                  - paragraph [ref=f3e157]: This report provides county-level estimates of the number of Veterans receiving VA Disability Compensation benefits as of 9/30/2025. It includes the Veterans’ total service-connected disability...
+                  - list [ref=f3e158]:
+                    - listitem [ref=f3e159]:
+                      - link "JSON" [ref=f3e160] [cursor=pointer]:
+                        - /url: /dataset/fy-2025-disability-compensation-recipients-by-county
+                    - listitem [ref=f3e161]:
+                      - link "XML" [ref=f3e162] [cursor=pointer]:
+                        - /url: /dataset/fy-2025-disability-compensation-recipients-by-county
+                    - listitem [ref=f3e163]:
+                      - link "CSV" [ref=f3e164] [cursor=pointer]:
+                        - /url: /dataset/fy-2025-disability-compensation-recipients-by-county
+                  - generic [ref=f3e165]: "Search relevance: 1.00 | Views last month: 3517 | Catalog Last Checked: September 10, 2026 at 06:31 PM"
+            - listitem [ref=f3e166]:
+              - generic [ref=f3e167]:
+                - generic [ref=f3e168]:
+                  - generic [ref=f3e169]: "#5"
+                  - generic [ref=f3e170]: Federal
+                - generic [ref=f3e171]:
+                  - heading "JPL Small Body Database Browser Trending" [level=3] [ref=f3e173]:
+                    - link "JPL Small Body Database Browser" [ref=f3e174] [cursor=pointer]:
+                      - /url: /dataset/jpl-small-body-database-browser
+                    - generic [aria-hidden] [ref=f3e175]: 
+                    - generic [ref=f3e176]: Trending
+                  - list [ref=f3e177]:
+                    - listitem [ref=f3e178]:
+                      - strong [ref=f3e179]: "Organization:"
+                      - link "National Aeronautics and Space Administration" [ref=f3e180] [cursor=pointer]:
+                        - /url: /organization/nasa
+                    - listitem [ref=f3e181]:
+                      - strong [ref=f3e182]: "Dataset Last Updated:"
+                      - text: March 31, 2025
+                  - paragraph [ref=f3e183]: The JPL Small-Body Database Browser provides data for all known asteroids and many comets. Newly discovered objects and their orbits are added on a daily basis. Discovery circumstances are updated...
+                  - list [ref=f3e184]:
+                    - listitem [ref=f3e185]:
+                      - link "HTML" [ref=f3e186] [cursor=pointer]:
+                        - /url: /dataset/jpl-small-body-database-browser
+                  - generic [ref=f3e187]: "Search relevance: 1.00 | Views last month: 3147 | Catalog Last Checked: September 08, 2025 at 03:09 AM"
+            - listitem [ref=f3e188]:
+              - generic [ref=f3e189]:
+                - generic [ref=f3e190]:
+                  - generic [ref=f3e191]: "#6"
+                  - generic [ref=f3e192]: Federal
+                - generic [ref=f3e193]:
+                  - heading "2015-16 Harassment or Bullying by Basis Category Civil Rights Data Collection Trending" [level=3] [ref=f3e195]:
+                    - link "2015-16 Harassment or Bullying by Basis Category Civil Rights Data Collection" [ref=f3e196] [cursor=pointer]:
+                      - /url: /dataset/2015-16-harassment-or-bullying-by-basis-category-civil-rights-data-collection
+                    - generic [aria-hidden] [ref=f3e197]: 
+                    - generic [ref=f3e198]: Trending
+                  - list [ref=f3e199]:
+                    - listitem [ref=f3e200]:
+                      - strong [ref=f3e201]: "Organization:"
+                      - link "Department of Education" [ref=f3e202] [cursor=pointer]:
+                        - /url: /organization/ed
+                    - listitem [ref=f3e203]:
+                      - strong [ref=f3e204]: "Dataset Last Updated:"
+                      - text: October 23, 2024 at 12:00 AM
+                  - paragraph [ref=f3e205]: The 2015-16 tables are based on data collected from all of the nation’s school districts and schools—approximately 17,300 school districts and 96,300 schools. This set of Excel files contains data...
+                  - list [ref=f3e206]:
+                    - listitem [ref=f3e207]:
+                      - link "XLSX" [ref=f3e208] [cursor=pointer]:
+                        - /url: /dataset/2015-16-harassment-or-bullying-by-basis-category-civil-rights-data-collection
+                    - listitem [ref=f3e209]:
+                      - link "XLSX" [ref=f3e210] [cursor=pointer]:
+                        - /url: /dataset/2015-16-harassment-or-bullying-by-basis-category-civil-rights-data-collection
+                    - listitem [ref=f3e211]:
+                      - link "XLSX" [ref=f3e212] [cursor=pointer]:
+                        - /url: /dataset/2015-16-harassment-or-bullying-by-basis-category-civil-rights-data-collection
+                    - listitem [ref=f3e213]:
+                      - link "XLSX" [ref=f3e214] [cursor=pointer]:
+                        - /url: /dataset/2015-16-harassment-or-bullying-by-basis-category-civil-rights-data-collection
+                    - listitem [ref=f3e215]:
+                      - link "XLSX" [ref=f3e216] [cursor=pointer]:
+                        - /url: /dataset/2015-16-harassment-or-bullying-by-basis-category-civil-rights-data-collection
+                    - listitem [ref=f3e217]:
+                      - link "XLSX" [ref=f3e218] [cursor=pointer]:
+                        - /url: /dataset/2015-16-harassment-or-bullying-by-basis-category-civil-rights-data-collection
+                    - listitem [ref=f3e219]:
+                      - link "+1 more" [ref=f3e220] [cursor=pointer]:
+                        - /url: /dataset/2015-16-harassment-or-bullying-by-basis-category-civil-rights-data-collection
+                  - generic [ref=f3e221]: "Search relevance: 1.00 | Views last month: 3066 | Catalog Last Checked: October 15, 2026 at 11:27 PM"
+            - listitem [ref=f3e222]:
+              - generic [ref=f3e223]:
+                - generic [ref=f3e224]:
+                  - generic [ref=f3e225]: "#7"
+                  - generic [ref=f3e226]: Federal
+                - generic [ref=f3e227]:
+                  - heading "Baby Names from Social Security Card Applications - National Data Trending" [level=3] [ref=f3e229]:
+                    - link "Baby Names from Social Security Card Applications - National Data" [ref=f3e230] [cursor=pointer]:
+                      - /url: /dataset/baby-names-from-social-security-card-applications-national-data
+                    - generic [aria-hidden] [ref=f3e231]: 
+                    - generic [ref=f3e232]: Trending
+                  - list [ref=f3e233]:
+                    - listitem [ref=f3e234]:
+                      - strong [ref=f3e235]: "Organization:"
+                      - link "Social Security Administration" [ref=f3e236] [cursor=pointer]:
+                        - /url: /organization/ssa
+                    - listitem [ref=f3e237]:
+                      - strong [ref=f3e238]: "Dataset Last Updated:"
+                      - text: May 08, 2026
+                  - paragraph [ref=f3e239]: The data (name, year of birth, sex, and number) are from a 100 percent sample of Social Security card applications for 1880 on.
+                  - list [ref=f3e240]:
+                    - listitem [ref=f3e241]:
+                      - link "HTML" [ref=f3e242] [cursor=pointer]:
+                        - /url: https://www.ssa.gov/oact/babynames/index.html
+                    - listitem [ref=f3e243]:
+                      - link "ZIP" [ref=f3e244] [cursor=pointer]:
+                        - /url: /dataset/baby-names-from-social-security-card-applications-national-data
+                  - generic [ref=f3e245]: "Search relevance: 1.00 | Views last month: 2551 | Catalog Last Checked: October 19, 2026 at 02:33 PM"
+            - listitem [ref=f3e246]:
+              - generic [ref=f3e247]:
+                - generic [ref=f3e248]:
+                  - generic [ref=f3e249]: "#8"
+                  - generic [ref=f3e250]: City
+                - generic [ref=f3e251]:
+                  - heading "Crime Data from 2020 to 2024 Trending" [level=3] [ref=f3e253]:
+                    - link "Crime Data from 2020 to 2024" [ref=f3e254] [cursor=pointer]:
+                      - /url: /dataset/crime-data-from-2020-to-present
+                    - generic [aria-hidden] [ref=f3e255]: 
+                    - generic [ref=f3e256]: Trending
+                  - list [ref=f3e257]:
+                    - listitem [ref=f3e258]:
+                      - strong [ref=f3e259]: "Organization:"
+                      - link "City of Los Angeles" [ref=f3e260] [cursor=pointer]:
+                        - /url: /organization/los-angeles-ca
+                    - listitem [ref=f3e261]:
+                      - strong [ref=f3e262]: "Dataset Last Updated:"
+                      - text: March 04, 2026
+                  - paragraph [ref=f3e263]: "******Notice: Transition to NIBRS-Compliant Crime Data Reporting The Los Angeles Police Department (LAPD) has completed its transition from the legacy Records Management System, which reported..."
+                  - list [ref=f3e264]:
+                    - listitem [ref=f3e265]:
+                      - link "JSON" [ref=f3e266] [cursor=pointer]:
+                        - /url: /dataset/crime-data-from-2020-to-present
+                    - listitem [ref=f3e267]:
+                      - link "XML" [ref=f3e268] [cursor=pointer]:
+                        - /url: /dataset/crime-data-from-2020-to-present
+                    - listitem [ref=f3e269]:
+                      - link "CSV" [ref=f3e270] [cursor=pointer]:
+                        - /url: /dataset/crime-data-from-2020-to-present
+                  - generic [ref=f3e271]: "Search relevance: 1.00 | Views last month: 1678 | Catalog Last Checked: September 10, 2026 at 06:59 PM"
+            - listitem [ref=f3e272]:
+              - generic [ref=f3e273]:
+                - generic [ref=f3e274]:
+                  - generic [ref=f3e275]: "#9"
+                  - generic [ref=f3e276]: County
+                - generic [ref=f3e277]:
+                  - heading "Warehouse and Retail Sales Trending" [level=3] [ref=f3e279]:
+                    - link "Warehouse and Retail Sales" [ref=f3e280] [cursor=pointer]:
+                      - /url: /dataset/warehouse-and-retail-sales
+                    - generic [aria-hidden] [ref=f3e281]: 
+                    - generic [ref=f3e282]: Trending
+                  - list [ref=f3e283]:
+                    - listitem [ref=f3e284]:
+                      - strong [ref=f3e285]: "Organization:"
+                      - link "Montgomery County of Maryland" [ref=f3e286] [cursor=pointer]:
+                        - /url: /organization/montgomery-county-md
+                    - listitem [ref=f3e287]:
+                      - strong [ref=f3e288]: "Dataset Last Updated:"
+                      - text: September 05, 2026
+                  - paragraph [ref=f3e289]: "This dataset contains a list of sales and movement data by item and department appended monthly. Update Frequency : Monthly"
+                  - list [ref=f3e290]:
+                    - listitem [ref=f3e291]:
+                      - link "JSON" [ref=f3e292] [cursor=pointer]:
+                        - /url: /dataset/warehouse-and-retail-sales
+                    - listitem [ref=f3e293]:
+                      - link "XML" [ref=f3e294] [cursor=pointer]:
+                        - /url: /dataset/warehouse-and-retail-sales
+                    - listitem [ref=f3e295]:
+                      - link "CSV" [ref=f3e296] [cursor=pointer]:
+                        - /url: /dataset/warehouse-and-retail-sales
+                  - generic [ref=f3e297]: "Search relevance: 1.00 | Views last month: 1665 | Catalog Last Checked: September 10, 2026 at 06:51 PM"
+            - listitem [ref=f3e298]:
+              - generic [ref=f3e299]:
+                - generic [ref=f3e300]:
+                  - generic [ref=f3e301]: "#10"
+                  - generic [ref=f3e302]: Federal
+                - generic [ref=f3e303]:
+                  - heading "Inventory of Owned and Leased Properties (IOLP) Trending" [level=3] [ref=f3e305]:
+                    - link "Inventory of Owned and Leased Properties (IOLP)" [ref=f3e306] [cursor=pointer]:
+                      - /url: /dataset/inventory-of-owned-and-leased-properties-iolp
+                    - generic [aria-hidden] [ref=f3e307]: 
+                    - generic [ref=f3e308]: Trending
+                  - list [ref=f3e309]:
+                    - listitem [ref=f3e310]:
+                      - strong [ref=f3e311]: "Organization:"
+                      - link "General Services Administration" [ref=f3e312] [cursor=pointer]:
+                        - /url: /organization/gsa
+                    - listitem [ref=f3e313]:
+                      - strong [ref=f3e314]: "Dataset Last Updated:"
+                      - text: October 19, 2026 at 01:15 PM
+                  - paragraph [ref=f3e315]: The Inventory of Owned and Leased Properties (IOLP) allows users to search properties owned and leased by the General Services Administration (GSA) across the United States, Puerto Rico, Guam and...
+                  - list [ref=f3e316]:
+                    - listitem [ref=f3e317]:
+                      - link "XML" [ref=f3e318] [cursor=pointer]:
+                        - /url: /dataset/inventory-of-owned-and-leased-properties-iolp
+                    - listitem [ref=f3e319]:
+                      - link "XLSX" [ref=f3e320] [cursor=pointer]:
+                        - /url: /dataset/inventory-of-owned-and-leased-properties-iolp
+                    - listitem [ref=f3e321]:
+                      - link "XLSX" [ref=f3e322] [cursor=pointer]:
+                        - /url: /dataset/inventory-of-owned-and-leased-properties-iolp
+                  - generic [ref=f3e323]: "Search relevance: 1.00 | Views last month: 1642 | Catalog Last Checked: October 19, 2026 at 11:31 PM"
+            - listitem [ref=f3e324]:
+              - generic [ref=f3e325]:
+                - generic [ref=f3e326]:
+                  - generic [ref=f3e327]: "#11"
+                  - generic [ref=f3e328]: State
+                - generic [ref=f3e329]:
+                  - heading "Business Lookup Trending" [level=3] [ref=f3e331]:
+                    - link "Business Lookup" [ref=f3e332] [cursor=pointer]:
+                      - /url: /dataset/business-lookup
+                    - generic [aria-hidden] [ref=f3e333]: 
+                    - generic [ref=f3e334]: Trending
+                  - list [ref=f3e335]:
+                    - listitem [ref=f3e336]:
+                      - strong [ref=f3e337]: "Organization:"
+                      - link "State of Washington" [ref=f3e338] [cursor=pointer]:
+                        - /url: /organization/washington
+                    - listitem [ref=f3e339]:
+                      - strong [ref=f3e340]: "Dataset Last Updated:"
+                      - text: May 20, 2026
+                  - paragraph [ref=f3e341]: The Business Lookup provides public information related to all current active accounts and five years of closed accounts for business licenses, excise tax accounts, and reseller permits issued by...
+                  - list [ref=f3e342]:
+                    - listitem [ref=f3e343]:
+                      - link "HTML" [ref=f3e344] [cursor=pointer]:
+                        - /url: /dataset/business-lookup
+                  - generic [ref=f3e345]: "Search relevance: 1.00 | Views last month: 1581 | Catalog Last Checked: September 10, 2026 at 06:39 PM"
+            - listitem [ref=f3e346]:
+              - generic [ref=f3e347]:
+                - generic [ref=f3e348]:
+                  - generic [ref=f3e349]: "#12"
+                  - generic [ref=f3e350]: Federal
+                - generic [ref=f3e351]:
+                  - heading "NPS Visitor Use Statistics Data Package, 2024 Trending" [level=3] [ref=f3e353]:
+                    - link "NPS Visitor Use Statistics Data Package, 2024" [ref=f3e354] [cursor=pointer]:
+                      - /url: /dataset/nps-visitor-use-statistics-data-package-2024
+                    - generic [aria-hidden] [ref=f3e355]: 
+                    - generic [ref=f3e356]: Trending
+                  - list [ref=f3e357]:
+                    - listitem [ref=f3e358]:
+                      - strong [ref=f3e359]: "Organization:"
+                      - link "Department of the Interior" [ref=f3e360] [cursor=pointer]:
+                        - /url: /organization/doi
+                    - listitem [ref=f3e361]:
+                      - strong [ref=f3e362]: "Dataset Last Updated:"
+                      - text: January 15, 2026 at 12:00 AM
+                  - paragraph [ref=f3e363]: The NPS Social Science Program is responsible for coordinating visitor use statistics reporting for units administered by the NPS. ‘Visitor Use Statistics’ refers to a formal set of statistics...
+                  - list [ref=f3e364]:
+                    - listitem [ref=f3e365]:
+                      - link "XML" [ref=f3e366] [cursor=pointer]:
+                        - /url: /dataset/nps-visitor-use-statistics-data-package-2024
+                    - listitem [ref=f3e367]:
+                      - link "CSV" [ref=f3e368] [cursor=pointer]:
+                        - /url: /dataset/nps-visitor-use-statistics-data-package-2024
+                    - listitem [ref=f3e369]:
+                      - link "CSV" [ref=f3e370] [cursor=pointer]:
+                        - /url: /dataset/nps-visitor-use-statistics-data-package-2024
+                  - generic [ref=f3e371]: "Search relevance: 1.00 | Views last month: 984 | Catalog Last Checked: September 10, 2026 at 07:17 PM"
+            - listitem [ref=f3e372]:
+              - generic [ref=f3e373]:
+                - generic [ref=f3e374]:
+                  - generic [ref=f3e375]: "#13"
+                  - generic [ref=f3e376]: State
+                - generic [ref=f3e377]:
+                  - 'heading "Lottery Mega Millions Winning Numbers: Beginning 2002 Trending" [level=3] [ref=f3e379]':
+                    - 'link "Lottery Mega Millions Winning Numbers: Beginning 2002" [ref=f3e380] [cursor=pointer]':
+                      - /url: /dataset/lottery-mega-millions-winning-numbers-beginning-2002
+                    - generic [aria-hidden] [ref=f3e381]: 
+                    - generic [ref=f3e382]: Trending
+                  - list [ref=f3e383]:
+                    - listitem [ref=f3e384]:
+                      - strong [ref=f3e385]: "Organization:"
+                      - link "State of New York" [ref=f3e386] [cursor=pointer]:
+                        - /url: /organization/new-york
+                    - listitem [ref=f3e387]:
+                      - strong [ref=f3e388]: "Dataset Last Updated:"
+                      - text: October 14, 2026
+                  - paragraph [ref=f3e389]: Go to http://on.ny.gov/1J8tPSN on the New York Lottery website for past Mega Millions results and payouts.
+                  - list [ref=f3e390]:
+                    - listitem [ref=f3e391]:
+                      - link "JSON" [ref=f3e392] [cursor=pointer]:
+                        - /url: /dataset/lottery-mega-millions-winning-numbers-beginning-2002
+                    - listitem [ref=f3e393]:
+                      - link "XML" [ref=f3e394] [cursor=pointer]:
+                        - /url: /dataset/lottery-mega-millions-winning-numbers-beginning-2002
+                    - listitem [ref=f3e395]:
+                      - link "CSV" [ref=f3e396] [cursor=pointer]:
+                        - /url: /dataset/lottery-mega-millions-winning-numbers-beginning-2002
+                  - generic [ref=f3e397]: "Search relevance: 1.00 | Views last month: 893 | Catalog Last Checked: October 14, 2026 at 07:01 PM"
+            - listitem [ref=f3e398]:
+              - generic [ref=f3e399]:
+                - generic [ref=f3e400]:
+                  - generic [ref=f3e401]: "#14"
+                  - generic [ref=f3e402]: Federal
+                - generic [ref=f3e403]:
+                  - heading "Harmonized Tariff Schedule of the United States (2026) Trending" [level=3] [ref=f3e405]:
+                    - link "Harmonized Tariff Schedule of the United States (2026)" [ref=f3e406] [cursor=pointer]:
+                      - /url: /dataset/harmonized-tariff-schedule-of-the-united-states-2025
+                    - generic [aria-hidden] [ref=f3e407]: 
+                    - generic [ref=f3e408]: Trending
+                  - list [ref=f3e409]:
+                    - listitem [ref=f3e410]:
+                      - strong [ref=f3e411]: "Organization:"
+                      - link "US International Trade Commission" [ref=f3e412] [cursor=pointer]:
+                        - /url: /organization/usitc
+                  - paragraph [ref=f3e413]: This dataset is the current 2026 Harmonized Tariff Schedule plus all revisions for the current year. It provides the applicable tariff rates and statistical categories for all merchandise...
+                  - list [ref=f3e414]:
+                    - listitem [ref=f3e415]:
+                      - link "CSV" [ref=f3e416] [cursor=pointer]:
+                        - /url: /dataset/harmonized-tariff-schedule-of-the-united-states-2025
+                    - listitem [ref=f3e417]:
+                      - link "XLSX" [ref=f3e418] [cursor=pointer]:
+                        - /url: /dataset/harmonized-tariff-schedule-of-the-united-states-2025
+                    - listitem [ref=f3e419]:
+                      - link "JSON" [ref=f3e420] [cursor=pointer]:
+                        - /url: /dataset/harmonized-tariff-schedule-of-the-united-states-2025
+                    - listitem [ref=f3e421]:
+                      - link "CSV" [ref=f3e422] [cursor=pointer]:
+                        - /url: /dataset/harmonized-tariff-schedule-of-the-united-states-2025
+                    - listitem [ref=f3e423]:
+                      - link "XLSX" [ref=f3e424] [cursor=pointer]:
+                        - /url: /dataset/harmonized-tariff-schedule-of-the-united-states-2025
+                    - listitem [ref=f3e425]:
+                      - link "JSON" [ref=f3e426] [cursor=pointer]:
+                        - /url: /dataset/harmonized-tariff-schedule-of-the-united-states-2025
+                    - listitem [ref=f3e427]:
+                      - link "+60 more" [ref=f3e428] [cursor=pointer]:
+                        - /url: /dataset/harmonized-tariff-schedule-of-the-united-states-2025
+                  - generic [ref=f3e429]: "Search relevance: 1.00 | Views last month: 837 | Catalog Last Checked: October 09, 2026 at 10:55 PM"
+            - listitem [ref=f3e430]:
+              - generic [ref=f3e431]:
+                - generic [ref=f3e432]:
+                  - generic [ref=f3e433]: "#15"
+                  - generic [ref=f3e434]: Federal
+                - generic [ref=f3e435]:
+                  - heading "U.S. Chronic Disease Indicators Trending" [level=3] [ref=f3e437]:
+                    - link "U.S. Chronic Disease Indicators" [ref=f3e438] [cursor=pointer]:
+                      - /url: /dataset/u-s-chronic-disease-indicators
+                    - generic [aria-hidden] [ref=f3e439]: 
+                    - generic [ref=f3e440]: Trending
+                  - list [ref=f3e441]:
+                    - listitem [ref=f3e442]:
+                      - strong [ref=f3e443]: "Organization:"
+                      - link "U.S. Department of Health & Human Services" [ref=f3e444] [cursor=pointer]:
+                        - /url: /organization/hhs
+                    - listitem [ref=f3e445]:
+                      - strong [ref=f3e446]: "Dataset Last Updated:"
+                      - text: September 22, 2026
+                  - paragraph [ref=f3e447]: CDC's Division of Population Health provides a cross-cutting set of 115 indicators developed by consensus among CDC, the Council of State and Territorial Epidemiologists, and the National...
+                  - list [ref=f3e448]:
+                    - listitem [ref=f3e449]:
+                      - link "CSV" [ref=f3e450] [cursor=pointer]:
+                        - /url: /dataset/u-s-chronic-disease-indicators
+                    - listitem [ref=f3e451]:
+                      - link "KML" [ref=f3e452] [cursor=pointer]:
+                        - /url: /dataset/u-s-chronic-disease-indicators
+                    - listitem [ref=f3e453]:
+                      - link "KML" [ref=f3e454] [cursor=pointer]:
+                        - /url: /dataset/u-s-chronic-disease-indicators
+                    - listitem [ref=f3e455]:
+                      - link "GEOJSON" [ref=f3e456] [cursor=pointer]:
+                        - /url: /dataset/u-s-chronic-disease-indicators
+                    - listitem [ref=f3e457]:
+                      - link "JSON" [ref=f3e458] [cursor=pointer]:
+                        - /url: /dataset/u-s-chronic-disease-indicators
+                    - listitem [ref=f3e459]:
+                      - link "XML" [ref=f3e460] [cursor=pointer]:
+                        - /url: /dataset/u-s-chronic-disease-indicators
+                  - generic [ref=f3e461]: "Search relevance: 1.00 | Views last month: 786 | Catalog Last Checked: September 23, 2026 at 09:10 PM"
+            - listitem [ref=f3e462]:
+              - generic [ref=f3e463]:
+                - generic [ref=f3e464]:
+                  - generic [ref=f3e465]: "#16"
+                  - generic [ref=f3e466]: Federal
+                - generic [ref=f3e467]:
+                  - heading "2017-18 Arrests Civil Rights Data Collection Trending" [level=3] [ref=f3e469]:
+                    - link "2017-18 Arrests Civil Rights Data Collection" [ref=f3e470] [cursor=pointer]:
+                      - /url: /dataset/2017-18-arrests-civil-rights-data-collection
+                    - generic [aria-hidden] [ref=f3e471]: 
+                    - generic [ref=f3e472]: Trending
+                  - list [ref=f3e473]:
+                    - listitem [ref=f3e474]:
+                      - strong [ref=f3e475]: "Organization:"
+                      - link "Department of Education" [ref=f3e476] [cursor=pointer]:
+                        - /url: /organization/ed
+                    - listitem [ref=f3e477]:
+                      - strong [ref=f3e478]: "Dataset Last Updated:"
+                      - text: October 23, 2024 at 12:00 AM
+                  - paragraph [ref=f3e479]: This set of Excel file contains data on student referrals to law enforcement by disability and student-related arrests by disability for all states. It also contains data on incidents of offenses...
+                  - list [ref=f3e480]:
+                    - listitem [ref=f3e481]:
+                      - link "XLSX" [ref=f3e482] [cursor=pointer]:
+                        - /url: /dataset/2017-18-arrests-civil-rights-data-collection
+                    - listitem [ref=f3e483]:
+                      - link "XLSX" [ref=f3e484] [cursor=pointer]:
+                        - /url: /dataset/2017-18-arrests-civil-rights-data-collection
+                    - listitem [ref=f3e485]:
+                      - link "XLSX" [ref=f3e486] [cursor=pointer]:
+                        - /url: /dataset/2017-18-arrests-civil-rights-data-collection
+                    - listitem [ref=f3e487]:
+                      - link "XLSX" [ref=f3e488] [cursor=pointer]:
+                        - /url: /dataset/2017-18-arrests-civil-rights-data-collection
+                    - listitem [ref=f3e489]:
+                      - link "XLSX" [ref=f3e490] [cursor=pointer]:
+                        - /url: /dataset/2017-18-arrests-civil-rights-data-collection
+                    - listitem [ref=f3e491]:
+                      - link "XLSX" [ref=f3e492] [cursor=pointer]:
+                        - /url: /dataset/2017-18-arrests-civil-rights-data-collection
+                    - listitem [ref=f3e493]:
+                      - link "+1 more" [ref=f3e494] [cursor=pointer]:
+                        - /url: /dataset/2017-18-arrests-civil-rights-data-collection
+                  - generic [ref=f3e495]: "Search relevance: 1.00 | Views last month: 696 | Catalog Last Checked: October 15, 2026 at 11:28 PM"
+            - listitem [ref=f3e496]:
+              - generic [ref=f3e497]:
+                - generic [ref=f3e498]:
+                  - generic [ref=f3e499]: "#17"
+                  - generic [ref=f3e500]: Federal
+                - generic [ref=f3e501]:
+                  - heading "National Public Warning System (NPWS) Primary Entry Point (PEP) Station Asset List Trending" [level=3] [ref=f3e503]:
+                    - link "National Public Warning System (NPWS) Primary Entry Point (PEP) Station Asset List" [ref=f3e504] [cursor=pointer]:
+                      - /url: /dataset/national-public-warning-system-npws-primary-entry-point-pep-station-asset-list
+                    - generic [aria-hidden] [ref=f3e505]: 
+                    - generic [ref=f3e506]: Trending
+                  - list [ref=f3e507]:
+                    - listitem [ref=f3e508]:
+                      - strong [ref=f3e509]: "Organization:"
+                      - link "Department of Homeland Security" [ref=f3e510] [cursor=pointer]:
+                        - /url: /organization/dhs
+                    - listitem [ref=f3e511]:
+                      - strong [ref=f3e512]: "Dataset Last Updated:"
+                      - text: September 01, 2025 at 08:42 PM
+                  - paragraph [ref=f3e513]: The National Public Warning System (NPWS), also known as Primary Entry Point (PEP) stations, are radio broadcast stations that work with FEMA to provide emergency alert and warning information to...
+                  - list [ref=f3e514]:
+                    - listitem [ref=f3e515]:
+                      - link "ASPX" [ref=f3e516] [cursor=pointer]:
+                        - /url: https://usfema.sharepoint.com/sites/OAI/ncp/ipaws/SitePages/Integrated-Public-Alerts-and-Warning-System.aspx
+                  - generic [ref=f3e517]: "Search relevance: 1.00 | Views last month: 692 | Catalog Last Checked: September 10, 2026 at 05:45 PM"
+            - listitem [ref=f3e518]:
+              - generic [ref=f3e519]:
+                - generic [ref=f3e520]:
+                  - generic [ref=f3e521]: "#18"
+                  - generic [ref=f3e522]: Federal
+                - generic [ref=f3e523]:
+                  - heading "Fruit and Vegetable Prices Trending" [level=3] [ref=f3e525]:
+                    - link "Fruit and Vegetable Prices" [ref=f3e526] [cursor=pointer]:
+                      - /url: /dataset/fruit-and-vegetable-prices
+                    - generic [aria-hidden] [ref=f3e527]: 
+                    - generic [ref=f3e528]: Trending
+                  - list [ref=f3e529]:
+                    - listitem [ref=f3e530]:
+                      - strong [ref=f3e531]: "Organization:"
+                      - link "Department of Agriculture" [ref=f3e532] [cursor=pointer]:
+                        - /url: /organization/usda
+                    - listitem [ref=f3e533]:
+                      - strong [ref=f3e534]: "Dataset Last Updated:"
+                      - text: August 20, 2019
+                  - paragraph [ref=f3e535]: How much do fruits and vegetables cost? ERS estimated average prices for 153 commonly consumed fresh and processed fruits and vegetables.
+                  - list [ref=f3e536]:
+                    - listitem [ref=f3e537]:
+                      - link "XLS" [ref=f3e538] [cursor=pointer]:
+                        - /url: /dataset/fruit-and-vegetable-prices
+                  - generic [ref=f3e539]: "Search relevance: 1.00 | Views last month: 672 | Catalog Last Checked: October 09, 2026 at 04:40 PM"
+            - listitem [ref=f3e540]:
+              - generic [ref=f3e541]:
+                - generic [ref=f3e542]:
+                  - generic [ref=f3e543]: "#19"
+                  - generic [ref=f3e544]: Federal
+                - generic [ref=f3e545]:
+                  - heading "College Scorecard Trending" [level=3] [ref=f3e547]:
+                    - link "College Scorecard" [ref=f3e548] [cursor=pointer]:
+                      - /url: /dataset/college-scorecard
+                    - generic [aria-hidden] [ref=f3e549]: 
+                    - generic [ref=f3e550]: Trending
+                  - list [ref=f3e551]:
+                    - listitem [ref=f3e552]:
+                      - strong [ref=f3e553]: "Organization:"
+                      - link "Department of Education" [ref=f3e554] [cursor=pointer]:
+                        - /url: /organization/ed
+                    - listitem [ref=f3e555]:
+                      - strong [ref=f3e556]: "Dataset Last Updated:"
+                      - text: September 12, 2025 at 12:00 AM
+                  - paragraph [ref=f3e557]: Download the data that appears on the College Scorecard, as well as supporting data on student completion, debt and repayment, earnings, and more. Last updated on 4-19-2023.
+                  - list [ref=f3e558]:
+                    - listitem [ref=f3e559]:
+                      - link "ZIP" [ref=f3e560] [cursor=pointer]:
+                        - /url: /dataset/college-scorecard
+                    - listitem [ref=f3e561]:
+                      - link "XLSX" [ref=f3e562] [cursor=pointer]:
+                        - /url: /dataset/college-scorecard
+                    - listitem [ref=f3e563]:
+                      - link "ZIP" [ref=f3e564] [cursor=pointer]:
+                        - /url: /dataset/college-scorecard
+                    - listitem [ref=f3e565]:
+                      - link "ZIP" [ref=f3e566] [cursor=pointer]:
+                        - /url: /dataset/college-scorecard
+                  - generic [ref=f3e567]: "Search relevance: 1.00 | Views last month: 671 | Catalog Last Checked: October 15, 2026 at 11:29 PM"
+            - listitem [ref=f3e568]:
+              - generic [ref=f3e569]:
+                - generic [ref=f3e570]:
+                  - generic [ref=f3e571]: "#20"
+                  - generic [ref=f3e572]: Federal
+                - generic [ref=f3e573]:
+                  - heading "Company Census File Trending" [level=3] [ref=f3e575]:
+                    - link "Company Census File" [ref=f3e576] [cursor=pointer]:
+                      - /url: /dataset/company-census-file
+                    - generic [aria-hidden] [ref=f3e577]: 
+                    - generic [ref=f3e578]: Trending
+                  - list [ref=f3e579]:
+                    - listitem [ref=f3e580]:
+                      - strong [ref=f3e581]: "Organization:"
+                      - link "Department of Transportation" [ref=f3e582] [cursor=pointer]:
+                        - /url: /organization/dot
+                    - listitem [ref=f3e583]:
+                      - strong [ref=f3e584]: "Dataset Last Updated:"
+                      - text: October 19, 2026
+                  - paragraph [ref=f3e585]: The Company Census File contains records for active, inactive, and pending entities registered with FMCSA. Entities include those entities subject to the FMCSR, HMR, or intrastate non-Hazardous...
+                  - list [ref=f3e586]:
+                    - listitem [ref=f3e587]:
+                      - link "JSON" [ref=f3e588] [cursor=pointer]:
+                        - /url: https://data.transportation.gov/d/az4n-8mr2
+                    - listitem [ref=f3e589]:
+                      - link "XML" [ref=f3e590] [cursor=pointer]:
+                        - /url: https://data.transportation.gov/d/az4n-8mr2
+                    - listitem [ref=f3e591]:
+                      - link "CSV" [ref=f3e592] [cursor=pointer]:
+                        - /url: https://data.transportation.gov/d/az4n-8mr2
+                  - generic [ref=f3e593]: "Search relevance: 1.00 | Views last month: 641 | Catalog Last Checked: October 19, 2026 at 09:19 PM"
+            - generic [ref=f3e594]:
+              - button "Show more results" [ref=f3e595] [cursor=pointer]
+              - button "Return to top" [ref=f3e596] [cursor=pointer]
+      - complementary "Filters" [ref=f3e597]:
+        - generic [ref=f3e598]:
+          - generic [ref=f3e599]:
+            - generic [ref=f3e600]:
+              - heading "Filters" [level=2] [ref=f3e601]
+              - button "Expand all filters" [ref=f3e603] [cursor=pointer]: Expand all
+            - paragraph [ref=f3e604]: Filter selections are applied on each click
+          - generic [ref=f3e605]:
+            - generic [ref=f3e606]:
+              - heading [level=3] [ref=f3e607]:
+                - button "Geographic Area" [ref=f3e608] [cursor=pointer]
+              - text: 
+            - heading [level=3] [ref=f3e612]:
+              - button "Keywords" [ref=f3e613] [cursor=pointer]
+            - heading [level=3] [ref=f3e617]:
+              - button "Organization A specific publishing organization" [ref=f3e618] [cursor=pointer]:
+                - generic [ref=f3e619]:
+                  - generic [ref=f3e620]: Organization
+                  - generic [ref=f3e621]: A specific publishing organization
+            - heading [level=3] [ref=f3e623]:
+              - button "Organization Type Federal, state, city, and other org categories" [ref=f3e624] [cursor=pointer]:
+                - generic [ref=f3e625]:
+                  - generic [ref=f3e626]: Organization Type
+                  - generic [ref=f3e627]: Federal, state, city, and other org categories
+            - heading [level=3] [ref=f3e629]:
+              - button "Publisher" [ref=f3e630] [cursor=pointer]
+            - heading [level=3] [ref=f3e634]:
+              - button "Spatial Data" [ref=f3e635] [cursor=pointer]
+            - heading [level=3] [ref=f3e639]:
+              - button "Data Access Datasets with direct data download" [ref=f3e640] [cursor=pointer]:
+                - generic [ref=f3e641]:
+                  - generic [ref=f3e642]: Data Access
+                  - generic [ref=f3e643]: Datasets with direct data download
+  - generic [ref=f3e647]:
+    - link [ref=f3e649] [cursor=pointer]:
+      - /url: https://data.gov
+      - img "Data.gov logo" [ref=f3e650]
+    - list [ref=f3e652]:
+      - listitem [ref=f3e653]:
+        - link "About" [ref=f3e654] [cursor=pointer]:
+          - /url: //www.data.gov/about
+      - listitem [ref=f3e655]:
+        - link "Open Government" [ref=f3e656] [cursor=pointer]:
+          - /url: //www.data.gov/open-gov/
+      - listitem [ref=f3e657]:
+        - link "Website Policies" [ref=f3e658] [cursor=pointer]:
+          - /url: ///www.data.gov/privacy-policy
+      - listitem [ref=f3e659]:
+        - link "PERFORMANCE.GOV" [ref=f3e660] [cursor=pointer]:
+          - /url: //www.performance.gov/
+      - listitem [ref=f3e661]:
+        - link "Data.gov on Github" [ref=f3e662] [cursor=pointer]:
+          - /url: //github.com/GSA/data.gov
+  - generic [ref=f3e664]:
+    - region "Agency identifier" [ref=f3e665]:
+      - generic [ref=f3e666]:
+        - img "GSA logo" [ref=f3e669]
+        - generic "Agency description" [ref=f3e670]:
+          - paragraph [ref=f3e671]: data.gov
+          - paragraph [ref=f3e672]:
+            - text: An official website of the GSA's
+            - link "Technology Transformation Services" [ref=f3e673] [cursor=pointer]:
+              - /url: https://www.gsa.gov/about-us/organization/federal-acquisition-service/technology-transformation-services
+    - navigation "Important links" [ref=f3e676]:
+      - list [ref=f3e678]:
+        - listitem [ref=f3e679]:
+          - link "About GSA" [ref=f3e680] [cursor=pointer]:
+            - /url: https://www.gsa.gov/about-us
+        - listitem [ref=f3e683]:
+          - link "Accessibility statement" [ref=f3e684] [cursor=pointer]:
+            - /url: https://www.gsa.gov/website-information/accessibility-statement
+        - listitem [ref=f3e687]:
+          - link "FOIA requests" [ref=f3e688] [cursor=pointer]:
+            - /url: https://www.gsa.gov/reference/freedom-of-information-act-foia
+        - listitem [ref=f3e691]:
+          - link "No FEAR Act data" [ref=f3e692] [cursor=pointer]:
+            - /url: https://www.gsa.gov/reference/civil-rights-programs/notification-and-federal-employee-antidiscrimination-and-retaliation-act-of-2002
+        - listitem [ref=f3e695]:
+          - link "Office of the Inspector General" [ref=f3e696] [cursor=pointer]:
+            - /url: https://www.gsaig.gov
+        - listitem [ref=f3e699]:
+          - link "Performance reports" [ref=f3e700] [cursor=pointer]:
+            - /url: https://www.gsa.gov/reference/reports/budget-performance
+        - listitem [ref=f3e703]:
+          - link "Privacy policy" [ref=f3e704] [cursor=pointer]:
+            - /url: https://www.gsa.gov/website-information/website-policies#privacy
+    - region "U.S. government information and services" [ref=f3e707]:
+      - generic [ref=f3e708]:
+        - generic [ref=f3e709]: Looking for U.S. government information and services?
+        - link "Visit USA.gov" [ref=f3e710] [cursor=pointer]:
+          - /url: https://www.usa.gov/
+  - iframe [ref=f3e713]:
+    - button "Feedback" [ref=f6e4] [cursor=pointer]

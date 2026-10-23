@@ -26,6 +26,7 @@ Three things here matter more than the rest:
 from __future__ import annotations
 
 import json
+import secrets
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -85,6 +86,16 @@ CAPTCHA_MARKERS = (
     ".h-captcha",
     ".cf-turnstile",
     "#challenge-running",
+)
+# Cloudflare's full-page check carries none of the widgets above where a page can see them:
+# it says who it is in its title and its heading. Seen on three real sites on 22 Oct 2026
+# ("Just a moment..." / "Performing security verification"), shown to the agent as if it
+# were the site.
+CHALLENGE_TITLES = ("just a moment",)
+CHALLENGE_HEADINGS = (
+    "performing security verification",
+    "verify you are human",
+    "checking your browser before",
 )
 
 # Stops the browser advertising that a program is driving it. Without these,
@@ -163,6 +174,113 @@ DEFAULT_PROFILE_NAME = "default"
 # on purpose is never mistaken for one.
 _SIGNED_OUT_HINTS = ("/login", "/signin", "/sign-in", "/sign_in", "/auth", "/sso", "/oauth")
 
+# Where a view's token is kept in the page. A ref is only good for the page it was printed
+# from, and a new document wipes everything on `window`, so a missing or different token
+# means the page under the ref has been replaced.
+_VIEW_TOKEN_JS = "(token) => { window.__dejoView = token; }"
+_READ_VIEW_TOKEN_JS = "() => window.__dejoView || ''"
+
+# One CSS path that matches an element AND its look-alikes in every other row of a list, and
+# nothing else on the page. That path plus a position ("the first") is how "open the first
+# book" is stored: by place, so replay opens whatever is first next month, not the book that
+# was first today. Built from tag names, classes every row shares and positions every row
+# shares, walking up from the element, then cut to the shortest tail that still matches
+# exactly those elements. Classes with digits are skipped: those are usually generated per
+# build (`css-1x2y3`) and change on the next deploy.
+_PLACE_JS = """
+(el, peers) => {
+  const all = [el, ...peers];
+  const doc = el.ownerDocument;
+  const chain = (node) => {
+    const out = [];
+    for (let n = node; n && n.nodeType === 1 && n !== doc.body; n = n.parentElement) out.push(n);
+    return out;
+  };
+  const chains = all.map(chain);
+  const depth = Math.min(...chains.map((c) => c.length));
+  const position = (n) => {
+    let i = 1;
+    for (let s = n.previousElementSibling; s; s = s.previousElementSibling) {
+      if (s.tagName === n.tagName) i++;
+    }
+    return i;
+  };
+  const parts = [];
+  for (let level = 0; level < depth; level++) {
+    const nodes = chains.map((c) => c[level]);
+    const tag = nodes[0].tagName.toLowerCase();
+    if (nodes.some((n) => n.tagName.toLowerCase() !== tag)) return null;
+    const shared = [...nodes[0].classList].filter(
+      (c) => !/[0-9]/.test(c) && nodes.every((n) => n.classList.contains(c))
+    );
+    let piece = tag + shared.slice(0, 2).map((c) => "." + CSS.escape(c)).join("");
+    const first = position(nodes[0]);
+    if (nodes.every((n) => position(n) === first)) piece += ":nth-of-type(" + first + ")";
+    parts.unshift(piece);
+  }
+  for (let start = parts.length - 1; start >= 0; start--) {
+    const selector = parts.slice(start).join(" > ");
+    const found = [...doc.querySelectorAll(selector)];
+    if (found.length === all.length && all.every((n) => found.includes(n))) {
+      return { selector, index: found.indexOf(el), count: found.length };
+    }
+  }
+  return null;
+}
+"""
+
+# Words that say a click does something that cannot be taken back: money moves, a message
+# leaves, something is deleted or published. Matched as whole words or phrases on the real
+# element, never on the agent's wording. A false alarm costs the agent one resend with `!`;
+# a miss can cost a real order, so the list leans to safe. Plain "Search", "Add", "Apply" or
+# "Sort order" are deliberately not here.
+RISKY_WORDS = (
+    "buy",
+    "purchase",
+    "pay",
+    "checkout",
+    "place order",
+    "order now",
+    "subscribe",
+    "unsubscribe",
+    "send",
+    "submit",
+    "post",
+    "publish",
+    "delete",
+    "remove",
+    "cancel",
+    "confirm",
+    "transfer",
+    "withdraw",
+    "deactivate",
+    "close account",
+    "book now",
+    "reserve",
+    "donate",
+)
+
+# What one element would do if pressed: its words, and whether it submits a form and how.
+_RISK_JS = """
+(el) => {
+  const words = [el.innerText, el.value, el.getAttribute("aria-label"), el.title]
+    .filter(Boolean).join(" ").toLowerCase();
+  const form = el.form || el.closest("form");
+  const tag = el.tagName;
+  const type = (el.getAttribute("type") || "").toLowerCase();
+  const submits = !!form && (
+    (tag === "BUTTON" && (type === "" || type === "submit")) ||
+    (tag === "INPUT" && (type === "submit" || type === "image"))
+  );
+  const method = form ? (form.getAttribute("method") || "get").toLowerCase() : "";
+  const signsIn = !!form && !!form.querySelector("input[type=password]");
+  return {
+    words, submits, method, signsIn,
+    field: !!form && (tag === "INPUT" || tag === "TEXTAREA"),
+  };
+}
+"""
+
 # Reads the durable descriptors for ONE element, the ones a locator is built from.
 #
 # Only ever run for an element actually being acted on. Reading these for every element on
@@ -192,12 +310,18 @@ _DESCRIBE_JS = """
     return aria ? aria.trim() : null;
   };
 
+  // An id a framework made up for this page load (React's `_r_2o_` or `:r1:`, or a
+  // long run of digits) is different on the next load. GitHub's issue list hangs
+  // its counters off one, and a read stored by it broke on the very next replay.
+  const stableId = (id) => !!id && !/^:|_r_|[0-9]{4,}/.test(id);
+
   // Walks up until the path matches exactly ONE element, and gives up rather than
   // returning one that matches several. A selector that finds the wrong element is worse
   // than no selector: replay takes the first match and clicks something else entirely.
   const cssOf = (node) => {
     const doc = node.ownerDocument;
-    if (node.id && doc.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) {
+    if (stableId(node.id)
+        && doc.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) {
       return `#${CSS.escape(node.id)}`;
     }
     if (node.name && node.tagName === 'INPUT') {
@@ -212,13 +336,22 @@ _DESCRIBE_JS = """
       const parent = walker.parentElement;
 
       // An id anywhere up the chain anchors everything below it in one step.
-      if (walker !== node && walker.id
+      if (walker !== node && stableId(walker.id)
           && doc.querySelectorAll(`#${CSS.escape(walker.id)}`).length === 1) {
         parts.unshift(`#${CSS.escape(walker.id)}`);
         return parts.join(' > ');
       }
 
-      if (tag === 'html' || tag === 'body' || !parent) break;
+      if (tag === 'html' || tag === 'body' || !parent) {
+        // Anchored at the body, a path that matched several elements one level down can
+        // still match exactly one. Giving up here left a paragraph on quotes.toscrape.com
+        // with no path at all, so a read of it was saved and could never be replayed.
+        const anchored = parts.length ? `body > ${parts.join(' > ')}` : '';
+        if (tag === 'body' && anchored && doc.querySelectorAll(anchored).length === 1) {
+          return anchored;
+        }
+        break;
+      }
 
       const siblings = Array.from(parent.children).filter(c => c.tagName === walker.tagName);
       const index = siblings.indexOf(walker) + 1;
@@ -357,6 +490,14 @@ NO_SCREEN_ADVICE = (
     "~/.dejo/browser-profile across afterwards,\n"
     "    or forward a display over SSH with `ssh -X` and run it again."
 )
+
+
+def _arrived(here: str, asked: str) -> bool:
+    """Is the browser on the site it was sent to, even if that page has not finished?"""
+    there, wanted = urlparse(here), urlparse(asked)
+    if there.scheme not in ("http", "https"):
+        return False
+    return there.netloc.removeprefix("www.") == wanted.netloc.removeprefix("www.")
 
 
 def _stuck_profile_advice(profile: Path, url: str) -> str:
@@ -902,6 +1043,11 @@ class Browser:
             # document that is gone with a 404 page at the document's own address.
             self.last_status = response.status if response is not None else None
         except PlaywrightTimeout as stuck:
+            if _arrived(self.page.url, url):
+                # A slow site: the page is there and still loading its last parts. Failing
+                # here left the first `go` out of a trail the agent then learned anyway, so
+                # every replay began on a blank page (real-site bench, 23 Oct 2026).
+                return
             if self._profile is None or not self._loads_without_profile(url):
                 raise
             raise ProfileStuck(_stuck_profile_advice(self._profile, url)) from stuck
@@ -929,26 +1075,89 @@ class Browser:
         iframes, and reports a pointer cursor — which is how a `div` acting as a button
         gets found at all.
         """
-        raw = self.page.locator("body").aria_snapshot(mode="ai")
+        raw, frames = self.raw_snapshot()
         return Snapshot(
             url=self.page.url,
             title=self.page.title(),
-            elements=aria.parse(raw, frames=self._frame_selectors(raw)),
+            elements=aria.parse(raw, frames=frames),
             text=self.readable_text(),
         )
 
+    def raw_snapshot(self) -> tuple[str, dict[str, str]]:
+        """Playwright's own ai snapshot of the page, and a selector for each of its iframes.
+
+        The raw text is what the page view (`view.render`) is drawn from, so the view and the
+        controls a caller acts on always come from the same look."""
+        raw = self.page.locator("body").aria_snapshot(mode="ai")
+        return raw, self._frame_selectors(raw)
+
+    def mark_view(self) -> str:
+        """Leave a token in the page for the view just printed, and return it."""
+        token = secrets.token_hex(8)
+        with suppress(PlaywrightError):
+            self.page.evaluate(_VIEW_TOKEN_JS, token)
+        return token
+
+    def view_is_current(self, token: str) -> bool:
+        """Is the page still the document the view with this token was printed from?"""
+        try:
+            return self.page.evaluate(_READ_VIEW_TOKEN_JS) == token
+        except PlaywrightError:
+            return False
+
+    def place_of(self, element: PWLocator, peers: list[PWLocator]) -> dict[str, Any] | None:
+        """One CSS path for `element` and its look-alikes in `peers`, and where it stands.
+
+        Returns `{"selector", "index", "count"}`, or None when no single path matches all of
+        them and nothing else. See `_PLACE_JS`."""
+        try:
+            handles = [peer.element_handle() for peer in peers]
+            return element.evaluate(_PLACE_JS, handles)
+        except PlaywrightError:
+            return None
+
+    def risk_of(self, target: PWLocator, *, pressing_enter: bool = False) -> str | None:
+        """What a press of this element would do that cannot be undone, or None.
+
+        A form that POSTs is the strongest signal and it decides both ways: its submit (or
+        Enter in one of its fields) is risky whatever the button says, and the submit of a
+        GET form, which is a search, never is. Otherwise the element's own words decide.
+
+        A POST form with a password field is a sign-in, and nearly every sign-in on the web
+        POSTs. Calling it risky would stop every learning run at the login and cost a turn;
+        an order, a message or a delete has no password field in its form."""
+        try:
+            seen = target.evaluate(_RISK_JS)
+        except PlaywrightError:
+            return None
+        if seen["submits"] or (pressing_enter and seen["field"]):
+            if seen["method"] == "post" and not seen["signsIn"]:
+                return "submits a form that sends data (POST)"
+            return None
+        if pressing_enter:
+            return None
+        words = f" {' '.join(seen['words'].split())} "
+        for risky in RISKY_WORDS:
+            if f" {risky} " in words or words.strip() == risky:
+                return f'is "{risky}"'
+        return None
+
+    def matches(self, locator: Locator) -> PWLocator | None:
+        """Everything on the page a stored locator matches, refinements applied."""
+        return self._to_playwright(locator)
+
     def _frame_selectors(self, raw: str) -> dict[str, str]:
-        """Map each frame number to a selector for its iframe.
+        """Map each iframe's Playwright ref to a selector for that iframe.
 
         An element inside an iframe cannot be found later by a plain selector, because
         `page.locator` does not look inside frames. The locator has to name the frame too,
         so the iframe itself needs a durable selector of its own.
         """
         selectors: dict[str, str] = {}
-        for number, ref in enumerate(aria.iframe_refs(raw), start=1):
+        for ref in aria.iframe_refs(raw):
             described = self._describe_ref(ref)
             if described and described.get("css"):
-                selectors[str(number)] = described["css"]
+                selectors[ref] = described["css"]
         return selectors
 
     def _describe_ref(self, ref: str) -> dict[str, Any] | None:
@@ -1150,7 +1359,7 @@ class Browser:
         if element.selector:
             everything = self.page.locator(element.selector)
             return everything.first if one else everything
-        return self.page.locator(f"aria-ref={element.ref}").first
+        return self.page.locator(f"aria-ref={element.aria_ref or element.ref}").first
 
     def await_url_change(self, was: str, timeout_ms: int = SPA_NAV_GRACE_MS) -> bool:
         """Give a client-side navigation time to show up in the address bar.
@@ -1222,10 +1431,18 @@ class Browser:
     def captcha_on_page(self) -> str | None:
         """The name of the human check standing in the way, if there is one.
 
-        Only ever asked after a step has already failed. "Prove you are human" is not
-        drift and cannot be repaired: the honest answer is to say what happened and stop,
-        rather than hand an AI a page it has no way through.
+        Asked after a step fails, and while learning after a step lands on a new page.
+        "Prove you are human" is not drift and cannot be repaired: the honest answer is to
+        say what happened and stop, rather than hand an AI a page it has no way through.
         """
+        try:
+            if self.page.title().strip().lower().startswith(CHALLENGE_TITLES):
+                return "a security check page"
+            headings = " ".join(self.page.locator("h1, h2").all_inner_texts()).lower()
+        except PlaywrightError:
+            return None
+        if any(words in headings for words in CHALLENGE_HEADINGS):
+            return "a security check page"
         for marker in CAPTCHA_MARKERS:
             try:
                 found = self.page.locator(marker)

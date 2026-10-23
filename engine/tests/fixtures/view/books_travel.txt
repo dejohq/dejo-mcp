@@ -1,0 +1,17 @@
+page "Travel | Books to Scrape - Sandbox" https://books.toscrape.com/catalogue/category/books/travel_2/index.html
+best for "open first book listed tell price": e13 link "Books" · e20 link "Books" · e129 alert: Warning! This is a demo website for web scraping purposes. P… · e6 link "Books to Scrape" · e23 link "Travel" · e26 link "Mystery" · e28 link "Historical Fiction" · e30 link "Sequential Art" · e32 link "Classics" · e34 link "Philosophy" · e36 link "Romance" · e38 link "Womens Fiction" · e40 link "Fiction" · e42 link "Childrens" · e44 link "Religion"
+e5: We love being scraped!
+e6 link "Books to Scrape"
+e11 link "Home"
+e13 link "Books"
+e14: / Travel
+e20 link "Books"
+g1 50 links: e23 "Travel" · e26 "Mystery" · e28 "Historical Fiction" · +47 more: look g1
+e125 h1 "Travel"
+e126: 11 results.
+e129 alert: Warning! This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no re…
+g2 11 rows, 3 shown:
+ r1 e145 link "It's Only the Himalayas" · e147: £45.17 · e148: In stock · e151 button "Add to basket"
+ r2 e164 link "Full Moon over Noah’s ..." · e166: £49.43 · e167: In stock · e170 button "Add to basket"
+ r3 e183 link "See America: A Celebration ..." · e185: £48.87 · e186: In stock · e189 button "Add to basket"
+ +8 more rows: look g2

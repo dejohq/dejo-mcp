@@ -13,6 +13,8 @@ can check itself. Two jobs:
 
 from __future__ import annotations
 
+from urllib.parse import parse_qsl, urlencode, urlparse
+
 from .models import Locator, Playbook, Postcondition, Step, href_path
 from .operations import READ_ACTION, TraceEntry
 
@@ -26,7 +28,7 @@ def distill(trace: list[TraceEntry], *, domain: str, task: str) -> Playbook:
             action=entry.action,
             value=entry.value,
             secret=entry.secret,
-            postcondition=postcondition_for(entry),
+            postcondition=entry.expect or postcondition_for(entry),
             locators=locators_for(entry),
             # Where this step happened. A goto has no "before", and needs none: it names
             # its own destination.
@@ -34,6 +36,7 @@ def distill(trace: list[TraceEntry], *, domain: str, task: str) -> Playbook:
             answered=bool(entry.answer),
             dialog_message=(entry.dialog or {}).get("message"),
             dialog_choice=(entry.dialog or {}).get("choice"),
+            risky=entry.risky,
         )
         for position, entry in enumerate(trace, start=1)
     ]
@@ -55,6 +58,9 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
     if entry.download:
         return Postcondition("download", entry.download)
 
+    if entry.navigated and entry.element is not None and entry.element.by_place:
+        return _landed_somewhere_like(entry)
+
     if entry.navigated or entry.action == "goto":
         # Where we LANDED, and — for a goto — where we asked to go, which are not always
         # the same place. MDN answers /Web/API/fetch with /Web/API/Window/fetch; sites add
@@ -63,7 +69,7 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
         # the URL it was told to, the site redirected, and the step was called broken on a
         # page that was perfectly correct. Either one arriving is arrival.
         asked = href_path(entry.value) if entry.action == "goto" and entry.value else None
-        landed = href_path(entry.url_after)
+        landed = _landing(entry)
         return Postcondition("url_contains", landed, target=asked if asked != landed else None)
 
     if entry.action == "fill" and entry.element is not None:
@@ -79,6 +85,29 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
     return Postcondition("url_contains", href_path(entry.url_after))
 
 
+def _landing(entry: TraceEntry) -> str:
+    """Where a navigation landed, in the form its check compares.
+
+    The path and nothing more when the path changed: what follows `?` is then usually a
+    session id or tracking. When the path did NOT change, the query is all that tells the
+    two pages apart (page 5 of a list, a price filter, or a site that serves every page as
+    `/content.php?navoid=N`). Dropping it there made the check true on every page, and a
+    replay that clicked the wrong link was called right (real-site bench, 22 Oct 2026: a
+    price filter, page 2 of a shop, a college catalog). Only the values that changed are
+    kept, so a parameter the site adds on its own does not fail the check later."""
+    landed = href_path(entry.url_after)
+    before, after = urlparse(entry.url_before), urlparse(entry.url_after)
+    if before.path != after.path or not after.query:
+        return landed
+    was = dict(parse_qsl(before.query, keep_blank_values=True))
+    changed = [
+        (key, value)
+        for key, value in parse_qsl(after.query, keep_blank_values=True)
+        if was.get(key) != value
+    ]
+    return f"{landed}?{urlencode(changed)}" if changed else landed
+
+
 def locators_for(entry: TraceEntry) -> list[Locator]:
     """Every way we know to find this element again, most durable first.
 
@@ -86,4 +115,24 @@ def locators_for(entry: TraceEntry) -> list[Locator]:
     """
     if entry.element is None:
         return []
+    if entry.locators is not None:
+        return entry.locators
     return entry.element.locators()
+
+
+def _landed_somewhere_like(entry: TraceEntry) -> Postcondition:
+    """The check for a step picked by its place in a list ("open the first book").
+
+    Which page it lands on changes with the list: that is the point of storing it by place.
+    Checking for the exact page it reached while learning (`/books/0`) called a correct
+    replay broken the day another book was first. What stays true is the KIND of page, so
+    the check is the landing path without its last part (`/books/`), as long as that tells
+    it apart from where the step started. Otherwise the step is checked by the list it
+    picked from being gone, which is what leaving the list page means.
+    """
+    landed = href_path(entry.url_after)
+    parent = landed.rstrip("/").rsplit("/", 1)[0] + "/"
+    if parent != "/" and parent not in href_path(entry.url_before) + "/":
+        return Postcondition("url_contains", parent)
+    assert entry.element is not None and entry.element.found_by is not None
+    return Postcondition("element_gone", entry.element.found_by.value)

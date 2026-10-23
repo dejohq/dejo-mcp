@@ -94,6 +94,14 @@ class TestDeadLocatorsAreDropped:
         """A network blip must not throw away something that has worked ten times."""
         assert Locator("structural", "href=/file", hits=10, misses=1).is_dead is False
 
+    def test_a_locator_that_worked_once_survives_its_first_miss(self):
+        """A miss weighs twice a hit, so this one's confidence is zero. It is still the way
+        that worked, and a repair keeps it as a backup."""
+        assert Locator("css", "#download-btn", hits=1, misses=1).is_dead is False
+
+    def test_a_locator_that_misses_more_than_it_ever_hit_is_dead(self):
+        assert Locator("css", "#download-btn", hits=1, misses=2).is_dead is True
+
     def test_an_untried_locator_is_not_dead(self):
         assert Locator("css", "#new").is_dead is False
 

@@ -133,6 +133,19 @@ class TestTheDeletionGate:
         assert store.load_site_map(learned_site) is None
         assert learned_site not in store.mapped_sites()
 
+    def test_a_half_learned_task_goes_too(self, learned_site: str, store: DejoStore):
+        """A draft is a task being learned. If it survived, the next run would resume it,
+        which is a site being remembered after it was forgotten."""
+        from dejo.models import Playbook
+
+        store.save_draft(Playbook(domain=learned_site, task="pay the bill"))
+        store.save_draft(Playbook(domain="other.example.com", task="pay the bill"))
+
+        store.forget_site(learned_site)
+
+        assert store.load_draft(learned_site, "pay the bill") is None
+        assert store.load_draft("other.example.com", "pay the bill") is not None
+
     def test_forgetting_one_site_leaves_the_others_alone(
         self, learned_site: str, store: DejoStore, demo_server: str
     ):

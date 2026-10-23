@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dejo-mcp"
-version = "0.1.2"
+version = "0.2.0"
 description = "Dejo as MCP tools: a browser with a memory, for Claude Code, Cursor and Codex."
 requires-python = ">=3.11"
 license = "MIT"
@@ -25,14 +25,16 @@ dependencies = [
     # something new in the engine. Left too low, pip is free to pair this server with an
     # older engine and the import fails outright: the server never starts at all, which is
     # the worst shape of failure there is.
-    "dejo>=0.1.2",
-    # Capped at <2 deliberately, and it is not cosmetic. In mcp 2.x `FastMCP` was renamed
-    # to `MCPServer` and other APIs changed with it, so `from mcp.server.fastmcp import
-    # FastMCP` raises ModuleNotFoundError on import and the server never starts.
-    # This venv happened to hold 1.29.1 from an earlier install, so every test passed while
-    # a fresh `pip install` was completely broken — found by installing the built wheels
-    # into a clean virtualenv, 2026-09-04. Moving to 2.x is planned work.
-    "mcp>=1.29.1,<2",
+    "dejo>=0.2.0",
+    # Capped at <2 deliberately, and it is not cosmetic: mcp 2.x renamed and changed the
+    # server APIs, and an import that fails means the server never starts. Found once by
+    # installing the built wheels into a clean virtualenv, 2026-09-04. The floor is the
+    # version the low-level `Server` (hand-written tools with `_meta` and annotations,
+    # `call_tool(validate_input=...)`) was tested on. Moving to 2.x is planned work.
+    "mcp>=1.30.0,<2",
+    # Imported directly to run each tool call off the event loop. It also arrives with
+    # `mcp`, but a package should never lean on a dependency of a dependency.
+    "anyio>=4.5",
 ]
 
 [project.optional-dependencies]

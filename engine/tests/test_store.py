@@ -316,3 +316,42 @@ class TestTheDebtPhase5aWouldHaveInherited:
             for path in (root / folder).rglob("*.py")
             if any(word in path.read_text(encoding="utf-8") for word in words)
         )
+
+
+class TestDrafts:
+    """A task still being learned: written after every program, resumed, then closed."""
+
+    def test_a_draft_is_kept_by_task(self, store: DejoStore) -> None:
+        store.save_draft(Playbook(domain="acme.com", task="pay the bill"))
+        assert store.load_draft("acme.com", "pay the bill") is not None
+        assert store.load_draft("acme.com", "read the bill") is None, "drafts never fuzzy-match"
+
+    def test_closing_a_draft_removes_it(self, store: DejoStore) -> None:
+        store.save_draft(Playbook(domain="acme.com", task="pay the bill"))
+        assert store.drop_draft("acme.com", "pay the bill")
+        assert store.load_draft("acme.com", "pay the bill") is None
+
+    def test_a_week_old_draft_is_dropped_on_the_next_write(self, store: DejoStore) -> None:
+        old = Playbook(domain="acme.com", task="pay the bill")
+        old.updated_at = "2020-01-01T00:00:00+00:00"
+        store.save_draft(old)
+        store.save_draft(Playbook(domain="acme.com", task="read the bill"))
+        assert store.load_draft("acme.com", "pay the bill") is None
+        assert store.load_draft("acme.com", "read the bill") is not None
+
+    def test_a_draft_is_not_a_trail(self, store: DejoStore) -> None:
+        store.save_draft(Playbook(domain="acme.com", task="pay the bill"))
+        assert store.load_playbook("acme.com", "pay the bill") is None
+
+
+def test_a_risky_step_stays_risky_when_saved(store: DejoStore) -> None:
+    step = Step(
+        index=1,
+        intent="place the order",
+        action="click",
+        postcondition=Postcondition("text_present", "Paid"),
+        risky=True,
+    )
+    store.save_playbook(Playbook(domain="shop.com", task="order", steps=[step]))
+    loaded = store.load_playbook("shop.com", "order")
+    assert loaded is not None and loaded.steps[0].risky

@@ -23,6 +23,7 @@ Two deliberate choices worth knowing about:
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,7 @@ from .memory import (
     import_sibyl,
 )
 from .models import Playbook, RunMetrics, SiteKnowledge, SiteMap, utc_now
+from .words import COMMON_WORDS
 
 PLAYBOOK = "playbook"
 
@@ -58,6 +60,16 @@ UNNAMED = "default"
 # Keyed by the bare domain, exactly like site knowledge, so that forgetting a site stays
 # one line rather than a second key-scanning loop.
 SITE_MAP = "site_map"
+
+# A task that is still being learned: the steps that passed so far, written after every
+# program so a lost session, a crash or a forgotten last call loses nothing. Keyed exactly
+# like the trail it will become.
+DRAFT = "draft_playbook"
+
+# A draft older than this is dropped on the next write. Half-learned a week ago means walked
+# on a site that has moved since, and resuming it would replay a stale prefix as if it
+# were fresh.
+DRAFT_MAX_AGE = timedelta(days=7)
 
 # A site this agent was deliberately told to forget. The commons will not offer it
 # back without being asked a second time, on purpose.
@@ -83,50 +95,6 @@ MAX_SLUG = 60
 # invoice" never matches "cancel the subscription".
 MATCH_THRESHOLD = 0.4
 
-# Words too common to tell two tasks apart. "the invoice" and "the subscription" share
-# "the" and nothing that matters.
-_NOISE = frozenset(
-    [
-        "a",
-        "an",
-        "and",
-        "are",
-        "as",
-        "at",
-        "be",
-        "by",
-        "do",
-        "does",
-        "for",
-        "from",
-        "get",
-        "how",
-        "i",
-        "in",
-        "is",
-        "it",
-        "many",
-        "me",
-        "my",
-        "of",
-        "on",
-        "or",
-        "please",
-        "show",
-        "that",
-        "the",
-        "them",
-        "then",
-        "there",
-        "this",
-        "to",
-        "what",
-        "when",
-        "where",
-        "which",
-        "with",
-    ]
-)
 # Verbs that say what is done to a page, not which job it is. Almost every task starts with
 # one, so on their own they are no evidence that two descriptions mean the same task.
 _ACTIONS = frozenset(
@@ -182,9 +150,18 @@ class DejoStore:
         """
         self.agent = agent if agent is not None else setting(AGENT_ENV)
         database = open_memory(db_path)
+        self._database = database
         self.where = database.path
         self._memory = database.owner(agent_owner(self.agent))
         self._shared = database.owner(COMMONS)
+
+    def close(self) -> None:
+        """Let go of the memory file. Only a store made for one short job needs this, such
+        as the throwaway one a draft is replayed against: on Windows an open SQLite file
+        cannot be deleted. Sibyl's client keeps its own connection, so there is nothing to
+        close for it."""
+        if isinstance(self._database, Database):
+            self._database.close()
 
     # ---------------------------------------------------------------- playbooks
 
@@ -200,6 +177,33 @@ class DejoStore:
 
         # Knowing the site again is the opposite of having forgotten it.
         self._memory.archive(FORGOTTEN, playbook.domain, reason="learned again")
+
+    def save_draft(self, draft: Playbook) -> None:
+        """Write. The steps of a task that is still being learned. See DRAFT."""
+        self._drop_stale_drafts()
+        self._memory.put(DRAFT, trail_key(draft.domain, draft.task), draft.to_dict())
+
+    def load_draft(self, domain: str, task: str) -> Playbook | None:
+        """Read. The draft for exactly this task, never a look-alike: resuming another
+        task's half-learned steps would start the wrong job from its middle."""
+        body = self._read_entity_body(DRAFT, trail_key(domain, task))
+        return Playbook.from_dict(body) if body else None
+
+    def drop_draft(self, domain: str, task: str) -> bool:
+        """The draft became a trail, or the caller started over. True if one was there."""
+        return self._memory.archive(DRAFT, trail_key(domain, task), reason="draft closed")
+
+    def _drop_stale_drafts(self) -> None:
+        oldest = datetime.now(UTC) - DRAFT_MAX_AGE
+        for key in self._memory.names(DRAFT):
+            body = self._memory.get(DRAFT, key) or {}
+            written = body.get("updated_at") or body.get("created_at") or ""
+            try:
+                stale = datetime.fromisoformat(written) < oldest
+            except ValueError:
+                stale = True
+            if stale:
+                self._memory.archive(DRAFT, key, reason="draft too old")
 
     def load_playbook(self, domain: str, task: str | None = None) -> Playbook | None:
         """Read. `None` means we have never walked this site — or it was forgotten.
@@ -719,6 +723,12 @@ class DejoStore:
         for key in self._keys_for(domain):
             forgotten = self._memory.archive(PLAYBOOK, key, reason="dejo forget") or forgotten
 
+        # Half-learned tasks too. A draft that survived would be resumed by the next run,
+        # which is a site being remembered after it was forgotten.
+        for key in self._memory.names(DRAFT):
+            if domain_of_key(key) == domain:
+                forgotten = self._memory.archive(DRAFT, key, reason="dejo forget") or forgotten
+
         for category in (PLAYBOOK, SITE_KNOWLEDGE, SITE_MAP):
             forgotten = self._memory.archive(category, domain, reason="dejo forget") or forgotten
 
@@ -877,7 +887,7 @@ def _meaningful(text: str, domain: str | None = None) -> set[str]:
     separate argument. Leaving it in meant "read the first quote on quotes.toscrape.com"
     scored worse than "read the first quote" against the very trail it belonged to.
     """
-    ignore = _NOISE | (_meaningful(domain.replace(".", " ")) if domain else set())
+    ignore = COMMON_WORDS | (_meaningful(domain.replace(".", " ")) if domain else set())
     words = "".join(character if character.isalnum() else " " for character in text.lower())
     return {word for word in words.split() if word not in ignore}
 

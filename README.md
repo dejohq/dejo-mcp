@@ -30,13 +30,6 @@
   <a href=".github/CONTRIBUTING.md">Contributing</a>
 </p>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/benchmark-dark.svg">
-    <img alt="Tool calls per fresh Claude session over ten runs of three multi-step tasks: Dejo 96 in total, flat at 6 per run after it learns; Playwright MCP 199; Chrome DevTools MCP 149." src=".github/assets/benchmark-light.svg" width="880">
-  </picture>
-</p>
-
 Your AI can use websites. But it forgets how, every single time. Dejo makes it remember.
 
 Dejo gives Claude Code, Codex, Cursor or any MCP client a browser with a memory. Your agent
@@ -79,13 +72,15 @@ Ask your agent for something on a website, in your own words:
 
 > Go to github.com/microsoft/playwright and tell me how many open issues it has.
 
-The first time, it explores: it opens the page, looks at the controls, reads the number, and
-saves what it did. Ask again tomorrow, in a brand-new chat, and it is one call:
+The first time, your agent learns it: Dejo opens the page and shows it, one line per control,
+and your agent sends the steps back in one call (`click link "Issues"`, then `read ... as open
+issues`). The read is what Dejo saves. Ask again tomorrow, in a brand-new chat, and it is one
+call:
 
-```json
-{ "ok": true, "steps_replayed": 2, "duration_ms": 1391,
-  "model_calls": 0, "pages_read": 0,
-  "answers": { "open issues": "117" } }
+```
+done: "count open issues" on github.com (profile default), 2 steps replayed in 1391 ms, no page reading.
+open issues = 117
+next: report the answer exactly as read and stop. Every step was checked as it ran.
 ```
 
 Prefer a terminal? Everything works without an MCP client:
@@ -104,7 +99,7 @@ dejo forget --site github.com                         # make it forget
 |---|---|---|
 | **First run** | Your agent drives the browser through Dejo. Dejo watches, and turns what happened into a route. | many calls |
 | **Every run after** | Dejo replays the route itself and checks that each step landed. | **one call, zero model calls** |
-| **The site changed** | Dejo stops at the one broken step and asks your agent about that control only. The fix is saved. | a few calls, once |
+| **The site changed** | Dejo stops at the one broken step and shows the page there. Your agent sends one line for that step; Dejo saves it, keeps the old ways as backups, and replays the rest in the same call. | one extra call, once |
 
 ### What a route is
 
@@ -136,9 +131,9 @@ dejo map github.com --path /issues     # the controls that were on one of them
 ```
 
 Ask for something new on a site Dejo has walked, and your agent is handed the pages it already
-knows before it starts hunting. Each control comes back with a `use` string such as
-`role=button|Sign in`, which `dejo_act` takes directly. A page Dejo has already walked costs
-no reading at all. This matters most where one site carries many tasks: an end-to-end test
+knows before it starts hunting. Each control comes back as a step target such as
+`button "Sign in"`, which works in a step without looking at the page first. A page Dejo has
+already walked costs no reading at all. This matters most where one site carries many tasks: an end-to-end test
 suite, an admin console, a portal you work in every day.
 
 The map says when each page was seen. It is what was there last time, not a promise about now.
@@ -147,18 +142,55 @@ Measured on the demo site in this repo (`python benchmarks/benchmark.py`):
 
 ```
                 time  tool calls  page reads  model calls
-Monday          0.7s           9           3            0   learning the site
-Tuesday         0.4s           1           0            0   from memory
-Wednesday       0.3s           1           0            0   from memory
-Thursday       12.3s           3           0            0   the site changed, one step repaired
-Friday          0.3s           1           0            0   from memory
+Monday          1.4s           9           3            0   learning the site
+Tuesday         1.7s           1           0            0   from memory
+Wednesday       1.9s           1           0            0   from memory
+Thursday       12.6s           3           0            0   the site changed, one step repaired
+Friday          1.9s           1           0            0   from memory
 ```
+
+The time is mostly Dejo waiting for the site to finish after the last click (this task ends in
+a download). A task that ends by reading its answer does not pay that wait.
 
 ## Benchmark
 
-The same job, done **10 times**, each time in a brand-new chat. Three real multi-step tasks,
-three MCP browser tools, **90 fresh Claude sessions** (Sonnet 5, medium). Versions pinned so a
-rerun measures the same thing: `@playwright/mcp@0.0.80`, `chrome-devtools-mcp@1.8.0`.
+**19 tasks on 12 lesser-known websites**, the kind a model cannot answer from memory: a
+college course catalog, the Debian package directory, the RFC Editor, a museum's collection,
+a Dart package registry, a small shop. Every right answer was written down before any tool
+ran. Claude Sonnet 5 (medium), one fresh session per run, `@playwright/mcp@0.0.80`.
+
+| | right answers | avg tokens | avg tool calls | avg cost | avg time |
+|---|---|---|---|---|---|
+| **Dejo, first run** (learns the task) | **19/19** | **251k** | **4.7** | **$0.17** | **31 s** |
+| **Dejo, every run after** | **19/19** | **89k** | **1.2** | **$0.02** | **16 s** |
+| Playwright MCP, every run | 17/19 | 409k | 6.5 | $0.23 | 40 s |
+| Playwright CLI, every run | 18/19 | 559k | 8.4 | $0.28 | 38 s |
+
+- **First run:** 38% fewer tokens than Playwright MCP, 55% fewer than Playwright CLI.
+- **Every run after:** 78% fewer tokens than Playwright MCP, and 17 of 19 repeats were a
+  single tool call. The same task run 10 times costs 74% fewer tokens.
+
+Three things the table should also tell you, because they are true:
+
+- **On a typical task the first run costs about the same as Playwright MCP** (median 216k vs
+  257k). The first-run savings come from the hard sites: 324k against 1.36M on the college
+  catalog, 398k against 983k on the museum's filters.
+- **6 more tasks were on sites that block automated browsers** (Cloudflare checks, plain 403s).
+  Dejo and Playwright MCP were stopped on all six; Playwright CLI got through two of them at
+  1.2M and 1.7M tokens. They are in the results file, not in the table.
+- **Dejo's numbers are from the release code**, after fixing what this benchmark found; the
+  Playwright rows are from the same tasks and model, one day earlier.
+
+Tasks: [`benchmarks/real_tasks.py`](benchmarks/real_tasks.py). Results:
+`benchmarks/benchmark-real-2026-10-21.json` (all three tools), `-10-23.json` and
+`-10-23-fixes.json` (Dejo after the fixes). Run it yourself:
+`python benchmarks/benchmark_learning.py --bench real --tools dejo,playwright --runs 1`.
+
+### Earlier: the same job ten times (Dejo 0.1.2)
+
+The same job, done **10 times**, each time in a brand-new chat. Three multi-step tasks on
+well-known sites, three MCP browser tools, **90 fresh Claude sessions** (Sonnet 5, medium):
+`@playwright/mcp@0.0.80`, `chrome-devtools-mcp@1.8.0`.
 
 | the task, done 10 times | **Dejo** | Playwright MCP | Chrome DevTools MCP |
 |---|---|---|---|
@@ -186,9 +218,8 @@ Two things this table should also tell you, because they are true:
 - **On a single page with a one-line answer, Dejo is not cheaper.** Opening one page and reading
   one line costs every tool two or three calls, and there is nothing left for memory to save.
 
-Run it yourself: `python benchmarks/benchmark_agents.py --journeys --runs 10`. The raw results
-are in [`benchmarks/`](benchmarks). They were recorded while Dejo was still called Cairn, so the
-files say `cairn` where they mean Dejo.
+Run it yourself: `python benchmarks/benchmark_agents.py --journeys --runs 10`. These results
+were recorded while Dejo was still called Cairn, so the files say `cairn` where they mean Dejo.
 
 ## Signing in
 
@@ -221,7 +252,7 @@ dejo --profile vendor login --site shop.example.com
 dejo --profile admin  login --site shop.example.com
 ```
 
-From your agent, `dejo_profile("vendor")` switches, and `dejo_profile()` lists them. A suite
+From your agent, `dejo_profile` with `name="vendor"` switches, and without a name lists them. A suite
 covering three roles never has to sign out and back in, so the order of the tests stops
 mattering.
 
@@ -273,28 +304,36 @@ and set `DEJO_MEMORY=sibyl`.
 
 ## Tools
 
-Sixteen MCP tools. Two of them carry all of the browsing, because tool choice is the most
-fragile part of an agent's day and thirty-five tool names would make it worse.
+Five MCP tools. One of them, `dejo_run`, does all of the browsing, because every tool name is
+read on every turn and tool choice is the most fragile part of an agent's day.
 
 | tool | what it does |
 |---|---|
-| `dejo_run` | Do something on a website. Replays a known route in one call, or says the site is new. |
-| `dejo_act` | One action in the browser: 35 of them, from click and fill to upload, drag, new tabs and dialogs. |
-| `dejo_read` | Look at the page without changing it: the control list, text, values, console errors and more. |
-| `dejo_save` | Remember what was just done, so the task never needs exploring again. |
-| `dejo_repair` | Teach Dejo the new way to find one step that broke. |
-| `dejo_map` | What Dejo already saw on a site: the pages, then the controls on one of them. |
-| `dejo_note` | Remember a fact about a site that is not a step, like "sends a code to your phone". |
-| `dejo_sites` | Every site Dejo remembers, and how well each route is holding up. |
-| `dejo_show` | One route, step by step. |
-| `dejo_forget` | Forget one site completely. |
-| `dejo_login`, `dejo_login_done` | Open a real window for the user to sign in, then close it. |
-| `dejo_profile` | Switch signed-in identity, or list them. |
-| `dejo_share`, `dejo_borrow`, `dejo_commons` | Hand routes between agents. |
+| `dejo_run` | Every website task. A known task replays in one call. A new one shows the page; your agent sends the steps, one per line, in the next call, and the task is saved when a step reads the answer. |
+| `dejo_login` | Opens a real window so the user signs in, then `done=true` when they have. |
+| `dejo_profile` | Switch signed-in identity (customer, vendor, admin), or list them. |
+| `dejo_memory` | What Dejo remembers: `sites`, one task step by step (`show`), the site `map`, and tasks other agents shared (`commons`). |
+| `dejo_manage` | Change it: `forget` a site or task, `note` a fact, `share` a task, `borrow` one. |
+
+Steps are plain lines, run in order. Dejo stops at the first one that fails and shows the page
+there, so the next call only sends the rest:
+
+```
+go https://billing.acme.com/invoices
+click link "September 2026"
+fill label "Search" "acme"
+read css ".total" as total
+```
+
+Targets are a ref from the page (`e12`), or `role "name"` (`link "Travel"`), `text "..."`,
+`label "..."`, `css "..."`. Add `first`, `last` or `nth 3` to mean a place in a list rather
+than one item. A step that buys, pays, sends, deletes or submits is marked with `!`
+(`click! button "Pay"`); unmarked, Dejo will not do it, and marked, it never runs twice on its
+own.
 
 It handles what breaks recorded flows: shadow DOM, iframes, `div`s pretending to be buttons,
 content that loads late, cookie banners, confirm dialogs, new tabs, and file pickers with no
-visible input. `evaluate` runs your own JavaScript when a site does something nobody
+visible input. A `js` step runs your own JavaScript when a site does something nobody
 anticipated, and is deliberately never saved into a route, because a step made of code cannot
 be repaired. The full capability list, with the reason for each choice, is in
 [`docs/BROWSING.md`](docs/BROWSING.md).
@@ -348,7 +387,7 @@ cd ../mcp && ../.venv/bin/python -m pytest
 
 ```
 engine/      the engine (PyPI: dejo): browser, memory, replay, repair, sharing, the dejo command
-mcp/         the MCP server (PyPI: dejo-mcp): sixteen tools over the engine
+mcp/         the MCP server (PyPI: dejo-mcp): five tools over the engine
 benchmarks/  the benchmark scripts and their raw results
 docs/        design notes
 ```

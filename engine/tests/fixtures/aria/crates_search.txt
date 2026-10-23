@@ -1,0 +1,476 @@
+- generic [ref=f60e2]:
+  - banner [ref=f60e3]:
+    - generic [ref=f60e4]:
+      - link [ref=f60e5] [cursor=pointer]:
+        - /url: /
+      - search [ref=f60e8]:
+        - textbox "Search" [ref=f60e9]:
+          - /placeholder: Type 'S' or '/' to search
+          - text: yaml
+        - button "Search" [ref=f60e10] [cursor=pointer]
+      - navigation [ref=f60e13]:
+        - 'button "Change color scheme. Current: system" [ref=f60e16] [cursor=pointer]'
+        - button "Log in with GitHub" [ref=f60e19] [cursor=pointer]
+      - text: ▼
+  - main [ref=f60e21]:
+    - generic [ref=f60e22]:
+      - heading "Search Results for 'yaml'" [level=1] [ref=f60e24]:
+        - text: Search Results
+        - generic [ref=f60e25]: for 'yaml'
+      - generic [ref=f60e26]:
+        - generic [ref=f60e27]: Displaying 1-10 of 10292 total results
+        - generic [ref=f60e28]:
+          - generic [ref=f60e29]: Sort by
+          - button "Relevance" [ref=f60e32] [cursor=pointer]:
+            - text: Relevance
+            - generic [aria-hidden] [ref=f60e34]: ▼
+      - list [ref=f60e36]:
+        - listitem [ref=f60e37]:
+          - generic [ref=f60e38]:
+            - generic [ref=f60e39]:
+              - heading "yaml v0.3.0" [level=2] [ref=f60e40]:
+                - link "yaml" [ref=f60e41] [cursor=pointer]:
+                  - /url: /crates/yaml
+                - generic [ref=f60e42]: v0.3.0
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e43] [cursor=pointer]
+              - generic [ref=f60e45]: LibYAML binding for Rust
+            - list "Statistics" [ref=f60e46]:
+              - listitem [ref=f60e47]:
+                - generic [ref=f60e49]:
+                  - generic [ref=f60e50]:
+                    - text: All-Time
+                    - generic [ref=f60e51]: Downloads
+                    - text: ":"
+                  - text: 43,130
+              - listitem [ref=f60e52]:
+                - generic [ref=f60e54]:
+                  - generic [ref=f60e55]:
+                    - text: Recent
+                    - generic [ref=f60e56]: Downloads
+                    - text: ":"
+                  - text: 1,060
+              - listitem [ref=f60e57]:
+                - generic [ref=f60e59]:
+                  - generic [ref=f60e60]: "Updated:"
+                  - time [ref=f60e61]: about 8 years ago
+            - list [ref=f60e62]:
+              - listitem [ref=f60e63]:
+                - link "Repository" [ref=f60e64] [cursor=pointer]:
+                  - /url: https://github.com/kimhyunkang/libyaml-rust
+        - listitem [ref=f60e65]:
+          - generic [ref=f60e66]:
+            - generic [ref=f60e67]:
+              - heading "serde-saphyr v2.0.0" [level=2] [ref=f60e68]:
+                - link "serde-saphyr" [ref=f60e69] [cursor=pointer]:
+                  - /url: /crates/serde-saphyr
+                - generic [ref=f60e70]: v2.0.0
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e71] [cursor=pointer]
+              - generic [ref=f60e73]: YAML (de)serializer for Serde, emphasizing panic-free parsing, fast builds and good error reporting. Supports properties, include, tag and comment capture
+            - list "Statistics" [ref=f60e74]:
+              - listitem [ref=f60e75]:
+                - generic [ref=f60e77]:
+                  - generic [ref=f60e78]:
+                    - text: All-Time
+                    - generic [ref=f60e79]: Downloads
+                    - text: ":"
+                  - text: 11,778,111
+              - listitem [ref=f60e80]:
+                - generic [ref=f60e82]:
+                  - generic [ref=f60e83]:
+                    - text: Recent
+                    - generic [ref=f60e84]: Downloads
+                    - text: ":"
+                  - text: 8,713,134
+              - listitem [ref=f60e85]:
+                - generic [ref=f60e87]:
+                  - generic [ref=f60e88]: "Updated:"
+                  - time [ref=f60e89]: 7 days ago
+            - list [ref=f60e90]:
+              - listitem [ref=f60e91]:
+                - link "Documentation" [ref=f60e92] [cursor=pointer]:
+                  - /url: https://docs.rs/serde-saphyr/latest/serde-saphyr/
+              - listitem [ref=f60e93]:
+                - link "Repository" [ref=f60e94] [cursor=pointer]:
+                  - /url: https://github.com/bourumir-wyngs/serde-saphyr
+        - listitem [ref=f60e95]:
+          - generic [ref=f60e96]:
+            - generic [ref=f60e97]:
+              - heading "rust-yaml v1.1.0" [level=2] [ref=f60e98]:
+                - link "rust-yaml" [ref=f60e99] [cursor=pointer]:
+                  - /url: /crates/rust-yaml
+                - generic [ref=f60e100]: v1.1.0
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e101] [cursor=pointer]
+              - generic [ref=f60e103]: A fast, safe YAML 1.2 library for Rust
+            - list "Statistics" [ref=f60e104]:
+              - listitem [ref=f60e105]:
+                - generic [ref=f60e107]:
+                  - generic [ref=f60e108]:
+                    - text: All-Time
+                    - generic [ref=f60e109]: Downloads
+                    - text: ":"
+                  - text: 52,464
+              - listitem [ref=f60e110]:
+                - generic [ref=f60e112]:
+                  - generic [ref=f60e113]:
+                    - text: Recent
+                    - generic [ref=f60e114]: Downloads
+                    - text: ":"
+                  - text: 29,859
+              - listitem [ref=f60e115]:
+                - generic [ref=f60e117]:
+                  - generic [ref=f60e118]: "Updated:"
+                  - time [ref=f60e119]: 5 months ago
+            - list [ref=f60e120]:
+              - listitem [ref=f60e121]:
+                - link "Repository" [ref=f60e122] [cursor=pointer]:
+                  - /url: https://github.com/elioetibr/rust-yaml
+        - listitem [ref=f60e123]:
+          - generic [ref=f60e124]:
+            - generic [ref=f60e125]:
+              - heading "serde_yaml_gtc v2.6.37436772465" [level=2] [ref=f60e126]:
+                - link "serde_yaml_gtc" [ref=f60e127] [cursor=pointer]:
+                  - /url: /crates/serde_yaml_gtc
+                - generic [ref=f60e128]: v2.6.37436772465
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e129] [cursor=pointer]
+              - generic [ref=f60e131]: Temp copy for serde_yaml_bw until version 2.5.3 is on crates. YAML support for Serde with an emphasis on panic-free parsing (including malformed YAML).
+            - list "Statistics" [ref=f60e132]:
+              - listitem [ref=f60e133]:
+                - generic [ref=f60e135]:
+                  - generic [ref=f60e136]:
+                    - text: All-Time
+                    - generic [ref=f60e137]: Downloads
+                    - text: ":"
+                  - text: 71,445
+              - listitem [ref=f60e138]:
+                - generic [ref=f60e140]:
+                  - generic [ref=f60e141]:
+                    - text: Recent
+                    - generic [ref=f60e142]: Downloads
+                    - text: ":"
+                  - text: 30,210
+              - listitem [ref=f60e143]:
+                - generic [ref=f60e145]:
+                  - generic [ref=f60e146]: "Updated:"
+                  - time [ref=f60e147]: 14 days ago
+            - list [ref=f60e148]:
+              - listitem [ref=f60e149]:
+                - link "Documentation" [ref=f60e150] [cursor=pointer]:
+                  - /url: https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/
+              - listitem [ref=f60e151]:
+                - link "Repository" [ref=f60e152] [cursor=pointer]:
+                  - /url: https://github.com/greenticai/serde-yaml-gtc
+        - listitem [ref=f60e153]:
+          - generic [ref=f60e154]:
+            - generic [ref=f60e155]:
+              - heading "serde_yaml_bw v2.5.8" [level=2] [ref=f60e156]:
+                - link "serde_yaml_bw" [ref=f60e157] [cursor=pointer]:
+                  - /url: /crates/serde_yaml_bw
+                - generic [ref=f60e158]: v2.5.8
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e159] [cursor=pointer]
+              - generic [ref=f60e161]: YAML support for Serde with an emphasis on panic-free parsing (including malformed YAML).
+            - list "Statistics" [ref=f60e162]:
+              - listitem [ref=f60e163]:
+                - generic [ref=f60e165]:
+                  - generic [ref=f60e166]:
+                    - text: All-Time
+                    - generic [ref=f60e167]: Downloads
+                    - text: ":"
+                  - text: 357,653
+              - listitem [ref=f60e168]:
+                - generic [ref=f60e170]:
+                  - generic [ref=f60e171]:
+                    - text: Recent
+                    - generic [ref=f60e172]: Downloads
+                    - text: ":"
+                  - text: 167,370
+              - listitem [ref=f60e173]:
+                - generic [ref=f60e175]:
+                  - generic [ref=f60e176]: "Updated:"
+                  - time [ref=f60e177]: about 1 month ago
+            - list [ref=f60e178]:
+              - listitem [ref=f60e179]:
+                - link "Documentation" [ref=f60e180] [cursor=pointer]:
+                  - /url: https://docs.rs/serde_yaml_bw/latest/serde_yaml_bw/
+              - listitem [ref=f60e181]:
+                - link "Repository" [ref=f60e182] [cursor=pointer]:
+                  - /url: https://github.com/bourumir-wyngs/serde-yaml-bw
+        - listitem [ref=f60e183]:
+          - generic [ref=f60e184]:
+            - generic [ref=f60e185]:
+              - heading "libyml v0.0.6" [level=2] [ref=f60e186]:
+                - link "libyml" [ref=f60e187] [cursor=pointer]:
+                  - /url: /crates/libyml
+                - generic [ref=f60e188]: v0.0.6
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e189] [cursor=pointer]
+              - generic [ref=f60e191]: "DEPRECATED — `libyml` is unmaintained. This release is a thin compatibility shim that forwards every call to `unsafe-libyaml` (the upstream C-libyaml translation `libyml` was originally forked from). …"
+            - list "Statistics" [ref=f60e192]:
+              - listitem [ref=f60e193]:
+                - generic [ref=f60e195]:
+                  - generic [ref=f60e196]:
+                    - text: All-Time
+                    - generic [ref=f60e197]: Downloads
+                    - text: ":"
+                  - text: 24,385,988
+              - listitem [ref=f60e198]:
+                - generic [ref=f60e200]:
+                  - generic [ref=f60e201]:
+                    - text: Recent
+                    - generic [ref=f60e202]: Downloads
+                    - text: ":"
+                  - text: 4,500,183
+              - listitem [ref=f60e203]:
+                - generic [ref=f60e205]:
+                  - generic [ref=f60e206]: "Updated:"
+                  - time [ref=f60e207]: 5 months ago
+            - list [ref=f60e208]:
+              - listitem [ref=f60e209]:
+                - link "Homepage" [ref=f60e210] [cursor=pointer]:
+                  - /url: https://github.com/sebastienrousseau/libyml
+              - listitem [ref=f60e211]:
+                - link "Documentation" [ref=f60e212] [cursor=pointer]:
+                  - /url: https://docs.rs/libyml/
+              - listitem [ref=f60e213]:
+                - link "Repository" [ref=f60e214] [cursor=pointer]:
+                  - /url: https://github.com/sebastienrousseau/libyml
+        - listitem [ref=f60e215]:
+          - generic [ref=f60e216]:
+            - generic [ref=f60e217]:
+              - heading "yaml_serde v0.10.7" [level=2] [ref=f60e218]:
+                - link "yaml_serde" [ref=f60e219] [cursor=pointer]:
+                  - /url: /crates/yaml_serde
+                - generic [ref=f60e220]: v0.10.7
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e221] [cursor=pointer]
+              - generic [ref=f60e223]: serde_yaml maintained by The YAML Organization
+            - list "Statistics" [ref=f60e224]:
+              - listitem [ref=f60e225]:
+                - generic [ref=f60e227]:
+                  - generic [ref=f60e228]:
+                    - text: All-Time
+                    - generic [ref=f60e229]: Downloads
+                    - text: ":"
+                  - text: 3,825,779
+              - listitem [ref=f60e230]:
+                - generic [ref=f60e232]:
+                  - generic [ref=f60e233]:
+                    - text: Recent
+                    - generic [ref=f60e234]: Downloads
+                    - text: ":"
+                  - text: 2,939,198
+              - listitem [ref=f60e235]:
+                - generic [ref=f60e237]:
+                  - generic [ref=f60e238]: "Updated:"
+                  - time [ref=f60e239]: 2 months ago
+            - list [ref=f60e240]:
+              - listitem [ref=f60e241]:
+                - link "Documentation" [ref=f60e242] [cursor=pointer]:
+                  - /url: https://docs.rs/yaml_serde/
+              - listitem [ref=f60e243]:
+                - link "Repository" [ref=f60e244] [cursor=pointer]:
+                  - /url: https://github.com/yaml/yaml-serde
+        - listitem [ref=f60e245]:
+          - generic [ref=f60e246]:
+            - generic [ref=f60e247]:
+              - heading "noyalib v0.0.58" [level=2] [ref=f60e248]:
+                - link "noyalib" [ref=f60e249] [cursor=pointer]:
+                  - /url: /crates/noyalib
+                - generic [ref=f60e250]: v0.0.58
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e251] [cursor=pointer]
+              - generic [ref=f60e253]: A pure Rust YAML library with zero unsafe code and full serde integration
+            - list "Statistics" [ref=f60e254]:
+              - listitem [ref=f60e255]:
+                - generic [ref=f60e257]:
+                  - generic [ref=f60e258]:
+                    - text: All-Time
+                    - generic [ref=f60e259]: Downloads
+                    - text: ":"
+                  - text: 919,316
+              - listitem [ref=f60e260]:
+                - generic [ref=f60e262]:
+                  - generic [ref=f60e263]:
+                    - text: Recent
+                    - generic [ref=f60e264]: Downloads
+                    - text: ":"
+                  - text: 792,211
+              - listitem [ref=f60e265]:
+                - generic [ref=f60e267]:
+                  - generic [ref=f60e268]: "Updated:"
+                  - time [ref=f60e269]: 5 days ago
+            - list [ref=f60e270]:
+              - listitem [ref=f60e271]:
+                - link "Homepage" [ref=f60e272] [cursor=pointer]:
+                  - /url: https://github.com/sebastienrousseau/noyalib
+              - listitem [ref=f60e273]:
+                - link "Documentation" [ref=f60e274] [cursor=pointer]:
+                  - /url: https://docs.rs/noyalib
+              - listitem [ref=f60e275]:
+                - link "Repository" [ref=f60e276] [cursor=pointer]:
+                  - /url: https://github.com/sebastienrousseau/noyalib
+        - listitem [ref=f60e277]:
+          - generic [ref=f60e278]:
+            - generic [ref=f60e279]:
+              - heading "dbt-yaml_schemars_derive v0.10.8" [level=2] [ref=f60e280]:
+                - link "dbt-yaml_schemars_derive" [ref=f60e281] [cursor=pointer]:
+                  - /url: /crates/dbt-yaml_schemars_derive
+                - generic [ref=f60e282]: v0.10.8
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e283] [cursor=pointer]
+              - generic [ref=f60e285]: Fork of schemars_derive adapted for dbt-serde-yaml
+            - list "Statistics" [ref=f60e286]:
+              - listitem [ref=f60e287]:
+                - generic [ref=f60e289]:
+                  - generic [ref=f60e290]:
+                    - text: All-Time
+                    - generic [ref=f60e291]: Downloads
+                    - text: ":"
+                  - text: 116,736
+              - listitem [ref=f60e292]:
+                - generic [ref=f60e294]:
+                  - generic [ref=f60e295]:
+                    - text: Recent
+                    - generic [ref=f60e296]: Downloads
+                    - text: ":"
+                  - text: 74,339
+              - listitem [ref=f60e297]:
+                - generic [ref=f60e299]:
+                  - generic [ref=f60e300]: "Updated:"
+                  - time [ref=f60e301]: 16 days ago
+            - list [ref=f60e302]:
+              - listitem [ref=f60e303]:
+                - link "Documentation" [ref=f60e304] [cursor=pointer]:
+                  - /url: https://docs.rs/dbt-yaml/
+              - listitem [ref=f60e305]:
+                - link "Repository" [ref=f60e306] [cursor=pointer]:
+                  - /url: https://github.com/sdf-labs/dbt-yaml
+        - listitem [ref=f60e307]:
+          - generic [ref=f60e308]:
+            - generic [ref=f60e309]:
+              - heading "yaml-rust2 v0.13.0" [level=2] [ref=f60e310]:
+                - link "yaml-rust2" [ref=f60e311] [cursor=pointer]:
+                  - /url: /crates/yaml-rust2
+                - generic [ref=f60e312]: v0.13.0
+                - button "Copy Cargo.toml snippet to clipboard" [ref=f60e313] [cursor=pointer]
+              - generic [ref=f60e315]: A fully YAML 1.2 compliant YAML parser
+            - list "Statistics" [ref=f60e316]:
+              - listitem [ref=f60e317]:
+                - generic [ref=f60e319]:
+                  - generic [ref=f60e320]:
+                    - text: All-Time
+                    - generic [ref=f60e321]: Downloads
+                    - text: ":"
+                  - text: 66,196,265
+              - listitem [ref=f60e322]:
+                - generic [ref=f60e324]:
+                  - generic [ref=f60e325]:
+                    - text: Recent
+                    - generic [ref=f60e326]: Downloads
+                    - text: ":"
+                  - text: 19,002,838
+              - listitem [ref=f60e327]:
+                - generic [ref=f60e329]:
+                  - generic [ref=f60e330]: "Updated:"
+                  - time [ref=f60e331]: about 1 month ago
+            - list [ref=f60e332]:
+              - listitem [ref=f60e333]:
+                - link "Documentation" [ref=f60e334] [cursor=pointer]:
+                  - /url: https://docs.rs/yaml-rust2
+              - listitem [ref=f60e335]:
+                - link "Repository" [ref=f60e336] [cursor=pointer]:
+                  - /url: https://github.com/Ethiraric/yaml-rust2
+      - navigation "Pagination navigation" [ref=f60e337]:
+        - list [ref=f60e340]:
+          - listitem [ref=f60e341]:
+            - link "1" [ref=f60e342] [cursor=pointer]:
+              - /url: "?q=yaml&page=1"
+          - listitem [ref=f60e343]:
+            - link "2" [ref=f60e344] [cursor=pointer]:
+              - /url: "?q=yaml&page=2"
+          - listitem [ref=f60e345]:
+            - link "3" [ref=f60e346] [cursor=pointer]:
+              - /url: "?q=yaml&page=3"
+          - listitem [ref=f60e347]:
+            - link "4" [ref=f60e348] [cursor=pointer]:
+              - /url: "?q=yaml&page=4"
+          - listitem [ref=f60e349]:
+            - link "5" [ref=f60e350] [cursor=pointer]:
+              - /url: "?q=yaml&page=5"
+          - listitem [ref=f60e351]:
+            - link "6" [ref=f60e352] [cursor=pointer]:
+              - /url: "?q=yaml&page=6"
+          - listitem [ref=f60e353]:
+            - link "7" [ref=f60e354] [cursor=pointer]:
+              - /url: "?q=yaml&page=7"
+          - listitem [ref=f60e355]:
+            - link "8" [ref=f60e356] [cursor=pointer]:
+              - /url: "?q=yaml&page=8"
+          - listitem [ref=f60e357]:
+            - link "9" [ref=f60e358] [cursor=pointer]:
+              - /url: "?q=yaml&page=9"
+        - link "next page" [ref=f60e359] [cursor=pointer]:
+          - /url: "?q=yaml&page=2"
+  - contentinfo [ref=f60e361]:
+    - generic [ref=f60e362]:
+      - generic [ref=f60e363]:
+        - heading "Rust" [level=2] [ref=f60e364]
+        - list [ref=f60e365]:
+          - listitem [ref=f60e366]:
+            - link "rust-lang.org" [ref=f60e367] [cursor=pointer]:
+              - /url: https://www.rust-lang.org/
+          - listitem [ref=f60e368]:
+            - link "Rust Foundation" [ref=f60e369] [cursor=pointer]:
+              - /url: https://foundation.rust-lang.org/
+          - listitem [ref=f60e370]:
+            - link "The crates.io team" [ref=f60e371] [cursor=pointer]:
+              - /url: https://www.rust-lang.org/governance/teams/dev-tools#team-crates-io
+      - generic [ref=f60e372]:
+        - heading "Get Help" [level=2] [ref=f60e373]
+        - list [ref=f60e374]:
+          - listitem [ref=f60e375]:
+            - link "The Cargo Book" [ref=f60e376] [cursor=pointer]:
+              - /url: https://doc.rust-lang.org/cargo/
+          - listitem [ref=f60e377]:
+            - link "Support" [ref=f60e378] [cursor=pointer]:
+              - /url: /support
+          - listitem [ref=f60e379]:
+            - link "System Status" [ref=f60e380] [cursor=pointer]:
+              - /url: https://status.crates.io/
+          - listitem [ref=f60e381]:
+            - link "Report a bug" [ref=f60e382] [cursor=pointer]:
+              - /url: https://github.com/rust-lang/crates.io/issues/new/choose
+      - generic [ref=f60e383]:
+        - heading "Policies" [level=2] [ref=f60e384]
+        - list [ref=f60e385]:
+          - listitem [ref=f60e386]:
+            - link "Usage Policy" [ref=f60e387] [cursor=pointer]:
+              - /url: /policies
+          - listitem [ref=f60e388]:
+            - link "Security" [ref=f60e389] [cursor=pointer]:
+              - /url: /policies/security
+          - listitem [ref=f60e390]:
+            - link "Privacy Policy" [ref=f60e391] [cursor=pointer]:
+              - /url: https://foundation.rust-lang.org/policies/privacy-policy/
+          - listitem [ref=f60e392]:
+            - link "Code of Conduct" [ref=f60e393] [cursor=pointer]:
+              - /url: https://www.rust-lang.org/policies/code-of-conduct
+          - listitem [ref=f60e394]:
+            - link "Data Access" [ref=f60e395] [cursor=pointer]:
+              - /url: /data-access
+          - listitem [ref=f60e396]:
+            - link "Rate Limits" [ref=f60e397] [cursor=pointer]:
+              - /url: /docs/rate-limits
+      - generic [ref=f60e398]:
+        - heading "Social" [level=2] [ref=f60e399]
+        - list [ref=f60e400]:
+          - listitem [ref=f60e401]:
+            - 'link "GitHub: rust-lang/crates.io" [ref=f60e402] [cursor=pointer]':
+              - /url: https://github.com/rust-lang/crates.io/
+              - generic [ref=f60e404]: "GitHub:"
+              - text: rust-lang/crates.io
+          - listitem [ref=f60e405]:
+            - 'link "Zulip: #t-crates-io" [ref=f60e406] [cursor=pointer]':
+              - /url: https://rust-lang.zulipchat.com/#streams/318791/t-crates-io
+              - generic [ref=f60e408]: "Zulip:"
+              - text: "#t-crates-io"
+          - listitem [ref=f60e409]:
+            - 'link "X: @cratesiostatus" [ref=f60e410] [cursor=pointer]':
+              - /url: https://twitter.com/cratesiostatus
+              - generic [ref=f60e412]: "X:"
+              - text: "@cratesiostatus"

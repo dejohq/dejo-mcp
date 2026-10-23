@@ -175,6 +175,152 @@ def hard() -> HTMLResponse:
     return hard_page()
 
 
+@app.get("/checkout", response_class=HTMLResponse)
+def checkout(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    """A payment widget inside an iframe, the way hosted card forms arrive on real sites.
+
+    It exists for one bug. After the browser has navigated even once, Playwright numbers the
+    main page's refs as well as the frame's, and Dejo used to read that number as "which
+    frame". The button in here then lost its frame, and a trail that pressed it could never
+    find it again."""
+    widget = (
+        "<button onclick=&quot;parent.document.getElementById('status').textContent='Paid'"
+        "&quot;>Pay now</button>"
+    )
+    return page(
+        "Checkout",
+        f"""<h1>Checkout</h1>
+            <p id="status">Not paid</p>
+            <iframe id="card" title="Card payment" srcdoc="{widget}"></iframe>""",
+        variant=variant_of(request, variant),
+    )
+
+
+# Orders placed through /shop, so a test can count how many times "Pay" really ran. A
+# risky step must happen exactly once, and the only honest proof is the shop's own count.
+ORDERS = {"placed": 0}
+
+BOOKS = ["It's Only the Himalayas", "Full Moon over Noah's Ark", "See America", "Vagabonding"]
+
+
+@app.get("/shop", response_class=HTMLResponse)
+def shop(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    """A form that POSTs an order, next to a search form that only GETs.
+
+    The search button says "Submit" on purpose: a plain search must never be treated as a
+    risky step, while "Pay now" always is."""
+    v = variant_of(request, variant)
+    return page(
+        "Shop",
+        f"""<h1>Shop</h1>
+            <p class="sub">Orders placed: <span id="orders">{ORDERS["placed"]}</span></p>
+            <form method="get" action="/shop/search"><label for="q">Search</label>
+              <input id="q" name="q"><button type="submit">Submit</button></form>
+            <form method="post" action="{link("/shop/pay", v)}"><button type="submit">Pay now</button></form>""",
+        variant=v,
+    )
+
+
+@app.get("/shop/search", response_class=HTMLResponse)
+def shop_search(request: Request, q: str = "", variant: str | None = Query(None)) -> HTMLResponse:
+    return page(
+        "Search", f"<h1>Results for {q or 'nothing'}</h1>", variant=variant_of(request, variant)
+    )
+
+
+@app.post("/shop/pay", response_class=HTMLResponse)
+def shop_pay(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    # Variant b renames the receipt, so a trail that pays and then reads it breaks AFTER
+    # the payment: the fix must not pay a second time.
+    ORDERS["placed"] += 1
+    v = variant_of(request, variant)
+    receipt = "receipt" if v == "a" else "order-receipt"
+    return page(
+        "Paid",
+        f'<h1>Paid</h1><p class="ok" id="{receipt}">Order {ORDERS["placed"]} placed</p>',
+        variant=v,
+    )
+
+
+@app.get("/books", response_class=HTMLResponse)
+def books(request: Request, order: str = "a", variant: str | None = Query(None)) -> HTMLResponse:
+    """A list whose order changes: `?order=b` reverses it. "Open the first book" learned on
+    one order has to open whatever is first on the other, not the book it opened before."""
+    listed = BOOKS if order == "a" else list(reversed(BOOKS))
+    rows = "".join(
+        f'<li class="row"><article class="book"><h3><a href="/books/{index}">{title}</a></h3>'
+        f'<p class="price">£{40 + index}.00</p></article></li>'
+        for index, title in ((BOOKS.index(title), title) for title in listed)
+    )
+    return page(
+        "Books",
+        f'<h1>Books</h1><ul class="rows">{rows}</ul>',
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/books/{index}", response_class=HTMLResponse)
+def book(request: Request, index: int, variant: str | None = Query(None)) -> HTMLResponse:
+    return page(
+        BOOKS[index],
+        f'<h1 id="title">{BOOKS[index]}</h1><p class="price" id="price">£{40 + index}.00</p>',
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/tickets", response_class=HTMLResponse)
+def tickets(request: Request, open_count: int = Query(3, alias="open")) -> HTMLResponse:
+    """GitHub's issue list in miniature: the count lives in a link NAMED by the count, under
+    an id React made up for this page load. A read learned at one count has to answer at
+    another, which it cannot do if it was stored by the name "Open (3)" or by that id."""
+    return page(
+        "Tickets",
+        f"""<h1>Tickets</h1>
+            <div id="_r_2o_-list-view-metadata"><ul>
+              <li><a href="/tickets?state=open">Open ({open_count})</a></li>
+              <li><a href="/tickets?state=closed">Closed (40)</a></li>
+            </ul></div>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/challenge", response_class=HTMLResponse)
+def challenge() -> HTMLResponse:
+    """What Cloudflare shows a browser it does not trust yet, with no widget a page can see:
+    only its title and its heading say what it is (three real sites, 22 Oct 2026)."""
+    return HTMLResponse(
+        "<html><head><title>Just a moment...</title></head><body>"
+        "<h1>example.org</h1><h2>Performing security verification</h2>"
+        "<p>This website uses a security service to protect against malicious bots.</p>"
+        "</body></html>"
+    )
+
+
+@app.get("/refused", response_class=HTMLResponse)
+def refused() -> HTMLResponse:
+    """A site that turns automated browsers away with a plain 403."""
+    return HTMLResponse("<h1>403 Forbidden</h1>", status_code=403)
+
+
+CATALOG = {1: "Degrees", 2: "Courses", 3: "Policies"}
+
+
+@app.get("/catalog", response_class=HTMLResponse)
+def catalog(nav: int = 0) -> HTMLResponse:
+    """Every page at one address, told apart only by its query, the way catalog.ccv.edu
+    serves all of its pages as `/content.php?navoid=N`. Every menu link has the same path, so
+    a step stored by that path clicks whichever link comes first."""
+    links = "".join(
+        f'<li><a href="/catalog?nav={n}">{name}</a></li>' for n, name in CATALOG.items()
+    )
+    title = CATALOG.get(nav, "Catalog")
+    return page(
+        title,
+        f'<ul class="menu">{links}</ul><h1 id="heading">{title}</h1>',
+        variant="a",
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
     v = variant_of(request, variant)

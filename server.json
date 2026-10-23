@@ -8,7 +8,7 @@
     "url": "https://github.com/dejohq/dejo-mcp",
     "source": "github"
   },
-  "version": "0.1.2",
+  "version": "0.2.0",
   "icons": [
     {
       "src": "https://raw.githubusercontent.com/dejohq/dejo-mcp/main/.github/assets/dejo-icon-512.png",
@@ -20,7 +20,7 @@
     {
       "registryType": "pypi",
       "identifier": "dejo-mcp",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       }

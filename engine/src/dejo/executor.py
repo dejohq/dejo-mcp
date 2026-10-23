@@ -30,7 +30,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
@@ -239,6 +239,28 @@ def _same_page(here: str, recorded: str) -> bool:
     return page_path(here).rstrip("/") == page_path(recorded).rstrip("/")
 
 
+def _leaves_out_of(url: str, playbook: Playbook) -> bool:
+    """Is `url` this trail's own first address with parts left out?
+
+    Agents pass the address they were given, usually a site's front page or a list's first
+    page, while the trail starts deeper, at `/pages/forms/?page_num=5`. Taken as the start,
+    that url sent the replay to page 1, where it read the first team and said done
+    (real-site bench, 22 Oct 2026). A url that adds or changes something is a real new
+    start, `?variant=b` on the demo site for one, and is kept."""
+    first = playbook.steps[0] if playbook.steps else None
+    if first is None or first.action != "goto" or not first.value:
+        return False
+    given, own = urlparse(url), urlparse(first.value)
+    if given.netloc and given.netloc.removeprefix("www.") != own.netloc.removeprefix("www."):
+        return False
+    asked = [part for part in given.path.split("/") if part]
+    mine = [part for part in own.path.split("/") if part]
+    if asked != mine[: len(asked)]:
+        return False
+    have = set(parse_qsl(own.query, keep_blank_values=True))
+    return set(parse_qsl(given.query, keep_blank_values=True)) <= have
+
+
 def _trail_origin(playbook: Playbook) -> str | None:
     """Where this trail's site starts: the scheme and host of its first address."""
     for step in playbook.steps:
@@ -404,18 +426,30 @@ class Executor:
     """Substituted steps nothing on the page could confirm."""
 
     def run(
-        self, domain: str, *, task: str | None = None, start_url: str | None = None
+        self,
+        domain: str,
+        *,
+        task: str | None = None,
+        start_url: str | None = None,
+        resume_at: int = 1,
     ) -> ReplayResult:
         """Walk the remembered trail for one task on one site.
 
         `start_url` overrides the first step's destination. That is how the demo points a
         trail learned on the normal site at the redesigned one, without editing memory.
+
+        `resume_at` starts the walk at that step, for a browser that already stands where
+        the step before it left off: a replay broke at step k, the agent fixed step k in
+        place, and steps k+1 to the end are all that is left. Running 1 to k again would
+        cost time, and would press a risky step before k a second time.
         """
         self._domain = domain
         self.answers: dict[str, Any] = {}
         self._went_back = False
         self._unverified = []
         playbook = self._load(domain, task)
+        if start_url and _leaves_out_of(start_url, playbook):
+            start_url = None
 
         # Same route, different subject. "message riya" against a trail saved as "message
         # ankush" is not a rephrasing and must not be replayed unchanged — that is how a
@@ -453,6 +487,8 @@ class Executor:
         )
 
         for step in playbook.steps:
+            if step.index < resume_at:
+                continue
             self.events.emit(StepStarted(index=step.index, intent=step.intent))
             outcome = self._replay_step(step, start_url=start_url)
 
@@ -643,6 +679,9 @@ class Executor:
                 repair=request,
                 reason=outcome.reason,
                 saved_files=list(self.browser.saved_files),
+                # Reads before the broken step did answer. The fix carries on from that
+                # step, so these are the only copy of them the final reply will have.
+                answers=dict(self.answers),
                 # A run that stopped BECAUSE it was aimed somewhere new has to say so.
                 # Without this the caller sees "this step went stale" and repairs a trail
                 # that is perfectly healthy — it was simply pointed at a subject that is
@@ -793,6 +832,13 @@ class Executor:
             step.record_hit()
             return self._StepOutcome(matched_by="page", duration_ms=elapsed)
 
+        # An action aimed at no element (Enter in the field that has focus, a scroll of the
+        # page) has nothing to find either. It is done to the page and judged by its check.
+        # Treated as "no locator matched", it could never replay: a trail with a bare
+        # `press Enter` broke at that step every time (real-site bench, 22 Oct 2026).
+        if not step.locators:
+            return self._do_to_the_page(step, began)
+
         outcome = self._StepOutcome()
         # A step that answered a confirm box last time expects the same wording this time.
         self.browser.dialog_policy = step.dialog_choice or ACCEPT
@@ -829,6 +875,19 @@ class Executor:
         self._blame(missed, step)
         outcome.reason = "every remembered way of finding this went stale"
         return outcome
+
+    def _do_to_the_page(self, step: Step, began: float) -> _StepOutcome:
+        try:
+            self._do(step, None, domain=self._domain)
+        except PlaywrightError as failed:
+            step.record_miss()
+            return self._StepOutcome(reason=str(failed).splitlines()[0])
+        if not settles_into(self.browser, step.postcondition):
+            step.record_miss()
+            return self._StepOutcome(reason="the page did not change the way it did when learned")
+        step.record_hit()
+        elapsed = int((time.perf_counter() - began) * 1000)
+        return self._StepOutcome(matched_by="page", duration_ms=elapsed)
 
     def _note_if_unproven(self, step: Step) -> None:
         """A step took the new subject, passed, and nothing on the page vouched for it.
@@ -1127,8 +1186,10 @@ class Executor:
         # This step is recorded as one that changes the address. If it has not changed
         # yet, the app may be doing it itself a moment later — which is how every
         # single-page sidebar link works. Cheap when it was going to change anyway.
-        if step.postcondition.kind == "url_contains" and self.browser.page.url == was:
-            self.browser.await_url_change(was)
+        # The address moving is the start of the load, not the end of it.
+        moved = step.postcondition.kind == "url_contains" and self.browser.page.url == was
+        if moved and self.browser.await_url_change(was):
+            self.browser.settle()
         return True
 
     def _retire(self, playbook: Playbook, started: float) -> ReplayResult:
@@ -1264,12 +1325,17 @@ class Executor:
         locator: Locator | list[Locator],
         *,
         task: str | None = None,
+        postcondition: Postcondition | None = None,
     ) -> Playbook:
         """Save the fix the host AI worked out, for that one step only.
 
         The new locators go to the front with a hit already recorded, and the dead ones
         are kept rather than dropped — a locator that fails today may be the one that
         works again after the site is reverted, and its miss count is evidence.
+
+        `postcondition` replaces the step's check, for a fix after which the old check no
+        longer holds. A read is checked by its element's css path, and that path is often
+        exactly what moved: kept, it would call the repaired step broken on the next run.
         """
         fresh = [locator] if isinstance(locator, Locator) else list(locator)
         if not fresh:
@@ -1286,6 +1352,8 @@ class Executor:
         # Only the first is credited with the hit — it is the one actually confirmed.
         fresh[0].record_hit()
         step.locators = fresh + step.locators
+        if postcondition is not None:
+            step.postcondition = postcondition
         step.repairs += 1
         playbook.repairs += 1
         playbook.touch()

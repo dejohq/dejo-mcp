@@ -87,9 +87,9 @@ These are what make Dejo work. A pull request that breaks one will be asked to c
    `engine/tests/test_deletion_gate.py` is the proof.
 4. **Memory has one front door.** Only `store.py` uses the database, and only `memory.py`
    speaks SQL. Tests check both.
-5. **Two browsing tools, not thirty-five.** `dejo_act` and `dejo_read` carry every action and
-   read. Their descriptions are generated from `actions.py` and `reads.py`, so a new action
-   is added to the registry, never as a new tool.
+5. **One browsing tool, not thirty-five.** `dejo_run` carries every action and read as a step
+   line (`engine/src/dejo/program.py`). Every verb comes from `actions.py` and `reads.py`, so a
+   new action is added to the registry, never as a new tool.
 6. **Errors say what to do next.** A person, or an agent, should never have to read a stack
    trace to know how to fix a problem.
 7. **The MCP server never prints to stdout.** Stdout is the MCP connection; one stray line

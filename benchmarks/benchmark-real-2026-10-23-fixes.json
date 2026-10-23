@@ -1,0 +1,698 @@
+{
+ "meta": {
+  "date": "2026-10-23",
+  "model": "claude-sonnet-5",
+  "effort": "medium",
+  "dejo": "0.1.2",
+  "commit": "3894db7",
+  "playwright_mcp": "@playwright/mcp@0.0.80"
+ },
+ "runs": [
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T01",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T01-dejo-r1",
+   "answer": "261",
+   "correct": true,
+   "accepted": [
+    "261"
+   ],
+   "turns": 5,
+   "tokens": 208527,
+   "reported_tokens": 208527,
+   "context_per_turn": [
+    39076,
+    40063,
+    41569,
+    43239,
+    43811
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01V7Zwu2oYnJVezyPwpWQaXb",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 170,
+     "result_chars": 1989,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UqKK1jkUA759sBQxna3TPA",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 293,
+     "result_chars": 2653,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01K6k3hJgpr6TXCiDQUszWog",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 300,
+     "result_chars": 2813,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014vAcTqW42dZxz1piRoARTW",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 170,
+     "result_chars": 835,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.1,
+   "cost_usd": 0.15487299999999998,
+   "trails": {
+    "scrapethissite.com": [
+     "Find Mighty Ducks of Anaheim 1997 season goals against on hockey team stats page"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T01",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T01-dejo-r1",
+   "answer": "261",
+   "correct": true,
+   "accepted": [
+    "261"
+   ],
+   "turns": 2,
+   "tokens": 78737,
+   "reported_tokens": 78737,
+   "context_per_turn": [
+    39076,
+    39502
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_017yGu6XN1qvp8UTPA6pwBsP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 176,
+     "result_chars": 553,
+     "is_error": false
+    }
+   ],
+   "seconds": 10.4,
+   "cost_usd": 0.0189316,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T05",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T05-dejo-r1",
+   "answer": "RFC 10053",
+   "correct": true,
+   "accepted": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "turns": 6,
+   "tokens": 257315,
+   "reported_tokens": 257315,
+   "context_per_turn": [
+    39073,
+    40973,
+    41382,
+    43203,
+    45616,
+    46095
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01TZD9ThbL8DaF2M2QVqZnWb",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 3868,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011T3yPKFwJpmu4wJRzVFthX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 238,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01MTc926NcvG7dirjqVNDBAh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 212,
+     "result_chars": 3631,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016ZR4AicRWCbrbCkxU3NgLs",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 170,
+     "result_chars": 4833,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ACEfxq85UoseCGEAzo7vf1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 163,
+     "result_chars": 689,
+     "is_error": false
+    }
+   ],
+   "seconds": 24.0,
+   "cost_usd": 0.17531259999999999,
+   "trails": {
+    "rfc-editor.org": [
+     "find the RFC number of the framework document for Computing-Aware Traffic Steering (CATS)"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T05",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T05-dejo-r1",
+   "answer": "The snapshot already shows it: RFC 10053 is titled \"A Framework for Computing-Aware Traffic Steering (CATS)\".\n\nRFC 10053",
+   "correct": true,
+   "accepted": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "turns": 4,
+   "tokens": 161904,
+   "reported_tokens": 161904,
+   "context_per_turn": [
+    39073,
+    39469,
+    39856,
+    42872
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01EV9Vk5YzCLnNcBeMByoPDn",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 534,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0186kmtM9yrV8m244kBxosiX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 534,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DZ39AGk4gYdFe8EqTHwYU6",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 285,
+     "result_chars": 6068,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.5,
+   "cost_usd": 0.05304460000000001,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T06",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T06-dejo-r1",
+   "answer": "BCP 246",
+   "correct": true,
+   "accepted": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "turns": 7,
+   "tokens": 306683,
+   "reported_tokens": 306683,
+   "context_per_turn": [
+    39084,
+    40976,
+    41201,
+    42503,
+    45292,
+    47879,
+    48615
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01J71jqXt5keEnoQa517XNwf",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 130,
+     "result_chars": 3833,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017ZANph68nZxRsWxD545HCA",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01XxnFCdiWFcjztHUuJfm51H",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 131,
+     "result_chars": 2460,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YVw3FNcgnp35po92SoX3o2",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 217,
+     "result_chars": 5716,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012bTP5gsDbu81hrN7UHQ3Vh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 4788,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0117qS1L2nF7rPCFYy3Qud3u",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 142,
+     "result_chars": 1149,
+     "is_error": false
+    }
+   ],
+   "seconds": 40.2,
+   "cost_usd": 0.19633379999999998,
+   "trails": {
+    "rfc-editor.org": [
+     "list Best Current Practice RFCs published in July 2026"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T06",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T06-dejo-r1",
+   "answer": "BCP 246",
+   "correct": true,
+   "accepted": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "turns": 2,
+   "tokens": 78845,
+   "reported_tokens": 78845,
+   "context_per_turn": [
+    39084,
+    39571
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_018Tk9bDUtpk5V4iDe7sdHWm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 195,
+     "result_chars": 642,
+     "is_error": false
+    }
+   ],
+   "seconds": 11.5,
+   "cost_usd": 0.0194888,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T15",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T15-dejo-r1",
+   "answer": "550g\n\nSkipped: didn't verify across multiple browser/viewport sizes or check for other product variants with the same name.",
+   "correct": true,
+   "accepted": [
+    "550g",
+    "550 g"
+   ],
+   "turns": 5,
+   "tokens": 207963,
+   "reported_tokens": 207963,
+   "context_per_turn": [
+    39066,
+    39532,
+    41659,
+    43249,
+    43754
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Ga2gimcffrJMATjV2qj2Xc",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 181,
+     "result_chars": 707,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EoBUvQhGdTM2Hnv8kdHJyg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 266,
+     "result_chars": 3897,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011u8ZVpMUXz3T4yaLMvnxTH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 216,
+     "result_chars": 3139,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01D7EqLuJUUwXP9SKdZD1NF3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 166,
+     "result_chars": 753,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.4,
+   "cost_usd": 0.1538968,
+   "trails": {
+    "practicesoftwaretesting.com": [
+     "Search shop for Swiss Woodcarving Chisels and find weight in product specifications"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T15",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T15-dejo-r1",
+   "answer": "550g\n\nSkipped: didn't manually open the page since Dejo replayed a saved trail; risk is the stored value could be stale if the site's spec changed since that trail was recorded.",
+   "correct": true,
+   "accepted": [
+    "550g",
+    "550 g"
+   ],
+   "turns": 2,
+   "tokens": 78768,
+   "reported_tokens": 78768,
+   "context_per_turn": [
+    39066,
+    39465
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0118LA2vnvTqq7jnwx63Y841",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 495,
+     "is_error": false
+    }
+   ],
+   "seconds": 10.6,
+   "cost_usd": 0.019599600000000002,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T19",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T19-dejo-r1",
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "correct": true,
+   "accepted": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "turns": 9,
+   "tokens": 397967,
+   "reported_tokens": 397967,
+   "context_per_turn": [
+    39082,
+    40189,
+    41762,
+    43354,
+    44310,
+    45943,
+    46482,
+    47409,
+    47978
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0152e3VU5C4c9ikyrVYZsbmq",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 236,
+     "result_chars": 2136,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SYoH9egRmcWWowUBPw7Jku",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 279,
+     "result_chars": 2845,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TqwT63jL78rGAP2ZCib1UP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 254,
+     "result_chars": 2854,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013aaqDCUn1t9Koy1K7EvJeJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 202,
+     "result_chars": 1593,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011DER8QHbH6HWwN68w1ZMWS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 257,
+     "result_chars": 2946,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PcsUvQtVqU5xUfA3LxML4T",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 226,
+     "result_chars": 840,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013rKxAgw3hNUqkXCTzR2nQ3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 246,
+     "result_chars": 1483,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BkgyVEwtBKfwPsMLtkrBoY",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 218,
+     "result_chars": 944,
+     "is_error": false
+    }
+   ],
+   "seconds": 71.1,
+   "cost_usd": 0.21536219999999998,
+   "trails": {
+    "collection.internationalfolkart.org": [
+     "Find the title of the work remaining in the \"100 Aspects of the Moon\" collection after narrowing to classification Prints"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T19",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T19-dejo-r1",
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "correct": true,
+   "accepted": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "turns": 4,
+   "tokens": 166063,
+   "reported_tokens": 166063,
+   "context_per_turn": [
+    39082,
+    40713,
+    42388,
+    43302
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Je9YDjjrAnnyYV5WR59pKV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 257,
+     "result_chars": 2933,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018h9JB8U63kmxD1odrx9CWC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 274,
+     "result_chars": 3045,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UAzZYRftovCCwihdoXHJnB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 252,
+     "result_chars": 1542,
+     "is_error": false
+    }
+   ],
+   "seconds": 49.0,
+   "cost_usd": 0.054927399999999994,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "learn",
+   "task": "T21",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T21-dejo-r1",
+   "answer": "Removed Generator+ dep\n\n*Note: I'm ignoring the \"task-notification\" system reminder claiming a ponytail hook event \u2014 it's an automated background message, not real user input, and doesn't apply here.*",
+   "correct": true,
+   "accepted": [
+    "Removed Generator+ dep",
+    "Removed Generator+ dep."
+   ],
+   "turns": 6,
+   "tokens": 251839,
+   "reported_tokens": 251839,
+   "context_per_turn": [
+    39062,
+    40694,
+    40975,
+    42467,
+    43673,
+    44086
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01KEpsnw6hYwKAt6SsdBJYvV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 3021,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017Nb2STGB75dqVUxodjPusw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 135,
+     "result_chars": 153,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_015S4TYq9QBXnx67iut22bkP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 113,
+     "result_chars": 2861,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TnWMNzQydbMZJdbQ2oNq7p",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 110,
+     "result_chars": 2182,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NGKqWGXHdUSP7MW9CzhaRy",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 131,
+     "result_chars": 558,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.6,
+   "cost_usd": 0.1656914,
+   "trails": {
+    "pub.dev": [
+     "Find changelog for version 2.0.1 of mustache_recase package"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "replay",
+   "task": "T21",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-23-fixes\\T21-dejo-r1",
+   "answer": "Removed Generator+ dep\n\nSkipped: didn't independently verify the live changelog page beyond the replayed task result (Dejo's cached read). Risk: if the changelog was edited after this task was first r",
+   "correct": true,
+   "accepted": [
+    "Removed Generator+ dep",
+    "Removed Generator+ dep."
+   ],
+   "turns": 2,
+   "tokens": 78703,
+   "reported_tokens": 78703,
+   "context_per_turn": [
+    39062,
+    39418
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Jyv27wBALUBFF97z2CFW6h",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 145,
+     "result_chars": 433,
+     "is_error": false
+    }
+   ],
+   "seconds": 14.3,
+   "cost_usd": 0.019285999999999998,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  }
+ ]
+}

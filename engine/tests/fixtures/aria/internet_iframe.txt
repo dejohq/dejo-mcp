@@ -1,0 +1,53 @@
+- generic [active] [ref=f51e1]:
+  - text: The Internet
+  - generic [ref=f51e4]:
+    - link "Fork me on GitHub":
+      - /url: https://github.com/saucelabs/the-internet
+      - img "Fork me on GitHub" [ref=f51e5] [cursor=pointer]
+    - generic [ref=f51e7]:
+      - heading "An iFrame containing the TinyMCE WYSIWYG Editor" [level=3] [ref=f51e8]
+      - application [ref=f51e9]:
+        - generic [ref=f51e10]:
+          - generic [ref=f51e11]:
+            - menubar [ref=f51e12]:
+              - menuitem "File" [ref=f51e13]
+              - menuitem "Edit" [ref=f51e15]
+              - menuitem "View" [ref=f51e17]
+              - menuitem "Insert" [ref=f51e19]
+              - menuitem "Format" [ref=f51e21]
+            - group [ref=f51e23]:
+              - group [ref=f51e24]:
+                - toolbar "history" [ref=f51e25]:
+                  - button "Undo" [disabled] [ref=f51e26]
+                  - button "Redo" [disabled] [ref=f51e30]
+                - toolbar "styles" [ref=f51e34]:
+                  - button "Format Paragraph" [ref=f51e35]:
+                    - generic [ref=f51e36]: Paragraph
+                - toolbar "formatting" [ref=f51e40]:
+                  - button "Bold" [ref=f51e41]
+                  - button "Italic" [ref=f51e45]
+                - toolbar "alignment" [ref=f51e49]:
+                  - button "Align left" [ref=f51e50]
+                  - button "Align center" [ref=f51e54]
+                  - button "Align right" [ref=f51e58]
+                  - button "Justify" [ref=f51e62]
+                - toolbar "indentation" [ref=f51e66]:
+                  - button "Decrease indent" [disabled] [ref=f51e67]
+                  - button "Increase indent" [ref=f51e71]
+          - iframe [ref=f51e77]:
+            - generic "Rich Text Area. Press ALT-0 for help." [ref=f52e1]:
+              - paragraph [ref=f52e2]: Your content goes here.
+          - generic [ref=f51e78]:
+            - generic [ref=f51e79]:
+              - navigation [ref=f51e80]:
+                - button "p" [ref=f51e81]
+              - link "Powered by Tiny" [ref=f51e84]:
+                - /url: https://www.tiny.cloud/powered-by-tiny?utm_campaign=poweredby&utm_source=tiny&utm_medium=referral&utm_content=v6
+            - generic "Press the Up and Down arrow keys to resize the editor." [ref=f51e87]
+  - generic [ref=f51e93]:
+    - text: Powered by
+    - link "Elemental Selenium" [ref=f51e94] [cursor=pointer]:
+      - /url: http://elementalselenium.com/
+    - text: and
+    - link "Sauce Labs" [ref=f51e95] [cursor=pointer]:
+      - /url: https://saucelabs.com/

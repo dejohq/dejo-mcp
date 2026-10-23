@@ -3,79 +3,46 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import re
 from typing import Any
 
+from mcp import types
 
-def call(server, tool: str, **arguments: Any) -> dict[str, Any]:
-    """Invoke one MCP tool and return its structured result.
-
-    This is exactly what a host AI does, minus the transport.
-    """
-    result = asyncio.run(server.call_tool(tool, arguments))
-
-    if isinstance(result, dict):
-        return result
-
-    # FastMCP hands back (content_blocks, structured_result). Prefer the structured half,
-    # which is exactly what a host AI receives as the tool's output.
-    if isinstance(result, tuple) and len(result) == 2 and isinstance(result[1], dict):
-        return result[1]
-
-    for block in result:
-        text = getattr(block, "text", None)
-        if text:
-            return json.loads(text)
-    raise AssertionError(f"{tool} returned nothing usable: {result!r}")
+TASK = "download this month's invoice"
 
 
-def ref_named(page: dict[str, Any], name: str) -> str:
-    for element in page["elements"]:
-        if element["name"] == name:
-            return element["ref"]
-    seen = [e["name"] for e in page["elements"]]
-    raise AssertionError(f"no control named {name!r}. saw: {seen}")
+def result(server, tool: str, **arguments: Any) -> types.CallToolResult:
+    """One tool call, through the same request path a client uses."""
+    return asyncio.run(server.call_tool(tool, arguments))
 
 
-def teach_the_site(server, base_url: str) -> dict[str, Any]:
-    """The cold path, driven through MCP tools exactly as a host AI would drive it."""
-    call(server, "dejo_act", intent="open the billing portal", action="goto", value=f"{base_url}/")
+def call(server, tool: str, **arguments: Any) -> str:
+    """One tool call; the plain-text reply the agent reads."""
+    replied = result(server, tool, **arguments)
+    return "".join(block.text for block in replied.content if hasattr(block, "text"))
 
-    page = call(server, "dejo_read", kind="page")
-    call(
+
+def ref_named(view: str, name: str) -> str:
+    """The ref the view printed for an element with this exact name."""
+    found = re.search(rf'((?:f\d+)?e\d+) \w+ "{re.escape(name)}"', view)
+    if found is None:
+        raise AssertionError(f"no element named {name!r} in the view:\n{view}")
+    return found.group(1)
+
+
+def teach_the_site(server, base_url: str) -> str:
+    """The learning run, the way a host AI does it now: one look, then one call of steps."""
+    call(server, "dejo_run", site=base_url, task=TASK, url=f"{base_url}/")
+    return call(
         server,
-        "dejo_act",
-        intent="type the account email",
-        action="fill",
-        ref=ref_named(page, "Email"),
-        value="finance@acme.com",
+        "dejo_run",
+        site=base_url,
+        task=TASK,
+        steps=(
+            'fill label "Email" "finance@acme.com"\n'
+            'fill label "Password" "hunter2"\n'
+            'click button "Sign in"\n'
+            'click link "September 2026"\n'
+            'click link "Download"\n'
+        ),
     )
-    call(
-        server,
-        "dejo_act",
-        intent="type the password",
-        action="fill",
-        ref=ref_named(page, "Password"),
-        value="hunter2",
-    )
-    call(server, "dejo_act", intent="sign in", action="click", ref=ref_named(page, "Sign in"))
-
-    page = call(server, "dejo_read", kind="page")
-    call(
-        server,
-        "dejo_act",
-        intent="open this month's invoice",
-        action="click",
-        ref=ref_named(page, "September 2026"),
-    )
-
-    page = call(server, "dejo_read", kind="page")
-    call(
-        server,
-        "dejo_act",
-        intent="download the PDF",
-        action="click",
-        ref=ref_named(page, "Download"),
-    )
-
-    return call(server, "dejo_save", task="download this month's invoice")

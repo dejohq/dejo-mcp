@@ -1,0 +1,868 @@
+{
+ "meta": {
+  "date": "2026-10-21",
+  "model": "claude-sonnet-5",
+  "effort": "medium",
+  "dejo": "0.1.2",
+  "commit": "52913b3-dirty",
+  "playwright_mcp": "@playwright/mcp@0.0.80"
+ },
+ "runs": [
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "172",
+   "correct": true,
+   "accepted": [
+    "172"
+   ],
+   "turns": 3,
+   "tokens": 92900,
+   "reported_tokens": 92900,
+   "context_per_turn": [
+    28468,
+    31878,
+    32244
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_018DShCBcJZ2M8NEwzAXd43H",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 153,
+     "result_chars": 7385,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HN6qhyxeBzj36yHQBavG8N",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 385,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.0,
+   "cost_usd": 0.10215840000000001,
+   "trails": {
+    "github.com": [
+     "Check number of open issues on microsoft/playwright repository"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 1,
+   "phase": "replay",
+   "answer": "The page already shows \"Issues (174)\" link in the repository navigation.\n\n174 open issues",
+   "correct": false,
+   "accepted": [
+    "172"
+   ],
+   "turns": 3,
+   "tokens": 89872,
+   "reported_tokens": 89872,
+   "context_per_turn": [
+    28468,
+    28831,
+    32213
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01L8WnJt6cwxfKAa56uqRRPU",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 143,
+     "result_chars": 555,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011AXr1i2Ysx8u13uu9a3bA3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 225,
+     "result_chars": 7198,
+     "is_error": false
+    }
+   ],
+   "seconds": 35.9,
+   "cost_usd": 0.035744200000000004,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "172",
+   "correct": true,
+   "accepted": [
+    "172"
+   ],
+   "turns": 3,
+   "tokens": 93035,
+   "reported_tokens": 93035,
+   "context_per_turn": [
+    28470,
+    31943,
+    32296
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01QB99R2XKVxYRk1xmzcWNRD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 163,
+     "result_chars": 7440,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Gch6SCYwe3N69HmRspCJW1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 149,
+     "result_chars": 395,
+     "is_error": false
+    }
+   ],
+   "seconds": 12.8,
+   "cost_usd": 0.1025398,
+   "trails": {
+    "github.com": [
+     "Open microsoft/playwright repo issues tab and find number of open issues"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 2,
+   "phase": "replay",
+   "answer": "172 open issues",
+   "correct": true,
+   "accepted": [
+    "172"
+   ],
+   "turns": 3,
+   "tokens": 89914,
+   "reported_tokens": 89914,
+   "context_per_turn": [
+    28470,
+    28832,
+    32309
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Bci5dVt3yuYdAbmNNvx4H1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 143,
+     "result_chars": 555,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018kaALjHTrDN8KSCcLSLeDm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 7445,
+     "is_error": false
+    }
+   ],
+   "seconds": 54.3,
+   "cost_usd": 0.035551200000000005,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "172 open issues",
+   "correct": true,
+   "accepted": [
+    "172"
+   ],
+   "turns": 3,
+   "tokens": 92855,
+   "reported_tokens": 92855,
+   "context_per_turn": [
+    28470,
+    31878,
+    32229
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0144NataZCkCnMso9TC2LSL6",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 159,
+     "result_chars": 7401,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01T4oLj7zgcy3kuzXAU4dTkq",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 144,
+     "result_chars": 389,
+     "is_error": false
+    }
+   ],
+   "seconds": 13.0,
+   "cost_usd": 0.1017788,
+   "trails": {
+    "github.com": [
+     "Open microsoft/playwright repo issues tab and check open issue count"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "github.com",
+   "run": 3,
+   "phase": "replay",
+   "answer": "172 open issues",
+   "correct": true,
+   "accepted": [
+    "172"
+   ],
+   "turns": 2,
+   "tokens": 60553,
+   "reported_tokens": 60553,
+   "context_per_turn": [
+    28470,
+    31937
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01KMF5huReqe5q4qTgUDcRXB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 159,
+     "result_chars": 7434,
+     "is_error": false
+    }
+   ],
+   "seconds": 30.3,
+   "cost_usd": 0.0267232,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 5,
+   "tokens": 149785,
+   "reported_tokens": 149785,
+   "context_per_turn": [
+    28468,
+    29378,
+    29612,
+    30705,
+    31060
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_019Yz9x1SXDREHxscqC9EQ2y",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 138,
+     "result_chars": 1686,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TSmUMbSFqTVbuu62ke8LVN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 177,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01NcD7KpoJC2Jd4NUyVMpUXB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 193,
+     "result_chars": 1919,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014MrZyAhBGVP4hGWKvS9Q9W",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 131,
+     "result_chars": 412,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.1,
+   "cost_usd": 0.111513,
+   "trails": {
+    "books.toscrape.com": [
+     "Open Travel category, open first book listed, get its price"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 1,
+   "phase": "replay",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 2,
+   "tokens": 57404,
+   "reported_tokens": 57404,
+   "context_per_turn": [
+    28468,
+    28787
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0126UWMQ9G1nr57gm9QqUMyE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 127,
+     "result_chars": 397,
+     "is_error": false
+    }
+   ],
+   "seconds": 8.0,
+   "cost_usd": 0.014160400000000002,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 5,
+   "tokens": 149682,
+   "reported_tokens": 149682,
+   "context_per_turn": [
+    28468,
+    29367,
+    29596,
+    30681,
+    31026
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NrNR8WdRa5Goa5GLdbhjY1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 1657,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CDLedQdXU6cqVS24ViFLke",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 160,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01X7HHMUiSK2qfPrZeUnCbai",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 176,
+     "result_chars": 1907,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GNDusxouWi5K2bhdABpcqa",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 114,
+     "result_chars": 395,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.3,
+   "cost_usd": 0.1111868,
+   "trails": {
+    "books.toscrape.com": [
+     "Get price of first book in Travel category"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 2,
+   "phase": "replay",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 2,
+   "tokens": 57395,
+   "reported_tokens": 57395,
+   "context_per_turn": [
+    28468,
+    28778
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01GHUzNjub5nRSQQZoSYq6jQ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 131,
+     "result_chars": 367,
+     "is_error": false
+    }
+   ],
+   "seconds": 8.3,
+   "cost_usd": 0.014124400000000002,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 4,
+   "tokens": 118526,
+   "reported_tokens": 118526,
+   "context_per_turn": [
+    28466,
+    29361,
+    29594,
+    30686
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_013xDA7hVhTZDGRCkkeFuvbW",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 134,
+     "result_chars": 1682,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RbzRpVzGbNnVKwi6zuW2ne",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 173,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01VBfiANVooxcPUP6pH5wxqA",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 189,
+     "result_chars": 1919,
+     "is_error": false
+    }
+   ],
+   "seconds": 19.2,
+   "cost_usd": 0.102435,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "books.toscrape.com",
+   "run": 3,
+   "phase": "replay",
+   "answer": "\u00a345.17",
+   "correct": true,
+   "accepted": [
+    "\u00a345.17"
+   ],
+   "turns": 4,
+   "tokens": 118501,
+   "reported_tokens": 118501,
+   "context_per_turn": [
+    28466,
+    29355,
+    29587,
+    30678
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Lo9Y3BZiKGFex78coSVAZL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 127,
+     "result_chars": 1668,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01W8grtS5djsJjoLkZHVAbXb",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 167,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01HdaBzNTEbagpTxXea48n51",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 183,
+     "result_chars": 1914,
+     "is_error": false
+    }
+   ],
+   "seconds": 13.5,
+   "cost_usd": 0.0361872,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 1,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 5,
+   "tokens": 148643,
+   "reported_tokens": 148643,
+   "context_per_turn": [
+    28470,
+    29444,
+    29673,
+    30101,
+    30405
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01EkAsd9ih9MUTBtQ8VDKoMJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 1808,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CvDgwhcCfycrqbDyTsyuev",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 128,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01ACHjArvN9rib2ZZC2S3Gjx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 115,
+     "result_chars": 528,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EhJzzokHPrSDAJUrq8rCpP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 116,
+     "result_chars": 288,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.2,
+   "cost_usd": 0.108678,
+   "trails": {
+    "quotes.toscrape.com": [
+     "Find birth date of first quote's author"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 1,
+   "phase": "replay",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 5,
+   "tokens": 147669,
+   "reported_tokens": 147669,
+   "context_per_turn": [
+    28470,
+    28706,
+    29648,
+    29887,
+    30322
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01V2WiqqZRJYcuWBYXjvuyhF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 44,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01TfjyehAMqubmq3i2sNzTUP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 179,
+     "result_chars": 1609,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VbBfVnvyQuvaVtWacqnCTZ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 157,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01S1ZU5CL6Gh8QtADN88XGEN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 149,
+     "result_chars": 528,
+     "is_error": false
+    }
+   ],
+   "seconds": 19.8,
+   "cost_usd": 0.0428222,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 2,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 5,
+   "tokens": 148214,
+   "reported_tokens": 148214,
+   "context_per_turn": [
+    28470,
+    29448,
+    29662,
+    29877,
+    30190
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01YFzTjhT7BrAqgoiEawz8B2",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 125,
+     "result_chars": 1812,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Pa3uRUPaXQXZxmGtrHvCQt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 133,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01Ai4Chc3tCUCu1QXkHBxWQ5",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01S8Dt5JJ2gequ8zCLnSP6AC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 296,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.1,
+   "cost_usd": 0.1079418,
+   "trails": {
+    "quotes.toscrape.com": [
+     "Find birth date of the first quote's author"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 2,
+   "phase": "replay",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 2,
+   "tokens": 57405,
+   "reported_tokens": 57405,
+   "context_per_turn": [
+    28470,
+    28789
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_013WSZdoAMeSeftSWTK2P2xh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 156,
+     "result_chars": 406,
+     "is_error": false
+    }
+   ],
+   "seconds": 10.3,
+   "cost_usd": 0.0141312,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 3,
+   "phase": "learn",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 5,
+   "tokens": 148568,
+   "reported_tokens": 148568,
+   "context_per_turn": [
+    28468,
+    29441,
+    29654,
+    30082,
+    30389
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_014GVCeQTAKVN5Lw8ZLNnubR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 1808,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019eFzHuhsuYVBZC5c3kQopC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 129,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01XN6yPiEsRsXUAsRhkLZugF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 115,
+     "result_chars": 528,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014dPAtvRY1Z3wdhYhhkC3dL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 117,
+     "result_chars": 290,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.9,
+   "cost_usd": 0.10844540000000001,
+   "trails": {
+    "quotes.toscrape.com": [
+     "Find birth date of first quote's author"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "quotes.toscrape.com",
+   "run": 3,
+   "phase": "replay",
+   "answer": "March 14, 1879",
+   "correct": true,
+   "accepted": [
+    "March 14, 1879"
+   ],
+   "turns": 6,
+   "tokens": 179550,
+   "reported_tokens": 179550,
+   "context_per_turn": [
+    28468,
+    28697,
+    29650,
+    29884,
+    30799,
+    31262
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01CQqtUVb2LR69i9jpu63HUf",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 142,
+     "result_chars": 44,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01LCXCc3Z722sbNxy81BQ9EQ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 166,
+     "result_chars": 1609,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01F4fcFsf3HcQ9ivEtGqVvTT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_017NXPiPVrarwdToHALU6w94",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 126,
+     "result_chars": 1658,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EsBRaBic71PsL4iWUZ17At",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 528,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.6,
+   "cost_usd": 0.05429080000000001,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  }
+ ]
+}

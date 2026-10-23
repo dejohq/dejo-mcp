@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from time import monotonic
 from typing import Any, get_args
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
@@ -97,6 +97,15 @@ class TraceEntry:
     step that used to answer is drift, not success — and reporting it as success is how a
     warm run "works" while handing back nothing."""
     download: str | None = None
+    locators: list[Locator] | None = None
+    """The ways to find the element chosen when the step ran, when they had to be
+    narrowed. Replaces `element.locators()` in the trail. A read is narrowed to the
+    locators that will still find it once its value has changed."""
+    expect: Postcondition | None = None
+    """The check the agent wrote for this step with an `expect` line. It replaces the one
+    `distill` would infer, and it was proven true when the step ran."""
+    risky: bool = False
+    """Marked with `!`: the agent says this step buys, pays, sends, deletes or submits."""
     at: str = field(default_factory=utc_now)
 
     @property
@@ -171,6 +180,33 @@ class Session:
         it than a CSS selector is.
         """
         self.tool_calls += 1
+        spec = self._spec(action)
+        element: Element | None = None
+        second: Element | None = None
+        if not spec.session_handled:
+            # `evaluate` and `screenshot` may name an element without requiring one.
+            if spec.needs_target or ref is not None:
+                element = self._element_for(ref)
+            if spec.needs_second_target:
+                second = self._element_for(to)
+        return self.act_on(intent, action, element=element, value=value, second=second)
+
+    def act_on(
+        self,
+        intent: str,
+        action: Action,
+        *,
+        element: Element | None = None,
+        value: str | None = None,
+        second: Element | None = None,
+        expect: Postcondition | None = None,
+        risky: bool = False,
+    ) -> dict[str, Any]:
+        """Do one thing to an element that has already been found, and report what changed.
+
+        `act` finds the element from a ref or a selector first. A program finds its elements
+        its own way (by place in a list, by role, strictly one match) and then comes here,
+        so both write exactly the same trace entry."""
         url_before = self.browser.page.url if action != "goto" else ""
         text_before = self.browser.text() if action != "goto" else ""
         self.browser.flush_downloads()
@@ -179,7 +215,7 @@ class Session:
         self.browser.last_dialog = None
         self.last_result = None
 
-        element = self._perform(action, ref=ref, value=value, to=to)
+        element, lasting = self._perform(action, element=element, value=value, second=second)
 
         # An anchor was clicked and the address has not moved. Either it went nowhere, or
         # this is a single-page app that will change the URL in a moment — a React Router
@@ -188,6 +224,15 @@ class Session:
         # one when it did not.
         if element is not None and element.href and self.browser.page.url == url_before:
             self.browser.await_url_change(url_before)
+        # Enter in a form field submits it, and the browser starts loading the answer only
+        # after the key press has returned. Without this wait the next line ran on the page
+        # being replaced: `read css "h1"` found nothing on CI on all three systems (23 Oct).
+        if (
+            action == "press"
+            and (value or "").lower() == "enter"
+            and (self.browser.await_url_change(url_before))
+        ):
+            self.browser.settle()
 
         # A password is remembered as "there is a password here", never as the password.
         secret = secret_name(element) if action in _TEXT_ENTRY else None
@@ -211,6 +256,9 @@ class Session:
             text_gained=_first_new_line(text_before, text_after),
             download=self.browser.last_download,
             dialog=self.browser.last_dialog,
+            expect=expect,
+            risky=risky,
+            locators=lasting,
         )
         # An action that changes nothing is not a step. Replaying `highlight` would draw a
         # box for nobody and then have its postcondition checked anyway.
@@ -237,41 +285,49 @@ class Session:
             ),
         }
 
+    def _spec(self, action: Action) -> actions.ActionSpec:
+        try:
+            return actions.spec_for(action)
+        except actions.UnknownAction as unknown:
+            raise ActionFailed(str(unknown)) from unknown
+
     def _perform(
         self,
         action: Action,
         *,
-        ref: str | None,
+        element: Element | None,
         value: str | None,
-        to: str | None = None,
-    ) -> Element | None:
-        """Resolve the element, then hand the doing to the registry.
+        second: Element | None = None,
+    ) -> tuple[Element | None, list[Locator] | None]:
+        """Describe the element, then hand the doing to the registry.
 
         Finding things is Dejo's job because a durable descriptor has to be recorded at the
         same moment. Performing is Playwright's job. This method is the seam between them.
+        Returns the described element, and the ways of finding it the trail should keep.
         """
-        try:
-            spec = actions.spec_for(action)
-        except actions.UnknownAction as unknown:
-            raise ActionFailed(str(unknown)) from unknown
-
+        spec = self._spec(action)
         if spec.session_handled:
             self._do_here(action, value)
-            return None
+            return None, None
+        if action == "goto":
+            # Through the browser, as replay does, so the page's HTTP status is kept. The
+            # registry's goto dropped it, so an error page (or a 403 from a site that turns
+            # automated browsers away) was learned on as if it were the page (22 Oct 2026).
+            self.browser.goto(value or "")
+            self.browser.settle()
+            return None, None
 
         # Describe before acting. The durable descriptors have to be read while the
         # element is still on the page as it was — a click can navigate away, and then
         # there is nothing left to describe.
-        element = self.browser.describe(self._element_for(ref)) if spec.needs_target else None
-        # `evaluate` and `screenshot` may name an element without requiring one.
-        if element is None and ref is not None:
-            element = self.browser.describe(self._element_for(ref))
+        element = self.browser.describe(element) if element is not None else None
+        lasting = self._only_ones(element)
         target = self.browser.locate(element) if element else None
-        second = self.browser.locate(self._element_for(to)) if spec.needs_second_target else None
+        second_target = self.browser.locate(second) if second is not None else None
 
         try:
             self.last_result = actions.perform(
-                action, page=self.browser.page, target=target, value=value, second=second
+                action, page=self.browser.page, target=target, value=value, second=second_target
             )
         except actions.ActionNeedsMore as incomplete:
             raise ActionFailed(str(incomplete)) from incomplete
@@ -279,7 +335,29 @@ class Session:
         # Every action, not a chosen few. A download event can arrive after the click has
         # already returned, and a select can navigate just as a click can.
         self.browser.settle()
-        return element
+        return element, lasting
+
+    def _only_ones(self, element: Element | None) -> list[Locator] | None:
+        """The ways of finding this element that match it and nothing else on the page.
+
+        Read before the step changes the page. A way that matches several elements finds
+        whichever comes first on replay: on catalog.ccv.edu every menu link points at
+        `/content.php`, so the stored link target of "Courses" clicked "Associate Degrees"
+        (real-site bench, 22 Oct 2026). None when nothing needs dropping, or when nothing
+        would be left: the css path is built to match one element, so that is rare, and a
+        step with no way back at all would be worse than an ambiguous one."""
+        if element is None or element.by_place:
+            return None
+        found = element.locators()
+        unique = [locator for locator in found if self._matches_once(locator)]
+        return unique if unique and len(unique) < len(found) else None
+
+    def _matches_once(self, locator: Locator) -> bool:
+        try:
+            matched = self.browser.matches(locator)
+            return matched is not None and matched.count() == 1
+        except PlaywrightError:
+            return False
 
     def _do_here(self, action: str, value: str | None) -> None:
         """The few actions that need Dejo's own state rather than just the page."""
@@ -407,7 +485,7 @@ class Session:
         there is. Refusing one meant the numbers could not be read at all.
         """
         if ref is None:
-            raise ActionFailed("this action needs a ref from dejo_read, or a CSS selector")
+            raise ActionFailed("this action needs a ref from the page, or a CSS selector")
 
         if aria.is_ref(ref):
             if self._snapshot is None:
@@ -421,7 +499,7 @@ class Session:
         if remembered is not None:
             return self._element_by_memory(ref, remembered)
 
-        return self._element_by_selector(ref, one=one)
+        return self.element_by_selector(ref, one=one)
 
     def _element_by_memory(self, wording: str, locator: Locator) -> Element:
         """Find a control by what the MAP calls it, rather than by a ref from this page.
@@ -439,8 +517,7 @@ class Session:
         if found is None:
             raise ActionFailed(
                 f"nothing on this page matches {wording!r}. The map says what was here "
-                f"last time, so look at the page with dejo_read(kind='page') — it may "
-                f"have moved."
+                f"last time, so look at the page again: it may have moved."
             )
         # `describe` reads the real page a moment later and overwrites these with what is
         # actually there, so the saved step gets all nine durable locators exactly as a
@@ -448,7 +525,7 @@ class Session:
         role, _, name = locator.value.partition("|") if locator.kind == "role" else ("", "", "")
         return Element(ref=wording, role=role, name=name or wording, found_by=locator)
 
-    def _element_by_selector(self, selector: str, *, one: bool = True) -> Element:
+    def element_by_selector(self, selector: str, *, one: bool = True) -> Element:
         """Build an element from a CSS selector the caller wrote themselves.
 
         Refuses an AMBIGUOUS selector rather than quietly taking the first match. This was
@@ -500,19 +577,27 @@ class Session:
         stops, and the caller has to work the answer out again every single time.
         """
         self.tool_calls += 1
-        try:
-            spec = reads.spec_for(kind)
-        except reads.UnknownRead as unknown:
-            raise ActionFailed(str(unknown)) from unknown
-
+        spec = self._read_spec(kind)
         # `count` and `all_text` are ABOUT matching many, so ambiguity is not an error for
         # them. Every other read is about one element, and reading the first of several
         # silently is how a caller ends up believing the wrong number.
-        element = (
-            self.browser.describe(self._element_for(ref, one=not spec.many))
-            if spec.needs_target
-            else None
+        element = self._element_for(ref, one=not spec.many) if spec.needs_target else None
+        return self.read_on(
+            kind, element=element, attribute=attribute, remember=remember, intent=intent
         )
+
+    def read_on(
+        self,
+        kind: str,
+        *,
+        element: Element | None = None,
+        attribute: str | None = None,
+        remember: bool = False,
+        intent: str = "",
+    ) -> Any:
+        """Read from an element that has already been found. See `act_on` for why."""
+        spec = self._read_spec(kind)
+        element = self.browser.describe(element) if element is not None else None
         target = self.browser.locate(element, one=not spec.many) if element else None
         try:
             answer = reads.read(kind, page=self.browser.page, target=target, attribute=attribute)
@@ -521,6 +606,12 @@ class Session:
 
         self._keep(kind, intent, element, attribute, answer, marked=remember)
         return answer
+
+    def _read_spec(self, kind: str) -> reads.ReadSpec:
+        try:
+            return reads.spec_for(kind)
+        except reads.UnknownRead as unknown:
+            raise ActionFailed(str(unknown)) from unknown
 
     def _keep(
         self,
@@ -670,7 +761,7 @@ def _too_many(selector: str, matches: int, found: Any) -> str:
         f"which one you mean. The first few are — {'; '.join(names)}. "
         f'Say which you mean. The shortest way is to add " >> nth=0" to the end for the '
         f'first, " >> nth=-1" for the last; or narrow the selector with a parent; or use '
-        f"a `ref` from dejo_read(kind='page'); or a `use` string from dejo_map such as "
+        f"a ref from the page; or a `use` string from the site map such as "
         f'"role=button|Save changes".'
     )
 
@@ -691,8 +782,8 @@ def _nothing_matches(selector: str) -> str:
             f'"role=button|{selector}" — or role=link, role=textbox, whichever it is.'
         )
     return (
-        f"nothing on this page matches {selector!r}.{hint} Refs come from "
-        f"dejo_read(kind='page'), and `use` strings from dejo_map."
+        f"nothing on this page matches {selector!r}.{hint} Look at the page again for fresh "
+        'refs, or name it: role "name", text "...", label "..." or css "...".'
     )
 
 
@@ -710,8 +801,8 @@ def _not_a_selector(selector: str) -> str:
     return (
         f"{selector!r} is not a selector this page understands. If that is the NAME of a "
         f'control rather than CSS, say it as "role=button|{selector}" — that is the form '
-        f"dejo_map hands back, and Dejo resolves it the same way replay does. Otherwise "
-        f"use a `ref` from dejo_read(kind='page')."
+        f"the site map hands back, and Dejo resolves it the same way replay does. "
+        f"Otherwise use a ref from the page."
     )
 
 
@@ -851,6 +942,21 @@ def address_to_check(url: str, wanted: str) -> str:
     return f"{parts.scheme}://{parts.netloc}{parts.path}" if parts.netloc else url
 
 
+def at_address(url: str, wanted: str) -> bool:
+    """Is `url` the address a check expects?
+
+    `wanted` is a path, or a path and the query values that told the page apart from the
+    one before it (`/books?price=50-`). Those values are compared one by one, so the site
+    adding a parameter of its own, or writing them in another order, does not fail it."""
+    path, _, query = wanted.partition("?")
+    if not query or "#" in wanted:
+        return wanted in address_to_check(url, wanted)
+    if path not in address_to_check(url, path):
+        return False
+    have = set(parse_qsl(urlparse(url).query, keep_blank_values=True))
+    return set(parse_qsl(query, keep_blank_values=True)) <= have
+
+
 def check_postcondition(browser: Browser, expected: Postcondition) -> bool:
     """Did the page actually end up where it should have?
 
@@ -864,8 +970,8 @@ def check_postcondition(browser: Browser, expected: Postcondition) -> bool:
         # `target` holds the OTHER acceptable URL when a step navigated through a
         # redirect. Arriving at either end of that redirect is arriving.
         here = browser.page.url
-        return expected.value in address_to_check(here, expected.value) or bool(
-            expected.target and expected.target in address_to_check(here, expected.target)
+        return at_address(here, expected.value) or bool(
+            expected.target and at_address(here, expected.target)
         )
     if expected.kind == "text_present":
         return expected.value.lower() in browser.text().lower()

@@ -73,7 +73,15 @@ class TestColdRun:
         assert clicks, "the trail should contain clicks"
         for step in clicks:
             kinds = {locator.kind for locator in step.locators}
-            assert len(kinds) >= 3, f"step {step.index} only knows {kinds}"
+            assert len(kinds) >= 2, f"step {step.index} only knows {kinds}"
+
+    def test_a_way_that_also_finds_something_else_is_not_kept(self, learned):
+        """The sign-in page has an `<h1>Sign in</h1>` above the button of the same name, so
+        `text "Sign in"` finds two elements and a replay could press the heading."""
+        playbook, _ = learned
+
+        sign_in = next(step for step in playbook.steps if step.intent == "sign in")
+        assert ("text", "Sign in") not in {(loc.kind, loc.value) for loc in sign_in.locators}
 
     def test_the_cold_run_was_expensive(self, learned):
         """The thing we are removing. Nine calls to do it the first time."""

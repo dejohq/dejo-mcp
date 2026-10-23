@@ -210,11 +210,13 @@ class Locator:
     def is_dead(self) -> bool:
         """Has failed and has nothing to show for it, so it is not worth keeping.
 
-        A locator that once worked keeps some confidence after a single miss, so a
-        one-off failure never kills a proven route. One that has never landed and has now
-        failed is just weight in the trail.
+        A locator that once worked survives a single miss, so a one-off failure never kills
+        a proven route: it stays behind a repair as a backup, for a site that moves back.
+        One whose misses outnumber its hits is just weight in the trail. This used to be
+        "confidence is zero", and a miss weighs twice a hit, so a locator with one or two
+        hits died on its first miss and every repair threw away the route that had worked.
         """
-        return self.misses > 0 and self.confidence == 0.0
+        return self.misses > self.hits
 
     def describe(self) -> str:
         """How this locator reads in a repair request or an export."""
@@ -340,6 +342,12 @@ class Step:
     real shop, where a stored link locator matched nine product cards and replay read the
     empty one."""
 
+    risky: bool = False
+    """The agent marked this step as one that buys, pays, sends, deletes or submits.
+
+    Replay still runs it, since the user asked for the task, but every reply names it so
+    nobody is surprised, and nothing ever runs it twice on its own after a later step fails."""
+
     hits: int = 0
     misses: int = 0
     """This step's own record, used only when it has no locators to speak for it.
@@ -426,6 +434,7 @@ class Step:
             "misses": self.misses,
             "dialog_message": self.dialog_message,
             "dialog_choice": self.dialog_choice,
+            "risky": self.risky,
             "health": round(self.health, 3),
         }
 
@@ -446,6 +455,7 @@ class Step:
             misses=raw.get("misses", 0),
             dialog_message=raw.get("dialog_message"),
             dialog_choice=raw.get("dialog_choice"),
+            risky=raw.get("risky", False),
         )
 
 

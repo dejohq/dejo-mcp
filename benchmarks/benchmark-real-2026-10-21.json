@@ -1,0 +1,7696 @@
+{
+ "meta": {
+  "date": "2026-10-22",
+  "model": "claude-sonnet-5",
+  "effort": "medium",
+  "dejo": "0.1.2",
+  "commit": "a2720c3",
+  "playwright_mcp": "@playwright/mcp@0.0.80"
+ },
+ "runs": [
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T01",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T01-dejo-r1",
+   "answer": "261",
+   "correct": true,
+   "accepted": [
+    "261"
+   ],
+   "turns": 6,
+   "tokens": 255156,
+   "reported_tokens": 255156,
+   "context_per_turn": [
+    40282,
+    41128,
+    41381,
+    42644,
+    44143,
+    44649
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01FQWcKRqLgEm97eeVfztQeh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 159,
+     "result_chars": 1506,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MBgTDR53JBuBu4PLP9s63g",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 214,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CYHGiGsqZpwmxshNFmSdsd",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 2219,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NaNhxXC7XQjmtJnLVgYoxT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 209,
+     "result_chars": 2432,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QAAL68UubRzpVVrZBKjuCV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 573,
+     "is_error": false
+    }
+   ],
+   "seconds": 30.2,
+   "cost_usd": 0.2298156,
+   "trails": {
+    "scrapethissite.com": [
+     "Find Mighty Ducks of Anaheim hockey team goals against in 1997 season"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T01",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T01-dejo-r1",
+   "answer": "261\n\nSkipped: no verification beyond the replayed trail's cached data. Risk: if the site's data changed since this trail was first learned, the number could be stale.",
+   "correct": true,
+   "accepted": [
+    "261"
+   ],
+   "turns": 2,
+   "tokens": 81200,
+   "reported_tokens": 81200,
+   "context_per_turn": [
+    40282,
+    40698
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_016t7K97oZjS2dbxWaQ5Tjd9",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 487,
+     "is_error": false
+    }
+   ],
+   "seconds": 12.2,
+   "cost_usd": 0.019984000000000002,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "ctan.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T13",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T13-dejo-r1",
+   "answer": "2009-11-13\n\nSkipped: didn't verify this is the only \"knittingpattern\" package or check CTAN mirrors for a newer version.",
+   "correct": true,
+   "accepted": [
+    "2009-11-13"
+   ],
+   "turns": 3,
+   "tokens": 127035,
+   "reported_tokens": 127035,
+   "context_per_turn": [
+    40272,
+    42670,
+    43734
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Q1H33SdfT2zFv2pToaGVHV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 5274,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UcdZuGa2VUuCz2xZy24wQP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 176,
+     "result_chars": 2113,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.2,
+   "cost_usd": 0.1342568,
+   "trails": {
+    "ctan.org": [
+     "find the version of the knittingpattern LaTeX package on CTAN"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "ctan.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T13",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T13-dejo-r1",
+   "answer": "2009-11-13\n\nSkipped: didn't verify if CTAN has updated this package more recently than the cached replay reflects; risk is this version string could be stale if dejo's memory is outdated.",
+   "correct": true,
+   "accepted": [
+    "2009-11-13"
+   ],
+   "turns": 2,
+   "tokens": 81709,
+   "reported_tokens": 81709,
+   "context_per_turn": [
+    40272,
+    41241
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_014gUj6zGqeQvdAihUGeZ43s",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 1951,
+     "is_error": false
+    }
+   ],
+   "seconds": 11.0,
+   "cost_usd": 0.021952000000000003,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T24",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T24-dejo-r1",
+   "answer": "The site is Cloudflare-blocking the browser tool and won't pass the security check after repeated waits/reloads, so I can't get through to find the fare page.\n\nI skipped: finding any alternate route t",
+   "correct": false,
+   "accepted": [
+    "$17.50",
+    "17.50"
+   ],
+   "turns": 5,
+   "tokens": 207197,
+   "reported_tokens": 207197,
+   "context_per_turn": [
+    40252,
+    40772,
+    41209,
+    41669,
+    42259
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Y5cdzvrhBusfRbNyRJxDob",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 105,
+     "result_chars": 741,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01THQEt1md2UJT1HvQnipo8R",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 119,
+     "result_chars": 583,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VkM76yubtfX7Sa7hXbyuhL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 137,
+     "result_chars": 583,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012EqXfQExdduDGuFMtcs5mn",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 153,
+     "result_chars": 499,
+     "is_error": false
+    }
+   ],
+   "seconds": 32.2,
+   "cost_usd": 0.151326,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T24",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T24-dejo-r1",
+   "answer": "Site is blocked by Cloudflare verification right now, so I can't retrieve the price.\n\nSkipped: retrying with another profile or waiting out the Cloudflare check. Risk: no price was confirmed \u2014 don't a",
+   "correct": false,
+   "accepted": [
+    "$17.50",
+    "17.50"
+   ],
+   "turns": 2,
+   "tokens": 81165,
+   "reported_tokens": 81165,
+   "context_per_turn": [
+    40252,
+    40702
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01RnndWSn3W3LmnSo3jF8JuH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 105,
+     "result_chars": 668,
+     "is_error": false
+    }
+   ],
+   "seconds": 10.8,
+   "cost_usd": 0.020018,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T01",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T01-playwright-r1",
+   "answer": "1997: 233 goals against.",
+   "correct": false,
+   "accepted": [
+    "261"
+   ],
+   "turns": 6,
+   "tokens": 249759,
+   "reported_tokens": 249759,
+   "context_per_turn": [
+    39731,
+    40740,
+    41008,
+    41358,
+    41752,
+    44622
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_014cUmaM97yedQWX7miTT9VQ",
+     "name": "ToolSearch",
+     "input_chars": 135,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012j6PHPHv2YhbQYXQWACpQf",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 48,
+     "result_chars": 324,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HaN3baezxroAcDJy6h1SJP",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 24,
+     "result_chars": 538,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01D5ArRPF9toHBG1rsk1XUHU",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 80,
+     "result_chars": 415,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RrAvEFXKkPp7QnC4PPTQkx",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 24,
+     "result_chars": 5362,
+     "is_error": false
+    }
+   ],
+   "seconds": 24.3,
+   "cost_usd": 0.22489979999999998,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T01",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T01-playwright-cli-r1",
+   "answer": "1997 row: GA (Goals Against) = 233.",
+   "correct": false,
+   "accepted": [
+    "261"
+   ],
+   "turns": 8,
+   "tokens": 445464,
+   "reported_tokens": 445464,
+   "context_per_turn": [
+    48643,
+    54675,
+    54994,
+    55188,
+    55657,
+    57223,
+    57688,
+    60550
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_012Gjh6My9j6FYzV5U3F5XQM",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013zn8EYaPbESStLLp6xqTh6",
+     "name": "Bash",
+     "input_chars": 112,
+     "result_chars": 417,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BZUVeWA4zWigyNmhtGDhGJ",
+     "name": "Bash",
+     "input_chars": 104,
+     "result_chars": 133,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_019CMvaN7hArkWidarSTLhQ6",
+     "name": "Bash",
+     "input_chars": 108,
+     "result_chars": 415,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01S74ftXwo6md6vRXq1s94ec",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 2839,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013A2rcQFS1JjzczohMZ6bDZ",
+     "name": "Bash",
+     "input_chars": 107,
+     "result_chars": 413,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014S4kDvvotrsxxUW3PSAN9D",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 5356,
+     "is_error": false
+    }
+   ],
+   "seconds": 29.1,
+   "cost_usd": 0.32749480000000003,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "ctan.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T13",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T13-playwright-r1",
+   "answer": "2009-11-13\n\nSkipped: didn't go through the search box since the direct package URL guess worked; no risk.",
+   "correct": true,
+   "accepted": [
+    "2009-11-13"
+   ],
+   "turns": 4,
+   "tokens": 167382,
+   "reported_tokens": 167382,
+   "context_per_turn": [
+    39721,
+    40391,
+    40647,
+    46301
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NQDS4Qu2U7PkaxfC2S3cCN",
+     "name": "ToolSearch",
+     "input_chars": 105,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LR8jQT4yqbe1jw5atfFfQe",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 47,
+     "result_chars": 269,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JJp6xQ8tS1jo4HxATuPGcd",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 13564,
+     "is_error": false
+    }
+   ],
+   "seconds": 17.2,
+   "cost_usd": 0.1541158,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "ctan.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T13",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T13-playwright-cli-r1",
+   "answer": "2009-11-13\n\nSkipped: didn't verify via CTAN's search box itself, went directly to the package page (same result). No other risk.",
+   "correct": true,
+   "accepted": [
+    "2009-11-13"
+   ],
+   "turns": 4,
+   "tokens": 214182,
+   "reported_tokens": 214182,
+   "context_per_turn": [
+    48633,
+    54764,
+    55037,
+    55438
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01PCDPhbkJpLiGAcj6HU1GVa",
+     "name": "Skill",
+     "input_chars": 130,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HS7BGasdPodZgmh14Pcami",
+     "name": "Bash",
+     "input_chars": 81,
+     "result_chars": 313,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YEuzrHyM1JS4sM7yNqTCfM",
+     "name": "Bash",
+     "input_chars": 46,
+     "result_chars": 723,
+     "is_error": false
+    }
+   ],
+   "seconds": 17.5,
+   "cost_usd": 0.1636926,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T24",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T24-playwright-r1",
+   "answer": "Blocked by Cloudflare \u2014 I can't get past this bot-check wall in the automated browser. I can't retrieve the weekly pass price right now.",
+   "correct": false,
+   "accepted": [
+    "$17.50",
+    "17.50"
+   ],
+   "turns": 4,
+   "tokens": 162213,
+   "reported_tokens": 162213,
+   "context_per_turn": [
+    39701,
+    40328,
+    40626,
+    41258
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01MFtbjsmQriATxSN8ou4XBo",
+     "name": "ToolSearch",
+     "input_chars": 105,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Bx88ACyLuap2xbRLmBoQwG",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 31,
+     "result_chars": 369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01G4jtfLwUtp2tsTv74eSaaR",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 1204,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.3,
+   "cost_usd": 0.13370300000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T24",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T24-playwright-cli-r1",
+   "answer": "Blocked by a Cloudflare security verification wall that doesn't resolve on reload. Per my captcha/anti-bot handoff rule, I need to stop here rather than try to bypass it.\n\nI can't retrieve the price \u2014",
+   "correct": false,
+   "accepted": [
+    "$17.50",
+    "17.50"
+   ],
+   "turns": 10,
+   "tokens": 552461,
+   "reported_tokens": 552461,
+   "context_per_turn": [
+    48613,
+    54650,
+    54956,
+    55263,
+    55542,
+    55775,
+    56092,
+    56371,
+    56689,
+    57417
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Cen6BX5ahB4qPGH8VcXsH6",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GrVg8tNABi65mTAE5kLns6",
+     "name": "Bash",
+     "input_chars": 55,
+     "result_chars": 409,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Evc4FnSibktXtpTfhDEdDc",
+     "name": "Bash",
+     "input_chars": 47,
+     "result_chars": 349,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019gLryTJE8hhY4BP5bwHLB1",
+     "name": "Bash",
+     "input_chars": 47,
+     "result_chars": 350,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016WUWe4TNDtxNGQLxdzPPPd",
+     "name": "Bash",
+     "input_chars": 35,
+     "result_chars": 24,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0169cKAbX61cL23HcvpwU32L",
+     "name": "Bash",
+     "input_chars": 85,
+     "result_chars": 409,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01S9Fj4yP2UEMC9mvEtHYuuP",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 349,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EhZieLgLQpmA9QycNvPT18",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 350,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FKhDo52oh57Uuzz3TQhVcL",
+     "name": "Read",
+     "input_chars": 203,
+     "result_chars": 1053,
+     "is_error": false
+    }
+   ],
+   "seconds": 80.3,
+   "cost_usd": 0.24656360000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T02",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T02-dejo-r1",
+   "answer": "Edmonton Oilers\n\nSkipped: didn't click page-5 link manually, used the URL param directly \u2014 risk is low since the site confirmed the pagination state matches page 5.",
+   "correct": true,
+   "accepted": [
+    "Edmonton Oilers"
+   ],
+   "turns": 3,
+   "tokens": 124475,
+   "reported_tokens": 124475,
+   "context_per_turn": [
+    40271,
+    41624,
+    42098
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01GXxkLHhQCN3uDgzFDFDbph",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 2470,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BAgbD1nxegfag49nsb1svt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 133,
+     "result_chars": 418,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.9,
+   "cost_usd": 0.1287334,
+   "trails": {
+    "scrapethissite.com": [
+     "get first team name on page 5 of hockey teams table"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T02",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T02-dejo-r1",
+   "answer": "Boston Bruins",
+   "correct": false,
+   "accepted": [
+    "Edmonton Oilers"
+   ],
+   "turns": 2,
+   "tokens": 81055,
+   "reported_tokens": 81055,
+   "context_per_turn": [
+    40271,
+    40616
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01QxaehpZtdDXe2EDiLVdtap",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 146,
+     "result_chars": 401,
+     "is_error": false
+    }
+   ],
+   "seconds": 11.1,
+   "cost_usd": 0.0191756,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T02",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T02-playwright-r1",
+   "answer": "Edmonton Oilers",
+   "correct": true,
+   "accepted": [
+    "Edmonton Oilers"
+   ],
+   "turns": 4,
+   "tokens": 169333,
+   "reported_tokens": 169333,
+   "context_per_turn": [
+    39720,
+    40693,
+    40999,
+    47650
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Et9MRLRKHzse2ucgwcPYjj",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012WjyTWxh8hfvSxbBoLeLW9",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 65,
+     "result_chars": 385,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TxXdwCL4vY1oZR59Vh2tHW",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 14718,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.4,
+   "cost_usd": 0.1591324,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T02",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T02-playwright-cli-r1",
+   "answer": "Edmonton Oilers",
+   "correct": true,
+   "accepted": [
+    "Edmonton Oilers"
+   ],
+   "turns": 9,
+   "tokens": 496295,
+   "reported_tokens": 496295,
+   "context_per_turn": [
+    48632,
+    54664,
+    54964,
+    55083,
+    55392,
+    55712,
+    55853,
+    57315,
+    57877
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01MadPEf8bFN4mmpyTVkcPcY",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JmpUenxb3nJkDDUMTzXjif",
+     "name": "Bash",
+     "input_chars": 78,
+     "result_chars": 408,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011VSRD5CqRuuHSUuogU8oCT",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 41,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Ns72tyN8p5mhKF31KTZXEV",
+     "name": "Bash",
+     "input_chars": 78,
+     "result_chars": 424,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Va2Dg9agSjymaQJGfHJqNP",
+     "name": "Bash",
+     "input_chars": 93,
+     "result_chars": 385,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UpGbchYHLQbvkZdHTMmbLY",
+     "name": "Bash",
+     "input_chars": 59,
+     "result_chars": 71,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TbLfYKpAwq7V6Wx3Z5wQZr",
+     "name": "Read",
+     "input_chars": 216,
+     "result_chars": 2687,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BNK3kFPBb2uNwio62AwYmc",
+     "name": "Read",
+     "input_chars": 230,
+     "result_chars": 655,
+     "is_error": false
+    }
+   ],
+   "seconds": 30.9,
+   "cost_usd": 0.23423280000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T03",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T03-dejo-r1",
+   "answer": "1:1.0.51-13",
+   "correct": true,
+   "accepted": [
+    "1:1.0.51-13",
+    "1.0.51-13"
+   ],
+   "turns": 4,
+   "tokens": 172804,
+   "reported_tokens": 172804,
+   "context_per_turn": [
+    40272,
+    42721,
+    44457,
+    44882
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0174tSPKxBSCHftpnYh2fDfj",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 184,
+     "result_chars": 6181,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Ck42kJZT4DxNMGWBBi61sE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 232,
+     "result_chars": 3132,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Jz2eGpeEK9uJmwQHnVrDgz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 166,
+     "result_chars": 586,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.9,
+   "cost_usd": 0.14888400000000002,
+   "trails": {
+    "debian.org": [
+     "search Debian package directory for moon-buggy in oldstable distribution and find its version number"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T03",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T03-dejo-r1",
+   "answer": "1:1.0.51-13",
+   "correct": true,
+   "accepted": [
+    "1:1.0.51-13",
+    "1.0.51-13"
+   ],
+   "turns": 2,
+   "tokens": 81209,
+   "reported_tokens": 81209,
+   "context_per_turn": [
+    40272,
+    40729
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01A4CHd6QasJute15kxGgYEg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 144,
+     "result_chars": 609,
+     "is_error": false
+    }
+   ],
+   "seconds": 14.5,
+   "cost_usd": 0.020024,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T03",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T03-playwright-r1",
+   "answer": "1:1.0.51-13",
+   "correct": true,
+   "accepted": [
+    "1:1.0.51-13",
+    "1.0.51-13"
+   ],
+   "turns": 5,
+   "tokens": 214795,
+   "reported_tokens": 214795,
+   "context_per_turn": [
+    39721,
+    41013,
+    41255,
+    41577,
+    50870
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01BDPBisYL4ndWPtkUauCqtw",
+     "name": "ToolSearch",
+     "input_chars": 166,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015LyzgkZYjWxEFjmr58oH87",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 50,
+     "result_chars": 264,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014PYUzuyZcmF44HAtwJLRPa",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 59,
+     "result_chars": 418,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01M5B85947ZpTTt9dScGqA1B",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 20501,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.1,
+   "cost_usd": 0.1813268,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T03",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T03-playwright-cli-r1",
+   "answer": "1:1.0.51-13\n\nSkipped: closing the browser session. Risk: none \u2014 version confirmed directly from Debian's package search results for oldstable (bookworm).",
+   "correct": true,
+   "accepted": [
+    "1:1.0.51-13",
+    "1.0.51-13"
+   ],
+   "turns": 8,
+   "tokens": 450526,
+   "reported_tokens": 450526,
+   "context_per_turn": [
+    48633,
+    54667,
+    54921,
+    56743,
+    56908,
+    57272,
+    57747,
+    63074
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01XMAE8NZn8CGuQcRgv1gGDB",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GbZB1P8yNVpycWPZUpaoRw",
+     "name": "Bash",
+     "input_chars": 74,
+     "result_chars": 309,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01N5F398E8tRT6QXo3F5KMm6",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 4138,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RVcDCJ684ib52rbNRwsU5u",
+     "name": "Bash",
+     "input_chars": 53,
+     "result_chars": 79,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FY78YnDqnJMKMji2dnsgWb",
+     "name": "Bash",
+     "input_chars": 42,
+     "result_chars": 543,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CBTpajXYnV53SKNLDSHeaz",
+     "name": "Bash",
+     "input_chars": 82,
+     "result_chars": 782,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ELhgQY56YXNLqRkhSPHmyv",
+     "name": "Bash",
+     "input_chars": 49,
+     "result_chars": 11051,
+     "is_error": false
+    }
+   ],
+   "seconds": 30.9,
+   "cost_usd": 0.2424524,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T04",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T04-dejo-r1",
+   "answer": "74.0 kB",
+   "correct": true,
+   "accepted": [
+    "74.0 kB",
+    "74.0 kb",
+    "74.0",
+    "74 kB"
+   ],
+   "turns": 3,
+   "tokens": 128345,
+   "reported_tokens": 128345,
+   "context_per_turn": [
+    40276,
+    42677,
+    45035
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_018xMMzPhiKrRTjbrtGiEvCb",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 6045,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GMBwT7pSQRC4bEjjjtjjpL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 207,
+     "result_chars": 4471,
+     "is_error": false
+    }
+   ],
+   "seconds": 17.4,
+   "cost_usd": 0.13944299999999998,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T04",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T04-dejo-r1",
+   "answer": "74.0 kB\n\nSkipped: didn't verify other sources. Risk: page content could change if Debian updates the package later.",
+   "correct": true,
+   "accepted": [
+    "74.0 kB",
+    "74.0 kb",
+    "74.0",
+    "74 kB"
+   ],
+   "turns": 5,
+   "tokens": 217686,
+   "reported_tokens": 217686,
+   "context_per_turn": [
+    40276,
+    42702,
+    42991,
+    45310,
+    45676
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01AYH2Jt3Xa23QcH4XD38v5z",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 170,
+     "result_chars": 6021,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016SXRxhiARoJwStNzqffFW7",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 239,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01GJcW6FUbCqAq4GW7nAP85f",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 212,
+     "result_chars": 4491,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0172cQ7Bjouavg4orTjwBCAr",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 160,
+     "result_chars": 443,
+     "is_error": false
+    }
+   ],
+   "seconds": 19.5,
+   "cost_usd": 0.071239,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T04",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T04-playwright-r1",
+   "answer": "74.0 kB",
+   "correct": true,
+   "accepted": [
+    "74.0 kB",
+    "74.0 kb",
+    "74.0",
+    "74 kB"
+   ],
+   "turns": 7,
+   "tokens": 292722,
+   "reported_tokens": 292722,
+   "context_per_turn": [
+    39725,
+    41349,
+    41650,
+    41777,
+    42136,
+    42478,
+    43013
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01MKq4K5G6h7FmecW6P5ytLb",
+     "name": "ToolSearch",
+     "input_chars": 178,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019uNsc2sh1ytDGuro4bX8pL",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 50,
+     "result_chars": 264,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011TvmUWtADFYqVrLazBKhVi",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 38,
+     "result_chars": 61,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MnRaCNwvfk52sGJLtU7TjE",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 66,
+     "result_chars": 434,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01B2PCS4NTgAdAAdpnigvKcJ",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 26,
+     "result_chars": 548,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Lx4FDoE4EziMwryz1hPm1Z",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 20,
+     "result_chars": 912,
+     "is_error": false
+    }
+   ],
+   "seconds": 24.3,
+   "cost_usd": 0.16936580000000004,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T04",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T04-playwright-cli-r1",
+   "answer": "74.0 kB",
+   "correct": true,
+   "accepted": [
+    "74.0 kB",
+    "74.0 kb",
+    "74.0",
+    "74 kB"
+   ],
+   "turns": 12,
+   "tokens": 717002,
+   "reported_tokens": 717002,
+   "context_per_turn": [
+    48637,
+    54701,
+    54955,
+    56853,
+    57236,
+    62443,
+    62591,
+    62853,
+    63345,
+    63769,
+    64024,
+    64533
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01TXuoXqTF4Y91csYZZM8smj",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CEWUYkME6sqhG7fBrwe26d",
+     "name": "Bash",
+     "input_chars": 74,
+     "result_chars": 308,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Qz3rRCyvNrx8YvWMJncd1g",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 4138,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EozVMUwPZsnJxBpaAc5Khd",
+     "name": "Bash",
+     "input_chars": 85,
+     "result_chars": 601,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JZnYEyp5FdEwn8j28RcorL",
+     "name": "Bash",
+     "input_chars": 53,
+     "result_chars": 11193,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EWa6o8dXuPusevmCnNFzzJ",
+     "name": "Bash",
+     "input_chars": 39,
+     "result_chars": 104,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01M39ewknPFWEBhc8VDtiZ19",
+     "name": "Bash",
+     "input_chars": 88,
+     "result_chars": 319,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RV8gwtvNNFJM7a3wscZ5eS",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 908,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TfVg5KN9fXKdpLQaeWZbfR",
+     "name": "Bash",
+     "input_chars": 239,
+     "result_chars": 432,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MDzMgvxWLScqg8fShPYxtZ",
+     "name": "Bash",
+     "input_chars": 187,
+     "result_chars": 227,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019XRSy1MqLzW4eiR5B555hH",
+     "name": "Bash",
+     "input_chars": 193,
+     "result_chars": 622,
+     "is_error": false
+    }
+   ],
+   "seconds": 55.4,
+   "cost_usd": 0.306216,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T05",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T05-dejo-r1",
+   "answer": "RFC 10054",
+   "correct": false,
+   "accepted": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "turns": 3,
+   "tokens": 125446,
+   "reported_tokens": 125446,
+   "context_per_turn": [
+    40279,
+    42198,
+    42600
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01XYXdWh5oonXkxVGBFzXrLp",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 188,
+     "result_chars": 3891,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HtaMb8anC6rgrqnWniaRxt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 191,
+     "result_chars": 365,
+     "is_error": false
+    }
+   ],
+   "seconds": 14.7,
+   "cost_usd": 0.1297278,
+   "trails": {
+    "rfc-editor.org": [
+     "search RFC Editor for the framework document for Computing-Aware Traffic Steering (CATS) and find its RFC number"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T05",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T05-dejo-r1",
+   "answer": "RFC 10054",
+   "correct": false,
+   "accepted": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "turns": 2,
+   "tokens": 81210,
+   "reported_tokens": 81210,
+   "context_per_turn": [
+    40279,
+    40725
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01SwPoKosRNP22ttSSw9CxoQ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 225,
+     "result_chars": 548,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.1,
+   "cost_usd": 0.019962800000000003,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T05",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T05-playwright-r1",
+   "answer": "Already visible on the front page as a \"Latest RFC.\"\n\nRFC 10054",
+   "correct": false,
+   "accepted": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "turns": 4,
+   "tokens": 168978,
+   "reported_tokens": 168978,
+   "context_per_turn": [
+    39728,
+    41017,
+    41294,
+    46647
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01CPah7U2WA3smmH7x8w3kEP",
+     "name": "ToolSearch",
+     "input_chars": 167,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LBbe8MzBc3HUN45nrs85th",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 38,
+     "result_chars": 322,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GiN1FynRrU6R7mKP8sesft",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 13574,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.3,
+   "cost_usd": 0.1554558,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T05",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T05-playwright-cli-r1",
+   "answer": "RFC 10053",
+   "correct": true,
+   "accepted": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "turns": 7,
+   "tokens": 393759,
+   "reported_tokens": 393759,
+   "context_per_turn": [
+    48640,
+    54677,
+    54923,
+    56410,
+    56787,
+    57017,
+    64815
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01MnoV3xxwuWaPMNYjkizPnq",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01G6ZQBPQrvwEeiQhvBFZDxj",
+     "name": "Bash",
+     "input_chars": 62,
+     "result_chars": 277,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01R23DRcqRhrczEW3uB9jAUm",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 3395,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01P6sCzR2W4CDQGtvJetJ89x",
+     "name": "Bash",
+     "input_chars": 94,
+     "result_chars": 539,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RQNihgXj9ZdZTtVGnnyqr4",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 268,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UApda4eWBKM2RD9ioCGWCe",
+     "name": "Read",
+     "input_chars": 203,
+     "result_chars": 22462,
+     "is_error": false
+    }
+   ],
+   "seconds": 24.1,
+   "cost_usd": 0.23701540000000001,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T06",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T06-dejo-r1",
+   "answer": "BCP 246",
+   "correct": true,
+   "accepted": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "turns": 4,
+   "tokens": 173266,
+   "reported_tokens": 173266,
+   "context_per_turn": [
+    40290,
+    42261,
+    43582,
+    46329
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NXTdfWSTkz5DjBmYysVL5A",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 218,
+     "result_chars": 3921,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017brdJBDTsJq7DkD71apZUh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 266,
+     "result_chars": 2361,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FW2r6YqwoEo6S9HETDCkpx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 293,
+     "result_chars": 5410,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.3,
+   "cost_usd": 0.1577286,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T06",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T06-dejo-r1",
+   "answer": "BCP 246",
+   "correct": true,
+   "accepted": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "turns": 5,
+   "tokens": 216219,
+   "reported_tokens": 216219,
+   "context_per_turn": [
+    40290,
+    42178,
+    42443,
+    43757,
+    46614
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Psps55Yk6CKRTScRac5tX5",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 192,
+     "result_chars": 3848,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01H2MKmSkQXQLN5GdkbSWNgj",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 276,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_0185H4GQxHwaJST6kE3rRQpz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 245,
+     "result_chars": 2359,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CL8f6yGSicjeJxsTSvqXFU",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 279,
+     "result_chars": 5698,
+     "is_error": false
+    }
+   ],
+   "seconds": 24.4,
+   "cost_usd": 0.0764756,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T06",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T06-playwright-r1",
+   "answer": "BCP 246",
+   "correct": true,
+   "accepted": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "turns": 13,
+   "tokens": 688622,
+   "reported_tokens": 688622,
+   "context_per_turn": [
+    39739,
+    40381,
+    40615,
+    41092,
+    46009,
+    47201,
+    47957,
+    48136,
+    64689,
+    64875,
+    65180,
+    66508,
+    74299
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Qdrzk6pDcwANfJx1j4pZ48",
+     "name": "ToolSearch",
+     "input_chars": 105,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KmtzUwbLTRWsHRv8YcTcep",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 38,
+     "result_chars": 232,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0173dv5Ny6HTRNRMrupdM13J",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 66,
+     "result_chars": 369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Skpye9QfaSaUxMsUih5cfC",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 14464,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017nm7QVw4nvhx11dY3VSonJ",
+     "name": "ToolSearch",
+     "input_chars": 137,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GwKu4pCyciKEniXZ48mDDr",
+     "name": "mcp__playwright__browser_type",
+     "input_chars": 50,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01Ayr4puN3AqPkBW2YrMSkjp",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 52,
+     "result_chars": 66,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01DLbospCCTWoay4ZW7tXBvF",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 53,
+     "result_chars": 67,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_018zX9kudD6UjCSfseehV5Dt",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 50,
+     "result_chars": 64,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01G8WLouyQeUVEjKrn2YqaNi",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 51,
+     "result_chars": 65,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01K5uMvsmLvrrYPRqWWf1dog",
+     "name": "mcp__playwright__browser_type",
+     "input_chars": 50,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01HDnEY5hRi2ffbiow3F1ji3",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 47491,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012J9Gy7TPpKf1312CKKaAqs",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 48,
+     "result_chars": 123,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01AdvDD5h6P9aoAWaD4zEswi",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 20,
+     "result_chars": 396,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019rDWUMxDckUZW4eMUSgeeZ",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 40,
+     "result_chars": 347,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01N1dAjM2ntvpFE7ueKneYsa",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 40,
+     "result_chars": 438,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TTkwxQBQHXmLrV7GAFXWos",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 40,
+     "result_chars": 446,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AunJPHMbLYL2WpLsNQ2oEj",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 40,
+     "result_chars": 446,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WGtw7LU2zhN68pggdWsrfJ",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 21976,
+     "is_error": false
+    }
+   ],
+   "seconds": 43.1,
+   "cost_usd": 0.3806548,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T06",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T06-playwright-cli-r1",
+   "answer": "BCP 246",
+   "correct": true,
+   "accepted": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "turns": 12,
+   "tokens": 719409,
+   "reported_tokens": 719409,
+   "context_per_turn": [
+    48651,
+    54706,
+    55074,
+    55339,
+    56475,
+    60623,
+    60890,
+    63305,
+    64348,
+    65182,
+    65689,
+    67514
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_016kNZnAD4URaB2QRVXqqPL6",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Wa8bG8gR4yCri3tENh3CGG",
+     "name": "Bash",
+     "input_chars": 94,
+     "result_chars": 321,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QBUShnQdzpZ2vrND6pv1JV",
+     "name": "Bash",
+     "input_chars": 104,
+     "result_chars": 254,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01V9LPumeY4BVW56t6kta4Cg",
+     "name": "Bash",
+     "input_chars": 76,
+     "result_chars": 2317,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VP9kE4uPBEb8SkiSZeT2Ww",
+     "name": "Read",
+     "input_chars": 275,
+     "result_chars": 11190,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MDcj8KkiTCoiQRGAskQraE",
+     "name": "Bash",
+     "input_chars": 40,
+     "result_chars": 322,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017cc64mBbt7E7RytJ3eUquj",
+     "name": "Read",
+     "input_chars": 276,
+     "result_chars": 7247,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0188V5TwhACAuQwVLXN81WD4",
+     "name": "Bash",
+     "input_chars": 161,
+     "result_chars": 1683,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RFfLkMwQ3NQuaq7vo6YMGr",
+     "name": "Bash",
+     "input_chars": 97,
+     "result_chars": 1475,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SzswYCtVsNFMJvDszTTui1",
+     "name": "Bash",
+     "input_chars": 104,
+     "result_chars": 1017,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0136pwt8h9peqr1yHj2Zo4yS",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 4900,
+     "is_error": false
+    }
+   ],
+   "seconds": 43.1,
+   "cost_usd": 0.323425,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T07",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T07-dejo-r1",
+   "answer": "The site returns a 403 Forbidden on every attempt through Dejo \u2014 it's blocking the automated browser, so I can't reach the collection page or confirm the date.",
+   "correct": false,
+   "accepted": [
+    "1880-1890",
+    "1880\u20131890",
+    "1880 to 1890"
+   ],
+   "turns": 4,
+   "tokens": 163990,
+   "reported_tokens": 163990,
+   "context_per_turn": [
+    40275,
+    40660,
+    41038,
+    41405
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0184dnXBKMNc8dq3TkRfAHuK",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 162,
+     "result_chars": 486,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NcVvXTKqhZP8i8uFfENqc3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 194,
+     "result_chars": 322,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XXEJxTPmcfS7GiMt5druWg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 138,
+     "result_chars": 295,
+     "is_error": false
+    }
+   ],
+   "seconds": 17.8,
+   "cost_usd": 0.13528060000000003,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T07",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T07-dejo-r1",
+   "answer": "The site is returning a 403 Forbidden to the browser, so I can't reach the search page.\n\nSkipped/risk: couldn't verify via live browser (site blocks access); no answer retrieved \u2014 can't fabricate a da",
+   "correct": false,
+   "accepted": [
+    "1880-1890",
+    "1880\u20131890",
+    "1880 to 1890"
+   ],
+   "turns": 4,
+   "tokens": 164369,
+   "reported_tokens": 164369,
+   "context_per_turn": [
+    40275,
+    40690,
+    41126,
+    41538
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01YXNFz4jPfzjiUNZZjkFGuJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 215,
+     "result_chars": 539,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GLSmBbGukXEjvF4HyjLmdY",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 334,
+     "result_chars": 354,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01W6PDLkQWvCzJu9HxFk8DMz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 283,
+     "result_chars": 295,
+     "is_error": false
+    }
+   ],
+   "seconds": 23.1,
+   "cost_usd": 0.0449396,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T07",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T07-playwright-r1",
+   "answer": "I'm blocked by a 403 Forbidden error from the site (likely bot protection), even after retrying. I can't retrieve the date for that catalog item right now.\n\nSkipped: didn't try alternate approaches (d",
+   "correct": false,
+   "accepted": [
+    "1880-1890",
+    "1880\u20131890",
+    "1880 to 1890"
+   ],
+   "turns": 5,
+   "tokens": 207115,
+   "reported_tokens": 207115,
+   "context_per_turn": [
+    39724,
+    41182,
+    41536,
+    41876,
+    42222
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01XoS6YUZckERLydYZ6t7ix7",
+     "name": "ToolSearch",
+     "input_chars": 201,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CfQ27Fe9WuhjGfWkWzQxxN",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 80,
+     "result_chars": 460,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EMt29trxv5oRDDo221Hvdw",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 55,
+     "result_chars": 410,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AZ59u8MtsXAW4cM4y7Z4WH",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 55,
+     "result_chars": 410,
+     "is_error": false
+    }
+   ],
+   "seconds": 19.3,
+   "cost_usd": 0.1490452,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T07",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T07-playwright-cli-r1",
+   "answer": "1880-1890",
+   "correct": true,
+   "accepted": [
+    "1880-1890",
+    "1880\u20131890",
+    "1880 to 1890"
+   ],
+   "turns": 21,
+   "tokens": 1228698,
+   "reported_tokens": 1228698,
+   "context_per_turn": [
+    48636,
+    54668,
+    55000,
+    55303,
+    55467,
+    55806,
+    56250,
+    56426,
+    56934,
+    57146,
+    57639,
+    58073,
+    59458,
+    59731,
+    61131,
+    61372,
+    62597,
+    63144,
+    63581,
+    63853,
+    64213
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01HMv4jVEXV3zrs2ib5keQ5s",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FCwvyFvM8NZ1uC8C271wbu",
+     "name": "Bash",
+     "input_chars": 79,
+     "result_chars": 454,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EoMv9wsfPPkv3bTvFksYPU",
+     "name": "Bash",
+     "input_chars": 36,
+     "result_chars": 369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FaEVVdmdHMDgGikYEbjb3z",
+     "name": "Bash",
+     "input_chars": 35,
+     "result_chars": 24,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NfPE6DcbHg2w5c3wcHSa7j",
+     "name": "Bash",
+     "input_chars": 96,
+     "result_chars": 455,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XMTXj2QQ8XRiuTLXko3tPk",
+     "name": "Bash",
+     "input_chars": 131,
+     "result_chars": 481,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SHbWn9gvzW81xzuJQWobVA",
+     "name": "Bash",
+     "input_chars": 68,
+     "result_chars": 15,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SGksw7pWhBLbDebP4mPWvo",
+     "name": "Bash",
+     "input_chars": 233,
+     "result_chars": 332,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Wmr6GaNfE2B4z4i1PbjdMs",
+     "name": "Bash",
+     "input_chars": 38,
+     "result_chars": 216,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AKa7Fpn44FRead4twvyYjW",
+     "name": "Bash",
+     "input_chars": 38,
+     "result_chars": 137,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017SFREYJmrdbjhYSYHRyafk",
+     "name": "Bash",
+     "input_chars": 39,
+     "result_chars": 681,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LQpiLEwYrKeM3wu2QSAxZH",
+     "name": "Bash",
+     "input_chars": 128,
+     "result_chars": 3467,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TxMA9UxbuSmJjrLJ8tHMVb",
+     "name": "Bash",
+     "input_chars": 88,
+     "result_chars": 347,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012S9TbCyEADFPjmyUW8b5t7",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 3552,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HmpH71tKecYuULwfELHbaw",
+     "name": "Bash",
+     "input_chars": 39,
+     "result_chars": 305,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YSya9jak7LTvonY7ufMsUZ",
+     "name": "Bash",
+     "input_chars": 38,
+     "result_chars": 2481,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YHJHm6ou2u5c7GMS5wV4Hr",
+     "name": "Bash",
+     "input_chars": 96,
+     "result_chars": 917,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SCEv2Z5RWEbWuLdtpjQ8Vj",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 707,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KKyoCpaKLoHr7xTsiVoctH",
+     "name": "Bash",
+     "input_chars": 41,
+     "result_chars": 347,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017gqdnisrf5RU1H9dxvw58e",
+     "name": "Bash",
+     "input_chars": 43,
+     "result_chars": 573,
+     "is_error": false
+    }
+   ],
+   "seconds": 90.6,
+   "cost_usd": 0.41920999999999997,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T08",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T08-dejo-r1",
+   "answer": "The site is blocking Dejo's browser with a 403 Forbidden on every URL I try \u2014 it looks like bot/WAF protection rather than a bad URL. I can't retrieve the result this way.\n\nI was unable to access the ",
+   "correct": false,
+   "accepted": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "turns": 6,
+   "tokens": 248147,
+   "reported_tokens": 248147,
+   "context_per_turn": [
+    40282,
+    40672,
+    41029,
+    41335,
+    41660,
+    42094
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01C9TPPxJRxfFaRqeiqrczh1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 197,
+     "result_chars": 521,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019vX92xVgp2Yt9jzdxJngie",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 202,
+     "result_chars": 295,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XdqD6w3PVm3rSkNtrEi4y7",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 210,
+     "result_chars": 152,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01XUVcVZoqp4BvXuV7Af1tHf",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 202,
+     "result_chars": 295,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DVES3NGv57NK82HN144xMa",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 251,
+     "result_chars": 344,
+     "is_error": false
+    }
+   ],
+   "seconds": 24.3,
+   "cost_usd": 0.15927480000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T08",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T08-dejo-r1",
+   "answer": "The site is blocking Dejo's browser with an HTTP 403 (likely bot protection) \u2014 I can't get past it with the tools available.\n\nSkipped: couldn't actually search the collection or find the magazine name",
+   "correct": false,
+   "accepted": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "turns": 5,
+   "tokens": 206491,
+   "reported_tokens": 206491,
+   "context_per_turn": [
+    40282,
+    40667,
+    41090,
+    41490,
+    41981
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_017X1scgnBVHLoouLsd9QZ5b",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 198,
+     "result_chars": 473,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Ns4V4U3BLE5P4j33hD8Ww1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 258,
+     "result_chars": 391,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DZyWAmJPd4C6u6VqfqvXUX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 268,
+     "result_chars": 411,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0199fzohkhd1sErPDgb8AE2z",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 318,
+     "result_chars": 347,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.6,
+   "cost_usd": 0.057386200000000005,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T08",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T08-playwright-r1",
+   "answer": "The site is blocking automated access (plain \"403 Forbidden\", no challenge page to work through) \u2014 I can't reach it via Playwright, so I can't retrieve the magazine name.\n\nSkipped: couldn't search the",
+   "correct": false,
+   "accepted": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "turns": 6,
+   "tokens": 249014,
+   "reported_tokens": 249014,
+   "context_per_turn": [
+    39731,
+    41033,
+    41354,
+    41694,
+    42110,
+    42402
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_016dwKm6E1fZShju8s9UGzRm",
+     "name": "ToolSearch",
+     "input_chars": 166,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01G2YZFU3FXi6NehoagYrPhD",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 55,
+     "result_chars": 410,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EQb3SQaWx53soaq1rKj3Ze",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 55,
+     "result_chars": 410,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017VrWv4jtMZbdzigEcdY4AQ",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 88,
+     "result_chars": 476,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UTwm6AMiKgnKBL8jVqAdEn",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 339,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.9,
+   "cost_usd": 0.1592396,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T08",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T08-playwright-cli-r1",
+   "answer": "Del-Mar-Va Heartland\n\nSkipped: closing the browser session. Risk: none \u2014 this was a read-only search task.",
+   "correct": true,
+   "accepted": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "turns": 27,
+   "tokens": 1664168,
+   "reported_tokens": 1664168,
+   "context_per_turn": [
+    48643,
+    54689,
+    55021,
+    55397,
+    55713,
+    56067,
+    56318,
+    56666,
+    57047,
+    57310,
+    57533,
+    58292,
+    58766,
+    59847,
+    61263,
+    61530,
+    63479,
+    63722,
+    64504,
+    64907,
+    65052,
+    70286,
+    70752,
+    71344,
+    71634,
+    71777,
+    73849
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01JZaBAYZjRQT9yQBL61RDNd",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Jib5sZceuXVtYRqvgpU4qi",
+     "name": "Bash",
+     "input_chars": 79,
+     "result_chars": 455,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SZTJfDamMxYeFCQFysoB1x",
+     "name": "Bash",
+     "input_chars": 118,
+     "result_chars": 481,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01H7zQzCKnXWVZ5nGMXkRhzY",
+     "name": "Bash",
+     "input_chars": 36,
+     "result_chars": 369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AU25aDjT6VePEat5wJbeXM",
+     "name": "Bash",
+     "input_chars": 114,
+     "result_chars": 481,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VYKtVJXsr6QMQfTpXdydXn",
+     "name": "Read",
+     "input_chars": 203,
+     "result_chars": 46,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Gsi2qqbkfLRnLJ1Zatj6ev",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018U5q4boe2xX6qFoyJDg7uf",
+     "name": "Bash",
+     "input_chars": 128,
+     "result_chars": 439,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ADoXndh287Fk9WtjgsNcPr",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 343,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MQtbPaZJf4Qo4BZVXATbPq",
+     "name": "Bash",
+     "input_chars": 65,
+     "result_chars": 256,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MFHbMBmAbqCi9LLXfkARHN",
+     "name": "Read",
+     "input_chars": 168,
+     "result_chars": 1249,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016tG1pj1GdNhuQZAw4xYZ5u",
+     "name": "Bash",
+     "input_chars": 108,
+     "result_chars": 686,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01L2jYgshwV1zsmKUMtQAQBo",
+     "name": "Bash",
+     "input_chars": 79,
+     "result_chars": 2770,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017MaPkGJ9oKjX1wcFwQfbU5",
+     "name": "Bash",
+     "input_chars": 72,
+     "result_chars": 3408,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BCD6hqVWzsUaD5ikATfyBb",
+     "name": "Bash",
+     "input_chars": 41,
+     "result_chars": 307,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XvrEVcQRdQf7zKr2rAJbjL",
+     "name": "Read",
+     "input_chars": 203,
+     "result_chars": 4398,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YQ4UgxdbmusEtHbwTfCLk6",
+     "name": "Bash",
+     "input_chars": 41,
+     "result_chars": 305,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EM1BDKFyM4YQ3gYoR3UrxT",
+     "name": "Read",
+     "input_chars": 203,
+     "result_chars": 1236,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LVucYBYu2wYB8apUp8Wd26",
+     "name": "Bash",
+     "input_chars": 83,
+     "result_chars": 608,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SZWnAvUsBqV2QD29fcg7Ei",
+     "name": "Bash",
+     "input_chars": 81,
+     "result_chars": 72,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Fiq9j4Ke2tyZf5dr5R6218",
+     "name": "Read",
+     "input_chars": 203,
+     "result_chars": 11222,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Qo6npPaFq87fcC5DvkqAcM",
+     "name": "Bash",
+     "input_chars": 91,
+     "result_chars": 619,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01V8rtYEXdTHkB5jiq47cY5n",
+     "name": "Bash",
+     "input_chars": 160,
+     "result_chars": 960,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QFYuFsRk84dnk4X2XTJ7Pq",
+     "name": "Bash",
+     "input_chars": 41,
+     "result_chars": 351,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HyVmcWzM4nPNgo7BNSHntY",
+     "name": "Bash",
+     "input_chars": 78,
+     "result_chars": 69,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012L3YFk1G6dNvXay7QcfEuj",
+     "name": "Read",
+     "input_chars": 203,
+     "result_chars": 4151,
+     "is_error": false
+    }
+   ],
+   "seconds": 118.5,
+   "cost_usd": 0.5477444,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "learn",
+   "task": "T09",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T09-dejo-r1",
+   "answer": "1 credit",
+   "correct": true,
+   "accepted": [
+    "1",
+    "1 credit",
+    "Credits: 1"
+   ],
+   "turns": 9,
+   "tokens": 426172,
+   "reported_tokens": 426172,
+   "context_per_turn": [
+    40282,
+    42907,
+    43201,
+    43494,
+    47346,
+    50102,
+    50395,
+    53248,
+    53823
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01RZdiMc2qZ8CiWSTW5KwLVS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 141,
+     "result_chars": 5698,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CfBSHsYycZB7LxWGmggsMg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 188,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011bhh9T3LXAGoZkxrF4d5GC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 127,
+     "result_chars": 226,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NFs7N2kXfGjZ1yhEmtS5P5",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 174,
+     "result_chars": 7447,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EGnXX8Pt3p4nPiYFKhpMTc",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 5465,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011ks7U8PeXXjXnMNQqZC28C",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 168,
+     "result_chars": 158,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01B3JueKczvS1EJBLfnubsma",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 143,
+     "result_chars": 5853,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SZdy235yWUxMNMJHNEoZhR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 1056,
+     "is_error": false
+    }
+   ],
+   "seconds": 40.1,
+   "cost_usd": 0.242391,
+   "trails": {
+    "catalog.ccv.edu": [
+     "find credits for MEC 2350 Green Production in 2026-2027 course list"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "replay",
+   "task": "T09",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T09-dejo-r1",
+   "answer": "1 credit.",
+   "correct": true,
+   "accepted": [
+    "1",
+    "1 credit",
+    "Credits: 1"
+   ],
+   "turns": 7,
+   "tokens": 328655,
+   "reported_tokens": 328655,
+   "context_per_turn": [
+    40282,
+    42647,
+    46387,
+    46656,
+    49469,
+    49716,
+    52569
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01HjSHdCiWimtMCLpEoSjEEH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 144,
+     "result_chars": 4724,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RkZz9DjnTEksFCrJ7aGSqN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 132,
+     "result_chars": 7400,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LDAFwRQpBMheb48d8gQCVE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 155,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01HKLhchQh4v9Fffm2CzBtBz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 177,
+     "result_chars": 5632,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019iQPjK1NpV9tZr7KSEYnea",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01QgEJoH53vsd8MVfcvcFMXg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 146,
+     "result_chars": 5853,
+     "is_error": false
+    }
+   ],
+   "seconds": 49.0,
+   "cost_usd": 0.12155100000000002,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "learn",
+   "task": "T09",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T09-playwright-r1",
+   "answer": "MEC 2350 - Green Production is worth 1 credit.",
+   "correct": true,
+   "accepted": [
+    "1",
+    "1 credit",
+    "Credits: 1"
+   ],
+   "turns": 24,
+   "tokens": 1355021,
+   "reported_tokens": 1355021,
+   "context_per_turn": [
+    39731,
+    41629,
+    41928,
+    43782,
+    43931,
+    47260,
+    47529,
+    47789,
+    48490,
+    48647,
+    60650,
+    61282,
+    61508,
+    61838,
+    61971,
+    62791,
+    62935,
+    63134,
+    66444,
+    66935,
+    67467,
+    67903,
+    68056,
+    69158
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0186NLEqChjVFK6B4Z7Nzqmc",
+     "name": "ToolSearch",
+     "input_chars": 235,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013MHYvAqp484yFmFEcDukMo",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 35,
+     "result_chars": 369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013FbbKZdeWqtH8tTVuURw3F",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 21,
+     "result_chars": 4863,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EHrvxido3tEcE74ZLi1BjK",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 31,
+     "result_chars": 54,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011px4h5KdVyo4B6FWcdeX68",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 18,
+     "result_chars": 9292,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KQxZfn314AcUBevPPLHbjp",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 68,
+     "result_chars": 267,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UZ6a4MR7YbvvWJ2fNauP8z",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 15,
+     "result_chars": 295,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Bnz2Vpahx334EMm2hPdXVg",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 1440,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013xUQwViAv5xatD6z3L13EZ",
+     "name": "ToolSearch",
+     "input_chars": 42,
+     "result_chars": 32,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017fGdB5MHkgnZMQ9tm6WyHi",
+     "name": "ToolSearch",
+     "input_chars": 53,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MRkfkAx4RdUnMx4bLaxWQL",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 16,
+     "result_chars": 1130,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RgFNpasWmncEiRrWydMsdM",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 106,
+     "result_chars": 77,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01X3hckNSUgtiwceMdQGsn1U",
+     "name": "mcp__playwright__browser_select_option",
+     "input_chars": 82,
+     "result_chars": 341,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SYSju5nBy1iHBT7ABP8SDW",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 16,
+     "result_chars": 39,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017wemhy6Uo3k5Z5S8VKqXjh",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 14,
+     "result_chars": 1708,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GEgXvLJ7jHT5rsGpNB3bLu",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 28,
+     "result_chars": 51,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EHbFaaEGxpofxBUE46dryc",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 37,
+     "result_chars": 94,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01LVp5hh6cezyLfmLF5s9hkk",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 36,
+     "result_chars": 8378,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UTAKKbchwAx2gTaVZ5j9ko",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 48,
+     "result_chars": 640,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012v8kPxDyvUsuGuYLXXHXNk",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 16,
+     "result_chars": 1069,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SegcW8FXn958x7ifA3BsZC",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 67,
+     "result_chars": 565,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RVBeqds6hehpAzChHzYJ5T",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 24,
+     "result_chars": 47,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01THtyoBQu7tdxDCJoTnxGct",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 18,
+     "result_chars": 3117,
+     "is_error": false
+    }
+   ],
+   "seconds": 71.6,
+   "cost_usd": 0.49730000000000013,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "learn",
+   "task": "T09",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T09-playwright-cli-r1",
+   "answer": "MEC 2350 - Green Production is worth 1 credit.",
+   "correct": true,
+   "accepted": [
+    "1",
+    "1 credit",
+    "Credits: 1"
+   ],
+   "turns": 17,
+   "tokens": 1167256,
+   "reported_tokens": 1167256,
+   "context_per_turn": [
+    48643,
+    54677,
+    54987,
+    56862,
+    57005,
+    57142,
+    58979,
+    59966,
+    60194,
+    60437,
+    60715,
+    88305,
+    88590,
+    89026,
+    89547,
+    89947,
+    91032
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01R4rab8JxEAsvjHnaqWWLY7",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Q1TQp2UHVk4w65yzwFhsXd",
+     "name": "Bash",
+     "input_chars": 59,
+     "result_chars": 414,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JSeMtQaeUk9YBETLxfUK7A",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 4863,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ETemUFMsnMui9tgJUsXNTH",
+     "name": "Bash",
+     "input_chars": 50,
+     "result_chars": 46,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01G7WF1zrA61zcYsdPRw91Bm",
+     "name": "Bash",
+     "input_chars": 56,
+     "result_chars": 68,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Tbe4VCMVs9GMFgVt6xAp3J",
+     "name": "Bash",
+     "input_chars": 51,
+     "result_chars": 5506,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CXpw2DFXyZShfiMyWBpbyK",
+     "name": "Bash",
+     "input_chars": 55,
+     "result_chars": 2484,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018eaj61jBvV42z8FizxEWUS",
+     "name": "Bash",
+     "input_chars": 40,
+     "result_chars": 261,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LmfkvibA3vBUnej1W7qD5H",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 295,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01StgeFWYrdmaMX3BY1mfuSP",
+     "name": "Bash",
+     "input_chars": 61,
+     "result_chars": 294,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Pez44Kjvub2E2WHJMfTYYP",
+     "name": "Read",
+     "input_chars": 164,
+     "result_chars": 81862,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JTkjsLxngcEPLx8GavJ5re",
+     "name": "Bash",
+     "input_chars": 46,
+     "result_chars": 341,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TCjiZDumGMZPb1DGbTEixM",
+     "name": "Bash",
+     "input_chars": 42,
+     "result_chars": 641,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EDPk3NdjZZFuNaKFJza7Ff",
+     "name": "Bash",
+     "input_chars": 53,
+     "result_chars": 1073,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012og3bP9nweBb3sruzJ8UAE",
+     "name": "Bash",
+     "input_chars": 42,
+     "result_chars": 565,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Bt9NqMJr9sjL6gvvHEJcp2",
+     "name": "Bash",
+     "input_chars": 51,
+     "result_chars": 3046,
+     "is_error": false
+    }
+   ],
+   "seconds": 60.7,
+   "cost_usd": 0.4983530000000001,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "learn",
+   "task": "T10",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T10-dejo-r1",
+   "answer": "MAT 1230 - College Algebra",
+   "correct": true,
+   "accepted": [
+    "MAT 1230 - College Algebra",
+    "MAT 1230",
+    "College Algebra",
+    "MAT 1230 College Algebra"
+   ],
+   "turns": 11,
+   "tokens": 542671,
+   "reported_tokens": 542671,
+   "context_per_turn": [
+    40273,
+    43002,
+    43296,
+    43585,
+    47337,
+    47563,
+    51387,
+    55310,
+    55594,
+    56599,
+    57000
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01TLxpKtM9u4KbadorEZP9TK",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 160,
+     "result_chars": 5833,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01A5chP72wQcnmTM2bAMAHXi",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 162,
+     "result_chars": 188,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FY7y72KSC15Wo6Fkk4rLg5",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 160,
+     "result_chars": 226,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01G8fQ42zMkxDUG5AXgZq9jd",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 142,
+     "result_chars": 7369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JvFRWME9sCGqRmoZcGebrj",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 194,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01455va5RZK6mKcCeGCUSgSs",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 174,
+     "result_chars": 7432,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RPvD7K4aPX8NNjfLSVy6Cc",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 196,
+     "result_chars": 7436,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01McPMR1FhY59ukWZVSaKLxe",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 188,
+     "result_chars": 116,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_014DwVrzhNBXqUM9E9jUwQcw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 146,
+     "result_chars": 1820,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SfncVTmv8WcekjtvbdLWyg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 166,
+     "result_chars": 425,
+     "is_error": false
+    }
+   ],
+   "seconds": 45.5,
+   "cost_usd": 0.2812104,
+   "trails": {
+    "catalog.ccv.edu": [
+     "Find the last course listed on page 3 of the full course list in the 2026-2027 catalog"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "replay",
+   "task": "T10",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T10-dejo-r1",
+   "answer": "MAT 1230 - College Algebra",
+   "correct": true,
+   "accepted": [
+    "MAT 1230 - College Algebra",
+    "MAT 1230",
+    "College Algebra",
+    "MAT 1230 College Algebra"
+   ],
+   "turns": 8,
+   "tokens": 382936,
+   "reported_tokens": 382936,
+   "context_per_turn": [
+    40273,
+    42677,
+    46497,
+    46754,
+    50569,
+    50845,
+    51852,
+    52204
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_011b7xQgTYEg4kbf7aEc7WAJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 167,
+     "result_chars": 4734,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017Sc2EwZX3nFS6wzBqrVbnk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 167,
+     "result_chars": 7454,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AjstZcgQxdpkviBqSWw6Xf",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 227,
+     "result_chars": 116,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01BRnYXa3sqR72BGNTYUjXoc",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 205,
+     "result_chars": 7411,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019WQ4oxnpp5LXSPAN5vcnSD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 183,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01U3hMnc9p7Hf1JGZtNbWhNt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 153,
+     "result_chars": 1820,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JbxgdYBULLBm3gUnQTojEx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 168,
+     "result_chars": 266,
+     "is_error": false
+    }
+   ],
+   "seconds": 54.0,
+   "cost_usd": 0.1343508,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "learn",
+   "task": "T10",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T10-playwright-r1",
+   "answer": "MAT 1230 - College Algebra",
+   "correct": true,
+   "accepted": [
+    "MAT 1230 - College Algebra",
+    "MAT 1230",
+    "College Algebra",
+    "MAT 1230 College Algebra"
+   ],
+   "turns": 19,
+   "tokens": 1005329,
+   "reported_tokens": 1005329,
+   "context_per_turn": [
+    39722,
+    40752,
+    41051,
+    51639,
+    51823,
+    52092,
+    52340,
+    52685,
+    53705,
+    53870,
+    53987,
+    54102,
+    54333,
+    54480,
+    54715,
+    55235,
+    61768,
+    62384,
+    62744
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01UzMcbDN3HPu417ETq78FnC",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012jNDTMdtB7iBtYxS7onWak",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 35,
+     "result_chars": 369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0169ZDmf78boqEfou6kV1Mi3",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 31848,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01X3tksTrpKgCQLW5djR4kAE",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 62,
+     "result_chars": 60,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01FkZj9kpC3NvJobUQqxkuKn",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 68,
+     "result_chars": 267,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GYYZTNqocG1Mm1XZVseTrp",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 301,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014ZhqyQRud8bn1mJ3Qjx8sU",
+     "name": "mcp__playwright__browser_wait_for",
+     "input_chars": 11,
+     "result_chars": 437,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DuureCtX17aFxMJDee9EzS",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 2330,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DAquKmr3hBEmhvyMoFrcnJ",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 47,
+     "result_chars": 57,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01NJ4v8bayqMv1EuduXUsw9y",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 28,
+     "result_chars": 51,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014HyyAsT6wEhNq7iaw1gXWE",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 21,
+     "result_chars": 44,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CaiBUvHk9eHp3vvNzEJa65",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 31,
+     "result_chars": 208,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PZCmy4UHnXxjxWYDNdkmDf",
+     "name": "ToolSearch",
+     "input_chars": 42,
+     "result_chars": 32,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014rEKAwFmFE4e84RWrzpabJ",
+     "name": "Read",
+     "input_chars": 138,
+     "result_chars": 134,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_0185BSZsW2digQ5y6UfWLisv",
+     "name": "ToolSearch",
+     "input_chars": 71,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VRU9dWGrCvBoeUCcBxup58",
+     "name": "mcp__playwright__browser_evaluate",
+     "input_chars": 165,
+     "result_chars": 12599,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QuecYc8uQoeoDbKvRa4MYE",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 194,
+     "result_chars": 697,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AXp4yF9Ker4wvbYo5Rkdjw",
+     "name": "mcp__playwright__browser_evaluate",
+     "input_chars": 241,
+     "result_chars": 327,
+     "is_error": false
+    }
+   ],
+   "seconds": 66.3,
+   "cost_usd": 0.3997266,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "learn",
+   "task": "T10",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T10-playwright-cli-r1",
+   "answer": "MAT 1230 - College Algebra",
+   "correct": true,
+   "accepted": [
+    "MAT 1230 - College Algebra",
+    "MAT 1230",
+    "College Algebra",
+    "MAT 1230 College Algebra"
+   ],
+   "turns": 14,
+   "tokens": 973017,
+   "reported_tokens": 973017,
+   "context_per_turn": [
+    48634,
+    54666,
+    54976,
+    56830,
+    60187,
+    60435,
+    60675,
+    60970,
+    61963,
+    89612,
+    90019,
+    90591,
+    90921,
+    91429
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01SBdJFhSE3xDW96W1MuN1eY",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RVbRJnSxkq3FFsBeQDir2T",
+     "name": "Bash",
+     "input_chars": 59,
+     "result_chars": 414,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QWa8Nd8kJudimN76H9NP6z",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 4863,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JWuscQRuUkMm7jSjFXHXNM",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 9292,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EfFV8sDyzHAcAinyU5pvtw",
+     "name": "Bash",
+     "input_chars": 40,
+     "result_chars": 261,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CVFRTzUhFGVMK5i3T34o8t",
+     "name": "Bash",
+     "input_chars": 42,
+     "result_chars": 295,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0156BcuDmkDbf2irB2ignymP",
+     "name": "Bash",
+     "input_chars": 112,
+     "result_chars": 388,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KAc38VWM5VFwicfuTJZM7m",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 2313,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014BGhaBzRcvQZvwmpuVpC7g",
+     "name": "Read",
+     "input_chars": 247,
+     "result_chars": 81868,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GR2tnUrs7H2TX4z855rcPw",
+     "name": "Bash",
+     "input_chars": 42,
+     "result_chars": 553,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LDyvKkoZjg3TsLHkfZCkSk",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 1166,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015xtRmoP9aQsU6JdQrMYfA9",
+     "name": "Bash",
+     "input_chars": 75,
+     "result_chars": 337,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BCQz1mbuZpFGb9hFEuBHka",
+     "name": "Bash",
+     "input_chars": 68,
+     "result_chars": 778,
+     "is_error": false
+    }
+   ],
+   "seconds": 56.5,
+   "cost_usd": 0.4600916,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T11",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T11-dejo-r1",
+   "answer": "The site is blocked by Cloudflare's bot protection (403) and Dejo can't get past the security verification page.\n\nI couldn't retrieve the page \u2014 Cloudflare blocks the request before any content loads,",
+   "correct": false,
+   "accepted": [
+    "Brian Moore"
+   ],
+   "turns": 5,
+   "tokens": 206754,
+   "reported_tokens": 206754,
+   "context_per_turn": [
+    40258,
+    40731,
+    41187,
+    41649,
+    42155
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01K6KDwvA6qLPaVbUm1mnQhe",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 150,
+     "result_chars": 795,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01A7wbPKoxqeBgdFwTLpES8D",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 182,
+     "result_chars": 619,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CGFoCv36vGRFm3g4PoHao3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 191,
+     "result_chars": 619,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NSzPkRMYyuTVj7PsQ99w4C",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 171,
+     "result_chars": 770,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.3,
+   "cost_usd": 0.1482746,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T11",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T11-dejo-r1",
+   "answer": "This site is blocked by a Cloudflare security challenge that isn't clearing automatically \u2014 this looks like the captcha-handoff situation where I should stop and let you solve it live rather than keep",
+   "correct": false,
+   "accepted": [
+    "Brian Moore"
+   ],
+   "turns": 7,
+   "tokens": 292956,
+   "reported_tokens": 292956,
+   "context_per_turn": [
+    40258,
+    40728,
+    41136,
+    41530,
+    42146,
+    42535,
+    43206
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01JBFs9JMgYaUvChBXc7kqfM",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 143,
+     "result_chars": 788,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0171whsDvNK7AX1bcAqhcCs6",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 161,
+     "result_chars": 516,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Gez2sUgm38MWgR1aDxhP6k",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 170,
+     "result_chars": 516,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0159xZkW3v9Bp4Sjgyx13RVQ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 213,
+     "result_chars": 782,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Wu7SR7usi2cZn7af1MvBwK",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 161,
+     "result_chars": 516,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FSDaVS8YDtTYURqAuF1zyy",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 173,
+     "result_chars": 574,
+     "is_error": false
+    }
+   ],
+   "seconds": 31.6,
+   "cost_usd": 0.08370540000000001,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T11",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T11-playwright-r1",
+   "answer": "Cloudflare is blocking the page with a bot-verification challenge \u2014 I can't retrieve the content via the automated browser.\n\nI was unable to find the Road Foreman's name. Skipped: no retry workaround ",
+   "correct": false,
+   "accepted": [
+    "Brian Moore"
+   ],
+   "turns": 4,
+   "tokens": 162363,
+   "reported_tokens": 162363,
+   "context_per_turn": [
+    39707,
+    40343,
+    40644,
+    41279
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Tz5QVhXY2jkQMinJLs9aKB",
+     "name": "ToolSearch",
+     "input_chars": 105,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DG7ks3Gs1o985CdQ7mYbVj",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 40,
+     "result_chars": 386,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HNiPfPCgQy3uGhJ6Qkm5nR",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 1217,
+     "is_error": false
+    }
+   ],
+   "seconds": 19.6,
+   "cost_usd": 0.1346948,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T11",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T11-playwright-cli-r1",
+   "answer": "",
+   "correct": false,
+   "accepted": [],
+   "turns": 0,
+   "tokens": 0,
+   "reported_tokens": null,
+   "context_per_turn": [],
+   "calls": [],
+   "seconds": 300.2,
+   "cost_usd": 0.0,
+   "trails": {},
+   "one_call": null,
+   "note": "timed out"
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T12",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T12-dejo-r1",
+   "answer": "The site is stuck behind a Cloudflare bot-check that Dejo's browser can't pass after several attempts.\n\nSkipped: couldn't verify the actual fee since the page never got past Cloudflare's verification ",
+   "correct": false,
+   "accepted": [
+    "$55 each",
+    "$55",
+    "55",
+    "$55.00"
+   ],
+   "turns": 5,
+   "tokens": 207455,
+   "reported_tokens": 207455,
+   "context_per_turn": [
+    40261,
+    40728,
+    41174,
+    41792,
+    42399
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01GT4GZhMYvsKGonYTpu68ua",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 142,
+     "result_chars": 787,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CTNn29ECBuJo8tfUei6g92",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 156,
+     "result_chars": 601,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016iyTsdXYhv2VMcqWQJxNjF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 174,
+     "result_chars": 601,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016Cj2G4V4pVAmwVKmJSirQv",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 147,
+     "result_chars": 601,
+     "is_error": false
+    }
+   ],
+   "seconds": 50.5,
+   "cost_usd": 0.1525466,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T12",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T12-dejo-r1",
+   "answer": "Still stuck on Cloudflare's \"Performing security verification\" page after multiple waits \u2014 the browser isn't getting past it.\n\nI couldn't retrieve the fee: doververmont.com is blocking Dejo's browser ",
+   "correct": false,
+   "accepted": [
+    "$55 each",
+    "$55",
+    "55",
+    "$55.00"
+   ],
+   "turns": 4,
+   "tokens": 164421,
+   "reported_tokens": 164421,
+   "context_per_turn": [
+    40261,
+    40728,
+    41141,
+    41630
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Mcs59TZxc4XujWS7NuhhLY",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 144,
+     "result_chars": 789,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01S6TfEwGFN2Q81UtqxFirsD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 171,
+     "result_chars": 516,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FSKKFkM7uUvBzVEsqmBviG",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 180,
+     "result_chars": 516,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.3,
+   "cost_usd": 0.04457860000000001,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T12",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T12-playwright-r1",
+   "answer": "Can't get past Cloudflare's bot check on doververmont.com \u2014 it keeps returning a 403 \"Just a moment...\" challenge page, not actual content.\n\nSkipped: couldn't verify the transfer station fee since the",
+   "correct": false,
+   "accepted": [
+    "$55 each",
+    "$55",
+    "55",
+    "$55.00"
+   ],
+   "turns": 11,
+   "tokens": 462116,
+   "reported_tokens": 462116,
+   "context_per_turn": [
+    39710,
+    40350,
+    40651,
+    41299,
+    41627,
+    42001,
+    42310,
+    42656,
+    43067,
+    43376,
+    43833
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_016BfcSB6iz38265iuW6w9YQ",
+     "name": "ToolSearch",
+     "input_chars": 105,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011JTnyiyph4XKkwpkEvgb9c",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 40,
+     "result_chars": 386,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015J5Z33VRRdtTTLmprndZ8W",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 1220,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014gKT4WHfStHKAn2VhC1eKp",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 40,
+     "result_chars": 386,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Ur74D81s5UeWToR5GPpRMP",
+     "name": "ToolSearch",
+     "input_chars": 71,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0148S6tLmTtFHg8AJJxTg6Zr",
+     "name": "mcp__playwright__browser_wait_for",
+     "input_chars": 11,
+     "result_chars": 410,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TBhp2AQfvSgPL9eZpVPUGd",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 56,
+     "result_chars": 418,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DF24GgmZrhsJoj1BJvq3cE",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 40,
+     "result_chars": 386,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012etYdSwBdNm26Rj7RpJ2Ef",
+     "name": "mcp__playwright__browser_wait_for",
+     "input_chars": 12,
+     "result_chars": 412,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LA5SNEFMfJekW9zLfCVUQ5",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 40,
+     "result_chars": 386,
+     "is_error": false
+    }
+   ],
+   "seconds": 52.1,
+   "cost_usd": 0.2126666,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T12",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T12-playwright-cli-r1",
+   "answer": "This site is permanently blocking automated browser access via a Cloudflare bot-challenge that never resolves (HTTP 403, \"Performing security verification\"), even across retries and browser engines. I",
+   "correct": false,
+   "accepted": [
+    "$55 each",
+    "$55",
+    "55",
+    "$55.00"
+   ],
+   "turns": 13,
+   "tokens": 732680,
+   "reported_tokens": 732680,
+   "context_per_turn": [
+    48622,
+    54688,
+    55000,
+    55299,
+    55632,
+    56012,
+    56291,
+    57020,
+    57729,
+    58213,
+    58492,
+    58771,
+    59437
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01CVC477MqFiwLYrQBxzNf2Z",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0188ZCphwhGSRKrA3SQUjB6g",
+     "name": "Bash",
+     "input_chars": 64,
+     "result_chars": 430,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QQficmkk2MWTWdRtLgUtYi",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 358,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Vx12RjfgJ9V5gzjaAreK9X",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 359,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GZydfH5aMD81e1YTtHEfNf",
+     "name": "Bash",
+     "input_chars": 103,
+     "result_chars": 457,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FJgG4ZfqiLWpNgakNr9wU6",
+     "name": "Bash",
+     "input_chars": 46,
+     "result_chars": 358,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JnRTkHwYsdYJeBwGLqqx81",
+     "name": "Read",
+     "input_chars": 203,
+     "result_chars": 1062,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PWG6m6zJfhkTzbRc2e875J",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 1264,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BCbze1xWKCnDBA41KZp9Rh",
+     "name": "Bash",
+     "input_chars": 116,
+     "result_chars": 457,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019P8oyRYdPpLVzcGYLuawWy",
+     "name": "Bash",
+     "input_chars": 46,
+     "result_chars": 358,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019uAtmRsZ8ZmNfiTshLoBxJ",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 305,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01DpT6Eqry1og2LtGToJskKi",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 1264,
+     "is_error": false
+    }
+   ],
+   "seconds": 133.1,
+   "cost_usd": 0.29402800000000007,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T14",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T14-dejo-r1",
+   "answer": "$73.59",
+   "correct": true,
+   "accepted": [
+    "$73.59",
+    "73.59"
+   ],
+   "turns": 7,
+   "tokens": 308780,
+   "reported_tokens": 308780,
+   "context_per_turn": [
+    40264,
+    40712,
+    41779,
+    43732,
+    45676,
+    47595,
+    48034
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01X6chfkPVbdr8bakZh7RWsw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 681,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DepdSF16wZXUtTLctpeWTZ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 198,
+     "result_chars": 1850,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ThnAAP6s15QB7QNQcD4MzT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 132,
+     "result_chars": 3491,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ASrVaoy8CeNTw5vG89UNck",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 3511,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015DHYBsZpwBohUxdyLE3eR2",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 3334,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QdpSpgUusATeYnQmi1XXTS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 534,
+     "is_error": false
+    }
+   ],
+   "seconds": 23.4,
+   "cost_usd": 0.19312440000000003,
+   "trails": {
+    "practicesoftwaretesting.com": [
+     "Filter shop to Sander category and find Belt Sander price"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T14",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T14-dejo-r1",
+   "answer": "$73.59",
+   "correct": true,
+   "accepted": [
+    "$73.59",
+    "73.59"
+   ],
+   "turns": 2,
+   "tokens": 82591,
+   "reported_tokens": 82591,
+   "context_per_turn": [
+    40264,
+    42179
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01X5HbJWSvAaqgctrjLhZ3hy",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 3496,
+     "is_error": false
+    }
+   ],
+   "seconds": 11.4,
+   "cost_usd": 0.0252528,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T14",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T14-playwright-r1",
+   "answer": "$73.59",
+   "correct": true,
+   "accepted": [
+    "$73.59",
+    "73.59"
+   ],
+   "turns": 6,
+   "tokens": 269323,
+   "reported_tokens": 269323,
+   "context_per_turn": [
+    39713,
+    40691,
+    40944,
+    47640,
+    47943,
+    52009
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Vfpr8S9q3EtS54VzZTR4TB",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Bw6kG2UwiYDM2tzVXjRgUC",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 47,
+     "result_chars": 283,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GjG4BD6kQZGfF4MXw69urs",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 16081,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JgfNU31pZ2nPq5qaqjgs8v",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 48,
+     "result_chars": 339,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KqsKhXBwoqFPiTeZmUQz3B",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 9684,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.2,
+   "cost_usd": 0.1967994,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T14",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T14-playwright-cli-r1",
+   "answer": "Belt Sander: $73.59",
+   "correct": true,
+   "accepted": [
+    "$73.59",
+    "73.59"
+   ],
+   "turns": 6,
+   "tokens": 325610,
+   "reported_tokens": 325610,
+   "context_per_turn": [
+    48625,
+    54659,
+    54924,
+    55396,
+    55554,
+    56124
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01BiHur9nkxsGMwowELoiyzL",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SWpjdXWs9cNG3pS3AL8UCm",
+     "name": "Bash",
+     "input_chars": 71,
+     "result_chars": 328,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PyWrE1pC5FCLbzKXqf9unf",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 884,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Kf39UJr7NkqVM8fkL3FaXb",
+     "name": "Bash",
+     "input_chars": 40,
+     "result_chars": 114,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TZMkavEAUkGDUDNvvvm5SG",
+     "name": "Bash",
+     "input_chars": 50,
+     "result_chars": 1076,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.4,
+   "cost_usd": 0.18876859999999998,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T15",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T15-dejo-r1",
+   "answer": "Weight: 550g",
+   "correct": true,
+   "accepted": [
+    "550g",
+    "550 g"
+   ],
+   "turns": 8,
+   "tokens": 353813,
+   "reported_tokens": 353813,
+   "context_per_turn": [
+    40272,
+    40749,
+    41076,
+    43350,
+    45342,
+    46087,
+    47603,
+    48069
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01RGj4z8iXFBicwE1EHEDKZQ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 691,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MDiwVXpS5pYnmhVu3xko8C",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 326,
+     "result_chars": 174,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01HbnGkMaojsZT6HjbjuAHh1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 271,
+     "result_chars": 4051,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01G5UtYPgKJmav82i914FoNb",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 138,
+     "result_chars": 3654,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015UF9DgWpTKvPHkE9bEkQfY",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 169,
+     "result_chars": 1197,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TWx4aZW2duypLQA5hSE99q",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 135,
+     "result_chars": 2836,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UfRjukK44K7EHYjs8V4gzv",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 150,
+     "result_chars": 562,
+     "is_error": false
+    }
+   ],
+   "seconds": 27.3,
+   "cost_usd": 0.2049822,
+   "trails": {
+    "practicesoftwaretesting.com": [
+     "find weight in product specifications for Swiss Woodcarving Chisels"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T15",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T15-dejo-r1",
+   "answer": "550g",
+   "correct": true,
+   "accepted": [
+    "550g",
+    "550 g"
+   ],
+   "turns": 8,
+   "tokens": 369514,
+   "reported_tokens": 369514,
+   "context_per_turn": [
+    40272,
+    42492,
+    44802,
+    46802,
+    47029,
+    47756,
+    49337,
+    49825
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_012MhXFissgqARjft9JU74eo",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 4067,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KK8jSJrLkms5mNgtvrvBea",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 250,
+     "result_chars": 4049,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019Kfid5wZP64FRUTTCRgrqH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 138,
+     "result_chars": 3653,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Sh4VzjbbcP2G78g6wt1x5C",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 201,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01QGJdtvPZvKAqYThJWy3iqT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 169,
+     "result_chars": 1198,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BS7pQEq5Yctb2xwVVbG3XM",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 192,
+     "result_chars": 3027,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WH1noxi2XBmsYPLxnKLDCR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 150,
+     "result_chars": 653,
+     "is_error": false
+    }
+   ],
+   "seconds": 33.1,
+   "cost_usd": 0.1219832,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T15",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T15-playwright-r1",
+   "answer": "550g",
+   "correct": true,
+   "accepted": [
+    "550g",
+    "550 g"
+   ],
+   "turns": 9,
+   "tokens": 429611,
+   "reported_tokens": 429611,
+   "context_per_turn": [
+    39721,
+    41172,
+    41425,
+    48121,
+    48309,
+    48657,
+    52520,
+    52920,
+    56071
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_015mu3Uye15rqEisXHxGXndM",
+     "name": "ToolSearch",
+     "input_chars": 202,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WhJBW2Gd1F4zu1G7mskQ7D",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 47,
+     "result_chars": 283,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01P5ytyUnmWqk9Pgn1QA1BEz",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 16081,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LHNbmnZfBKTC6kKHdC89uJ",
+     "name": "mcp__playwright__browser_type",
+     "input_chars": 81,
+     "result_chars": 62,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01C6skopVkjwjfZgS7xbkeNY",
+     "name": "mcp__playwright__browser_type",
+     "input_chars": 71,
+     "result_chars": 407,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01C8oSrkHdZ19cf7F9WZ4p5u",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 9166,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015zvtxZKHcXovJx84h4PaUM",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 71,
+     "result_chars": 493,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RL15j6rCsbq4WpdxXfhvuC",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 7246,
+     "is_error": false
+    }
+   ],
+   "seconds": 28.4,
+   "cost_usd": 0.24736099999999997,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T15",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T15-playwright-cli-r1",
+   "answer": "550g",
+   "correct": true,
+   "accepted": [
+    "550g",
+    "550 g"
+   ],
+   "turns": 8,
+   "tokens": 439801,
+   "reported_tokens": 439801,
+   "context_per_turn": [
+    48633,
+    54677,
+    54942,
+    55397,
+    55707,
+    56321,
+    56681,
+    56982
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01YLjz5RjKkjcGpJc7SzPRwz",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018bcpUexEWMn1vgGZVXVkLc",
+     "name": "Bash",
+     "input_chars": 71,
+     "result_chars": 328,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Go3x4SgR9RREtwLjQF76xs",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 783,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ArafbrHPnmEPmxwXBVquHr",
+     "name": "Bash",
+     "input_chars": 78,
+     "result_chars": 407,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DWjCgiLemB6PbWQyq7aS5d",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 1130,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FnFM8B3gpjR2QK5KMZcMWQ",
+     "name": "Bash",
+     "input_chars": 40,
+     "result_chars": 493,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WWJ1277ntN44gn1TKX64QU",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 431,
+     "is_error": false
+    }
+   ],
+   "seconds": 29.0,
+   "cost_usd": 0.21617779999999998,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T16",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T16-dejo-r1",
+   "answer": "Science",
+   "correct": true,
+   "accepted": [
+    "Science"
+   ],
+   "turns": 6,
+   "tokens": 260217,
+   "reported_tokens": 260217,
+   "context_per_turn": [
+    40269,
+    42018,
+    43490,
+    43730,
+    44822,
+    45165
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_018XrfqSiKwYDPqtDV7qmxoR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 172,
+     "result_chars": 3262,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KN5TonR2nPjS9ZsDCPK3hr",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 2541,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011vrrfjgimsXvdzPSuimzLu",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 181,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CSd2KMyqhCZi6jWZCYjk7B",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 168,
+     "result_chars": 1794,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WXU5RMmRM9EnLoQTr1vhX4",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 161,
+     "result_chars": 361,
+     "is_error": false
+    }
+   ],
+   "seconds": 25.3,
+   "cost_usd": 0.169909,
+   "trails": {
+    "demowebshop.tricentis.com": [
+     "Open Books section, filter to books priced over 50.00, find the remaining book"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T16",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T16-dejo-r1",
+   "answer": "Computing and Internet",
+   "correct": false,
+   "accepted": [
+    "Science"
+   ],
+   "turns": 2,
+   "tokens": 81057,
+   "reported_tokens": 81057,
+   "context_per_turn": [
+    40269,
+    40631
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_013WwteZos44QdLSrJtWLCFy",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 177,
+     "result_chars": 497,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.0,
+   "cost_usd": 0.019132800000000002,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T16",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T16-playwright-r1",
+   "answer": "Science (67.00)",
+   "correct": true,
+   "accepted": [
+    "Science"
+   ],
+   "turns": 4,
+   "tokens": 167793,
+   "reported_tokens": 167793,
+   "context_per_turn": [
+    39718,
+    40688,
+    40936,
+    46194
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Vj3sAwbX4JZDTrGYkVLJEo",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Wx4RECfgusv2d7shAa6pbd",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 50,
+     "result_chars": 266,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0169irhtRWQw8hLuZ7KJ2ngH",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 12972,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.4,
+   "cost_usd": 0.15315440000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T16",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T16-playwright-cli-r1",
+   "answer": "Science\n\nI skipped double-checking for a second page of results, but the page showed only one product under this filter with no pagination controls visible. Price ties (67.00 original/51.00 discounted",
+   "correct": true,
+   "accepted": [
+    "Science"
+   ],
+   "turns": 9,
+   "tokens": 500962,
+   "reported_tokens": 500962,
+   "context_per_turn": [
+    48630,
+    54662,
+    54916,
+    55408,
+    55638,
+    56481,
+    56716,
+    56833,
+    61077
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01L3BuVFWqWCN4K9Wfmv8qYP",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017cL1e6EoCfFYRnrJGU2pkZ",
+     "name": "Bash",
+     "input_chars": 69,
+     "result_chars": 294,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KyvXxXuCLG4WTFEK89X7rV",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 887,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012Rwua9i4rGrnQGqm3potBE",
+     "name": "Bash",
+     "input_chars": 39,
+     "result_chars": 271,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016SAssSHd2XkzQTLaKqJ8Nt",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 1854,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QhunFjMUN3jZrUmxNNHWyA",
+     "name": "Bash",
+     "input_chars": 42,
+     "result_chars": 272,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RxXKKthA24jst371Koj7ue",
+     "name": "Bash",
+     "input_chars": 52,
+     "result_chars": 48,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013uGuNsA3qUceGKhdg7s8YM",
+     "name": "Bash",
+     "input_chars": 130,
+     "result_chars": 9525,
+     "is_error": false
+    }
+   ],
+   "seconds": 34.6,
+   "cost_usd": 0.2453466,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T17",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T17-dejo-r1",
+   "answer": "$30.00",
+   "correct": true,
+   "accepted": [
+    "30.00",
+    "$30.00",
+    "30"
+   ],
+   "turns": 5,
+   "tokens": 215129,
+   "reported_tokens": 215129,
+   "context_per_turn": [
+    40274,
+    41991,
+    42404,
+    44227,
+    45533
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_013q2Fk67R73xekkracRigGD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 3176,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Wo6dxUeALYnJwvFVqbDj2p",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 189,
+     "result_chars": 410,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GTj9DXHNc1ognoWmq9TxQS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 247,
+     "result_chars": 3169,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QxgN5n44GPS1EBuswpgucN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 181,
+     "result_chars": 2138,
+     "is_error": false
+    }
+   ],
+   "seconds": 26.5,
+   "cost_usd": 0.1620608,
+   "trails": {
+    "demowebshop.tricentis.com": [
+     "Find Wool Hat price on page 2 of Apparel & Shoes category"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T17",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T17-dejo-r1",
+   "answer": "$30.00",
+   "correct": true,
+   "accepted": [
+    "30.00",
+    "$30.00",
+    "30"
+   ],
+   "turns": 5,
+   "tokens": 207922,
+   "reported_tokens": 207922,
+   "context_per_turn": [
+    40274,
+    40685,
+    41263,
+    41637,
+    43004
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01C9uKC2dgWjzid6qfZiCCc8",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 179,
+     "result_chars": 454,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AXFfm5n9AEWGRnxQpqku8t",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 179,
+     "result_chars": 454,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01J4uBsy1esoYDiZZ4kshpzh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 306,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CiQu1WXAnAQiNTBw27gebz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 269,
+     "result_chars": 2138,
+     "is_error": false
+    }
+   ],
+   "seconds": 28.9,
+   "cost_usd": 0.06235460000000001,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T17",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T17-playwright-r1",
+   "answer": "$30.00",
+   "correct": true,
+   "accepted": [
+    "30.00",
+    "$30.00",
+    "30"
+   ],
+   "turns": 6,
+   "tokens": 251442,
+   "reported_tokens": 251442,
+   "context_per_turn": [
+    39723,
+    40746,
+    41019,
+    41325,
+    41455,
+    46688
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01ACVS9dsNR2Qeshx5tEPeQ2",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NBYh4ev8Qk2Pz7mTrcpxXq",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 58,
+     "result_chars": 292,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01C5BAityXAgBSCPdC3zCynP",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 71,
+     "result_chars": 318,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018Vxmi75AGNZAMzPRwZVoM2",
+     "name": "ToolSearch",
+     "input_chars": 42,
+     "result_chars": 32,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Lvh7GDMh7iC8uZ6XUyjSmZ",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 12008,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.5,
+   "cost_usd": 0.1740128,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T17",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T17-playwright-cli-r1",
+   "answer": "$30.00\n\nSkipped: didn't verify currency symbol context beyond the \"30.00\" text node (price label formatting assumed to be USD as shown on page). Risk: if the site renders a different currency dependin",
+   "correct": true,
+   "accepted": [
+    "30.00",
+    "$30.00",
+    "30"
+   ],
+   "turns": 10,
+   "tokens": 553005,
+   "reported_tokens": 553005,
+   "context_per_turn": [
+    48635,
+    54669,
+    54923,
+    55685,
+    55935,
+    56052,
+    56183,
+    56375,
+    56670,
+    57185
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_013GKpBbGaAbc3z7gtbgnMf5",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KhbLfqT72VFQ6NhKiVYgjr",
+     "name": "Bash",
+     "input_chars": 69,
+     "result_chars": 293,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DFTJ9Uhaee93c4NMAXeHdz",
+     "name": "Bash",
+     "input_chars": 46,
+     "result_chars": 1511,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01P9kJacoEQY2wTZFgB8Mk9a",
+     "name": "Bash",
+     "input_chars": 39,
+     "result_chars": 299,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RXDSaVtx2dNjjvJCGQ5AAk",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 41,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WvVcbjCiWYKwKAfPZZFrFg",
+     "name": "Bash",
+     "input_chars": 60,
+     "result_chars": 42,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AFcfv3VGZ8JFE8Adh1sSpT",
+     "name": "Bash",
+     "input_chars": 75,
+     "result_chars": 152,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Q4XTDk5kCffnUwHKwKBwer",
+     "name": "Bash",
+     "input_chars": 99,
+     "result_chars": 318,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WGEkb5B8gQrQmjiUXUQEhz",
+     "name": "Bash",
+     "input_chars": 43,
+     "result_chars": 973,
+     "is_error": false
+    }
+   ],
+   "seconds": 42.4,
+   "cost_usd": 0.24187080000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T18",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T18-dejo-r1",
+   "answer": "FA.2007.40.25\n\nSkipped: no further verification of the museum record beyond this one page. Risk: none known.",
+   "correct": true,
+   "accepted": [
+    "FA.2007.40.25"
+   ],
+   "turns": 6,
+   "tokens": 255540,
+   "reported_tokens": 255540,
+   "context_per_turn": [
+    40276,
+    41280,
+    41544,
+    42675,
+    44234,
+    44684
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01SEYDb3onndpQthqji2BzXJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 185,
+     "result_chars": 1822,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019K4ta3VeLwgQM9vU4YDuzS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 224,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_018F8G4e5QyagKCYofVanGaV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 240,
+     "result_chars": 1901,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0122ZNzS5q1qy5m1j73E6BrR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 216,
+     "result_chars": 2695,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UY9ZuuxPEGm1wFcDFayGdL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 168,
+     "result_chars": 537,
+     "is_error": false
+    }
+   ],
+   "seconds": 38.3,
+   "cost_usd": 0.16836099999999998,
+   "trails": {
+    "collection.internationalfolkart.org": [
+     "Search for shadow puppet \"Arjuna Sasrabahu\" and find its object number"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T18",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T18-dejo-r1",
+   "answer": "FA.2007.40.25",
+   "correct": true,
+   "accepted": [
+    "FA.2007.40.25"
+   ],
+   "turns": 7,
+   "tokens": 299335,
+   "reported_tokens": 299335,
+   "context_per_turn": [
+    40276,
+    41267,
+    41557,
+    42549,
+    43590,
+    43824,
+    45233
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_012d2ZFQhSGZbE1vsAYRipr8",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 198,
+     "result_chars": 1717,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BGTWRUXHvG7zVpe1hVkjX2",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 227,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01Y59Fdr9fY4adC6UsUDTw1k",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 219,
+     "result_chars": 1656,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PZYDsV5EEqYH6AAD6VLQee",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 219,
+     "result_chars": 1602,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0143RHYJxpNneQFoAruhEooz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 194,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01PuN6upfbWbfPDnV7dE2k7H",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 2336,
+     "is_error": false
+    }
+   ],
+   "seconds": 65.9,
+   "cost_usd": 0.08891099999999999,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T18",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T18-playwright-r1",
+   "answer": "FA.2007.40.25",
+   "correct": true,
+   "accepted": [
+    "FA.2007.40.25"
+   ],
+   "turns": 9,
+   "tokens": 428487,
+   "reported_tokens": 428487,
+   "context_per_turn": [
+    39725,
+    41202,
+    41447,
+    48159,
+    48353,
+    48709,
+    51318,
+    51681,
+    57170
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01XMgK573ofTnTaoFCjDPn5J",
+     "name": "ToolSearch",
+     "input_chars": 201,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SU58P2sLQKrzszn9zNkx9j",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 54,
+     "result_chars": 286,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016xaYqNB4efUYBxZV4ydi26",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 16048,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011Di6iaZiiRejPo7DRcWPKF",
+     "name": "mcp__playwright__browser_type",
+     "input_chars": 80,
+     "result_chars": 70,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01EWdP5uAa157bgUhhZonCjH",
+     "name": "mcp__playwright__browser_type",
+     "input_chars": 61,
+     "result_chars": 397,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RFx4T5jEouNxqC4etfngFF",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 5818,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011QGvSBmCNgowAAz6EeqFCL",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 112,
+     "result_chars": 432,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013rKzRZCWtqGqiThLZoJqUZ",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 12582,
+     "is_error": false
+    }
+   ],
+   "seconds": 39.0,
+   "cost_usd": 0.25158680000000005,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T18",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T18-playwright-cli-r1",
+   "answer": "FA.2007.40.25",
+   "correct": true,
+   "accepted": [
+    "FA.2007.40.25"
+   ],
+   "turns": 12,
+   "tokens": 716595,
+   "reported_tokens": 716595,
+   "context_per_turn": [
+    48637,
+    54673,
+    54975,
+    55112,
+    55314,
+    62343,
+    62661,
+    63891,
+    64246,
+    64385,
+    64570,
+    64918
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_019Zu7vDh6aXKYYvpT9Mfnwz",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Mf1EgGCnWGaqUVQwUvi2Mv",
+     "name": "Bash",
+     "input_chars": 78,
+     "result_chars": 424,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01E8BTUPCKHKsmPmHTExyWQe",
+     "name": "Bash",
+     "input_chars": 56,
+     "result_chars": 68,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CXdwncvHxZNNiRfnyX8r5B",
+     "name": "Bash",
+     "input_chars": 60,
+     "result_chars": 151,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HRW9Nfc3A1qEq1dEBxCzp1",
+     "name": "Read",
+     "input_chars": 163,
+     "result_chars": 16490,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0136bCGSYPGPUX1nJQSsBKMS",
+     "name": "Bash",
+     "input_chars": 68,
+     "result_chars": 397,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UszN6JUTzt6aeeoXUFT1ex",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 2322,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012vFjZ1EQeknxXncvNCAsEj",
+     "name": "Bash",
+     "input_chars": 41,
+     "result_chars": 485,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014zAnuM9rgWiZF3dNZs56b4",
+     "name": "Bash",
+     "input_chars": 63,
+     "result_chars": 75,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Xo7nCckzE9E6sfinT4e4nw",
+     "name": "Bash",
+     "input_chars": 71,
+     "result_chars": 30,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01AxUsGxeRbRgAfSFgPAHoiA",
+     "name": "Bash",
+     "input_chars": 52,
+     "result_chars": 555,
+     "is_error": false
+    }
+   ],
+   "seconds": 55.2,
+   "cost_usd": 0.305716,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T19",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T19-dejo-r1",
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "correct": true,
+   "accepted": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "turns": 8,
+   "tokens": 350154,
+   "reported_tokens": 350154,
+   "context_per_turn": [
+    40288,
+    41425,
+    41712,
+    43244,
+    44781,
+    45043,
+    45963,
+    46453
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01J2S2ARnH5Qy9SQXYyML9gD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 260,
+     "result_chars": 2179,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JohFgCPwEjrUJLdvoSeiVK",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 306,
+     "result_chars": 155,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01VsWpQR1iekWyx3LBXewQf6",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 297,
+     "result_chars": 2738,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VUS7hqx8gVtNjZ2cKzm3tW",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 259,
+     "result_chars": 2744,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Jp3FPYhnm8GcaACYJcKS3x",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 266,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_011QAnxETVzKaGa8jkUgzyPX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 261,
+     "result_chars": 1546,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NPGwEdwAjgejvzxH771aTr",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 243,
+     "result_chars": 684,
+     "is_error": false
+    }
+   ],
+   "seconds": 41.8,
+   "cost_usd": 0.1979136,
+   "trails": {
+    "collection.internationalfolkart.org": [
+     "Open the \"100 Aspects of the Moon\" collection, view all its works, narrow results to classification \"Prints\", return the remaining work's title"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T19",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T19-dejo-r1",
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House\n\nSkipped: didn't manually verify beyond the replayed trail's result. Risk: none noticed.",
+   "correct": true,
+   "accepted": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "turns": 2,
+   "tokens": 81239,
+   "reported_tokens": 81239,
+   "context_per_turn": [
+    40288,
+    40731
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01CLd12y6d9dC8gepher1kJ4",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 227,
+     "result_chars": 704,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.3,
+   "cost_usd": 0.0200944,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T19",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T19-playwright-r1",
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "correct": true,
+   "accepted": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "turns": 18,
+   "tokens": 983295,
+   "reported_tokens": 983295,
+   "context_per_turn": [
+    39737,
+    41035,
+    41280,
+    48006,
+    48331,
+    50797,
+    51119,
+    51440,
+    51728,
+    52004,
+    53299,
+    53646,
+    61522,
+    61733,
+    62046,
+    70157,
+    70493,
+    73420
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01ByhvDAwcDXJRxLMn2Hqmn1",
+     "name": "ToolSearch",
+     "input_chars": 167,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QPHTY8GtoK52LWAtJfXcVL",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 54,
+     "result_chars": 286,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UwsqJ6RAUxhZi6DtjzfMR3",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 16070,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012W6nJzbA87s8CqoGqCoBMB",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 94,
+     "result_chars": 381,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VJLgHZJgs8wMTTj9BrUKFn",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 5319,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PpVjjeM6w54S1q6D25D8Xh",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 102,
+     "result_chars": 385,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01M9TjAb8wnr9VKgsazmtHu8",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 94,
+     "result_chars": 369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Q7vxmPSftpijvmccNpLt6v",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 65,
+     "result_chars": 311,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01A2LwGYFngxoijojd1nzufv",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 54,
+     "result_chars": 300,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014cLT6b55T8Mniej7fVd6Y6",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 2695,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01B4NwgxQYUyWexv28hjUrQ4",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 102,
+     "result_chars": 405,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019bS9eL1XzENgGQt3DQd4Rv",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 17197,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GwDTsdHq4aZz5FR6EPumW5",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 79,
+     "result_chars": 123,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01G6c4VfQDMp8j7A1chJT1jN",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 67,
+     "result_chars": 380,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PBY5ZHgMMTcKVFWN6dAuuC",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 17845,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019i2DkhtmaiViyZUnkhRhFL",
+     "name": "mcp__playwright__browser_click",
+     "input_chars": 72,
+     "result_chars": 395,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KyFEGKYdC64msEzrzTb6ki",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 6736,
+     "is_error": false
+    }
+   ],
+   "seconds": 238.3,
+   "cost_usd": 0.4319650000000001,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T19",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T19-playwright-cli-r1",
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "correct": true,
+   "accepted": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "turns": 12,
+   "tokens": 670820,
+   "reported_tokens": 670820,
+   "context_per_turn": [
+    48649,
+    54683,
+    54985,
+    55386,
+    55639,
+    56030,
+    56296,
+    56667,
+    56947,
+    57724,
+    58007,
+    59082
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_014m1AFGC9jwY3QNQirGJJXT",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UX2jCuJ9JYx5XBJewhYojQ",
+     "name": "Bash",
+     "input_chars": 78,
+     "result_chars": 424,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01K9eqNF7D7mdapwQDKcoFje",
+     "name": "Bash",
+     "input_chars": 50,
+     "result_chars": 673,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Fx2a61fnHH7dhebCmED9Xa",
+     "name": "Bash",
+     "input_chars": 40,
+     "result_chars": 330,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RXMLWBYff6JWeaBc3mPeVD",
+     "name": "Bash",
+     "input_chars": 47,
+     "result_chars": 615,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011jnYwKcwRCRq9shTauiiGp",
+     "name": "Bash",
+     "input_chars": 41,
+     "result_chars": 359,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01D8iGkmk8wb5VnUHwixNEMg",
+     "name": "Bash",
+     "input_chars": 53,
+     "result_chars": 592,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019rQU25j8WVcDoFu8RdK68g",
+     "name": "Bash",
+     "input_chars": 41,
+     "result_chars": 380,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Dp1tHiLqdvePSbwV85ZSnh",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 1578,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Vx6Qkd9T6pQ3C1ivvt8VG5",
+     "name": "Bash",
+     "input_chars": 42,
+     "result_chars": 395,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VHpWjN2qTD6TNpiHxLymks",
+     "name": "Bash",
+     "input_chars": 80,
+     "result_chars": 2077,
+     "is_error": false
+    }
+   ],
+   "seconds": 51.4,
+   "cost_usd": 0.2729632,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "gutenberg.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T20",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T20-dejo-r1",
+   "answer": "Oct 20, 2026",
+   "correct": true,
+   "accepted": [
+    "Oct 20, 2026",
+    "20 Oct 2026",
+    "October 20, 2026",
+    "20 October 2026",
+    "2026-10-20"
+   ],
+   "turns": 4,
+   "tokens": 170568,
+   "reported_tokens": 170568,
+   "context_per_turn": [
+    40272,
+    42559,
+    42770,
+    44523
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01YML1yqJgtkgaLDz9DFeU36",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 123,
+     "result_chars": 4720,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HhAjJ6byzPLyfHeCzTpgZi",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_0123Q7f3hM4zFXyuCvitT1gx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 127,
+     "result_chars": 3176,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.3,
+   "cost_usd": 0.1467982,
+   "trails": {},
+   "one_call": null,
+   "note": "rejudged 22 Oct: answer key fixed, the page shows 'Release Date Oct 20, 2026'"
+  },
+  {
+   "tool": "dejo",
+   "site": "gutenberg.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T20",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T20-dejo-r1",
+   "answer": "Oct 20, 2026",
+   "correct": true,
+   "accepted": [
+    "Oct 20, 2026",
+    "20 Oct 2026",
+    "October 20, 2026",
+    "20 October 2026",
+    "2026-10-20"
+   ],
+   "turns": 6,
+   "tokens": 260130,
+   "reported_tokens": 260130,
+   "context_per_turn": [
+    40272,
+    42624,
+    42904,
+    43611,
+    44018,
+    45823
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01LtqV2LtJFnP12rrhP7RuVt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 156,
+     "result_chars": 4913,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011HiN2Kh8zaau1BSJMgbYNX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 253,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01N4Szc1bycU8nheN3PWJE2B",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 230,
+     "result_chars": 1045,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01N199E9bfCZp794XxpvWEbt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 185,
+     "result_chars": 456,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018tf5JQnSZT36oiQzmx8vDd",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 153,
+     "result_chars": 3197,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.6,
+   "cost_usd": 0.08174580000000001,
+   "trails": {},
+   "one_call": false,
+   "note": "rejudged 22 Oct: answer key fixed, the page shows 'Release Date Oct 20, 2026'"
+  },
+  {
+   "tool": "playwright",
+   "site": "gutenberg.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T20",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T20-playwright-r1",
+   "answer": "Oct 20, 2026",
+   "correct": true,
+   "accepted": [
+    "Oct 20, 2026",
+    "20 Oct 2026",
+    "October 20, 2026",
+    "20 October 2026",
+    "2026-10-20"
+   ],
+   "turns": 6,
+   "tokens": 256622,
+   "reported_tokens": 256622,
+   "context_per_turn": [
+    39721,
+    41066,
+    41422,
+    42904,
+    43174,
+    47828
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01S9J2G2dkc8KcYWrs8Snck9",
+     "name": "ToolSearch",
+     "input_chars": 166,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NjdBUdsKv2hTtCnb95n2Px",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 78,
+     "result_chars": 349,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01F9UeCqrWMGzNjiCMV9iqYV",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 3025,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YLBWjoGnDq9zHRtKnxhnhQ",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 49,
+     "result_chars": 291,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019R16YDRmDfhey3q8o8ZJau",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 10474,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.9,
+   "cost_usd": 0.1795866,
+   "trails": {},
+   "one_call": null,
+   "note": "rejudged 22 Oct: answer key fixed, the page shows 'Release Date Oct 20, 2026'"
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "gutenberg.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T20",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T20-playwright-cli-r1",
+   "answer": "Oct 20, 2026\n\nSkipped closing the browser session; risk: none significant, data read directly from the book's page table.",
+   "correct": true,
+   "accepted": [
+    "Oct 20, 2026",
+    "20 Oct 2026",
+    "October 20, 2026",
+    "20 October 2026",
+    "2026-10-20"
+   ],
+   "turns": 8,
+   "tokens": 443302,
+   "reported_tokens": 443302,
+   "context_per_turn": [
+    48633,
+    54692,
+    54944,
+    56180,
+    56473,
+    56981,
+    57241,
+    57655
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01EJjJrVxzyubgyZm7SEYx5t",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Bt6tSbt27CxVEJ3XrbjTJD",
+     "name": "Bash",
+     "input_chars": 61,
+     "result_chars": 296,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013RVQxHfbUgUsKUFUtW4jjH",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 2609,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016fBcivpo5EVhFbvy1yUpSp",
+     "name": "Bash",
+     "input_chars": 58,
+     "result_chars": 384,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Ak3pEWXdBc8psFMUvU2pDR",
+     "name": "Bash",
+     "input_chars": 46,
+     "result_chars": 814,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BSg3r5waqZWrHyHUMPNmCP",
+     "name": "Bash",
+     "input_chars": 41,
+     "result_chars": 312,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PdTUYYMoGPEP3EUMxQW4rM",
+     "name": "Bash",
+     "input_chars": 51,
+     "result_chars": 682,
+     "is_error": false
+    }
+   ],
+   "seconds": 29.1,
+   "cost_usd": 0.21984700000000001,
+   "trails": {},
+   "one_call": null,
+   "note": "rejudged 22 Oct: answer key fixed, the page shows 'Release Date Oct 20, 2026'"
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "learn",
+   "task": "T21",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T21-dejo-r1",
+   "answer": "Removed Generator+ dep",
+   "correct": true,
+   "accepted": [
+    "Removed Generator+ dep",
+    "Removed Generator+ dep."
+   ],
+   "turns": 6,
+   "tokens": 258258,
+   "reported_tokens": 258258,
+   "context_per_turn": [
+    40268,
+    41832,
+    42085,
+    43549,
+    44725,
+    45073
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01634zPb8wnV95Ziqc3ENeW6",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 159,
+     "result_chars": 3042,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KnFPeDPL7gYX53zq3THyi8",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 143,
+     "result_chars": 153,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01AXwGg2G1EcxGq28MJUHgQB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 2775,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ErfGH3Fkj7nfYAnWavqLbx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 118,
+     "result_chars": 2105,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015U3vPugXek99rdcWaVqJ8S",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 354,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.5,
+   "cost_usd": 0.169197,
+   "trails": {
+    "pub.dev": [
+     "Find Dart package mustache_recase changelog entry for version 2.0.1"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "replay",
+   "task": "T21",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T21-dejo-r1",
+   "answer": "Version 2.0.1 of mustache_recase: Removed Generator+ dependency.\n\nSkipped: didn't manually re-verify on the live page since Dejo replayed from memory with checked steps. Risk: if the changelog was edi",
+   "correct": false,
+   "accepted": [
+    "Removed Generator+ dep",
+    "Removed Generator+ dep."
+   ],
+   "turns": 2,
+   "tokens": 81130,
+   "reported_tokens": 81130,
+   "context_per_turn": [
+    40268,
+    40625
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01J1NbcLt2EMowRRxaWDtQBy",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 146,
+     "result_chars": 434,
+     "is_error": false
+    }
+   ],
+   "seconds": 10.8,
+   "cost_usd": 0.019912400000000004,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "learn",
+   "task": "T21",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T21-playwright-r1",
+   "answer": "Version 2.0.1: Removed Generator+ dep",
+   "correct": true,
+   "accepted": [
+    "Removed Generator+ dep",
+    "Removed Generator+ dep."
+   ],
+   "turns": 4,
+   "tokens": 163993,
+   "reported_tokens": 163993,
+   "context_per_turn": [
+    39717,
+    41015,
+    41298,
+    41657
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01XJcyTQENB9GeHRZXjyRyGP",
+     "name": "ToolSearch",
+     "input_chars": 166,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YbAZGT9naK7AprohuzhXZh",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 61,
+     "result_chars": 308,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VSP7uEHp5Yc1VJAguSje51",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 17,
+     "result_chars": 616,
+     "is_error": false
+    }
+   ],
+   "seconds": 14.7,
+   "cost_usd": 0.135634,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "learn",
+   "task": "T21",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T21-playwright-cli-r1",
+   "answer": "Removed Generator+ dep",
+   "correct": true,
+   "accepted": [
+    "Removed Generator+ dep",
+    "Removed Generator+ dep."
+   ],
+   "turns": 4,
+   "tokens": 213756,
+   "reported_tokens": 213756,
+   "context_per_turn": [
+    48629,
+    54664,
+    54942,
+    55301
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01DTgC5a4QxuKZYYqibeVgrT",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SHaYKwSiQJizXEj3CAhpuT",
+     "name": "Bash",
+     "input_chars": 85,
+     "result_chars": 352,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LSsLqq3C6me86qr7ChpsB8",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 616,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.5,
+   "cost_usd": 0.1622048,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "learn",
+   "task": "T22",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T22-dejo-r1",
+   "answer": "2.0",
+   "correct": true,
+   "accepted": [
+    "2.0"
+   ],
+   "turns": 5,
+   "tokens": 214583,
+   "reported_tokens": 214583,
+   "context_per_turn": [
+    40276,
+    42232,
+    42534,
+    44256,
+    44612
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_013S5jq2wex2YaUqDgTNBpwb",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 166,
+     "result_chars": 3813,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0172X3oP6UeY8bQt55BozBXa",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_016qZTPofeSgMwFhy7uE3LhT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 126,
+     "result_chars": 3207,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NR2QrsWxNkzbptFbnYp6vz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 144,
+     "result_chars": 337,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.3,
+   "cost_usd": 0.1581872,
+   "trails": {
+    "pub.dev": [
+     "Find minimum Dart SDK for mustache_recase version 2.0.3 on its Versions tab"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "replay",
+   "task": "T22",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T22-dejo-r1",
+   "answer": "2.0",
+   "correct": true,
+   "accepted": [
+    "2.0"
+   ],
+   "turns": 2,
+   "tokens": 81014,
+   "reported_tokens": 81014,
+   "context_per_turn": [
+    40276,
+    40579
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01KiTiPMMkGHj8CDs9su2jQA",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 166,
+     "result_chars": 245,
+     "is_error": false
+    }
+   ],
+   "seconds": 9.5,
+   "cost_usd": 0.018919599999999998,
+   "trails": {},
+   "one_call": true,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "learn",
+   "task": "T22",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T22-playwright-r1",
+   "answer": "2.0",
+   "correct": true,
+   "accepted": [
+    "2.0"
+   ],
+   "turns": 4,
+   "tokens": 170196,
+   "reported_tokens": 170196,
+   "context_per_turn": [
+    39725,
+    40729,
+    40990,
+    48461
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01PjdD9SyVVmLfYfBaUTt15t",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01W8fe2jZPjTm72GZSp55TeY",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 60,
+     "result_chars": 304,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AW7rwLu4EUUE9xBrV6kKkb",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 18111,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.0,
+   "cost_usd": 0.1625828,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "learn",
+   "task": "T22",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T22-playwright-cli-r1",
+   "answer": "The versions table lists cell \"2.0\" (ref=e146) in the Dart SDK column for version 2.0.3.\n\n**Dart SDK: >=2.0.0 <3.0.0**",
+   "correct": true,
+   "accepted": [
+    "2.0"
+   ],
+   "turns": 4,
+   "tokens": 214199,
+   "reported_tokens": 214199,
+   "context_per_turn": [
+    48637,
+    54671,
+    54944,
+    55677
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NyJhiUGQCeZAejQKZAmXMV",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012got8LHg7R4rq277FBcxcB",
+     "name": "Bash",
+     "input_chars": 84,
+     "result_chars": 349,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012GFCVSAjkKp9p3YLkZ2DvP",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 1530,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.3,
+   "cost_usd": 0.1642122,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T23",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T23-dejo-r1",
+   "answer": "I can't get past tcatbus.com's Cloudflare bot-check with Dejo \u2014 it stays stuck on \"Performing security verification\" after repeated waits and a fresh session. I can't give you the Danby park and ride ",
+   "correct": false,
+   "accepted": [
+    "Dotson Park, across from Danby Town Hall",
+    "Dotson Park"
+   ],
+   "turns": 7,
+   "tokens": 293187,
+   "reported_tokens": 293187,
+   "context_per_turn": [
+    40253,
+    40720,
+    41131,
+    41601,
+    42067,
+    42619,
+    43315
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01GLTSwBDn6GugeevoszEqM4",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 757,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019XVd1ckN42mTokAwzu7HDa",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 136,
+     "result_chars": 498,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017y2PL8EYvxLg4MZCquwNfN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 597,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HnL35ffJguKmPg6FqdM6vm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 512,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017DKzEriYgS1mVVaFxwBsDJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 159,
+     "result_chars": 799,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NzY5L9jgPXJMuyr9JMuZ2q",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 175,
+     "result_chars": 537,
+     "is_error": false
+    }
+   ],
+   "seconds": 41.5,
+   "cost_usd": 0.176905,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "replay",
+   "task": "T23",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T23-dejo-r1",
+   "answer": "The site is blocked by Cloudflare's bot-security check, so I can't load tcatbus.com to find the Danby park and ride lot location.",
+   "correct": false,
+   "accepted": [
+    "Dotson Park, across from Danby Town Hall",
+    "Dotson Park"
+   ],
+   "turns": 3,
+   "tokens": 122596,
+   "reported_tokens": 122596,
+   "context_per_turn": [
+    40253,
+    40726,
+    41225
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NLLVop46a2kTcS1G26uFrP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 121,
+     "result_chars": 684,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01A2o17L2DEU2QP3JChphEVX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 673,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.2,
+   "cost_usd": 0.0320652,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T23",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T23-playwright-r1",
+   "answer": "Cloudflare is blocking the request with a bot-check page. I can't reach the actual site content.\n\nSkipped: couldn't bypass Cloudflare's \"Performing security verification\" page, so no page content was ",
+   "correct": false,
+   "accepted": [
+    "Dotson Park, across from Danby Town Hall",
+    "Dotson Park"
+   ],
+   "turns": 4,
+   "tokens": 162255,
+   "reported_tokens": 162255,
+   "context_per_turn": [
+    39702,
+    40328,
+    40623,
+    41257
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01G1oo3H4FCbA22ByhSxXaNg",
+     "name": "ToolSearch",
+     "input_chars": 105,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01A5ZZgHuGPcaPfcoccuy7Ge",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 31,
+     "result_chars": 365,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0142usSqxw1hj72zWCo9KcVz",
+     "name": "mcp__playwright__browser_snapshot",
+     "input_chars": 2,
+     "result_chars": 1203,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.7,
+   "cost_usd": 0.1341486,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "learn",
+   "task": "T23",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T23-playwright-cli-r1",
+   "answer": "I couldn't get this answer \u2014 tcatbus.com is stuck behind a Cloudflare bot-check (HTTP 403, \"Just a moment...\") that never cleared across multiple browsers, reloads, and waits, so no page content loade",
+   "correct": false,
+   "accepted": [
+    "Dotson Park, across from Danby Town Hall",
+    "Dotson Park"
+   ],
+   "turns": 18,
+   "tokens": 1019047,
+   "reported_tokens": 1019047,
+   "context_per_turn": [
+    48614,
+    54628,
+    54934,
+    55179,
+    55477,
+    55824,
+    55995,
+    56308,
+    56557,
+    57209,
+    57444,
+    57720,
+    57873,
+    58193,
+    58472,
+    58743,
+    59022,
+    59189
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_015E8po5y8tkH8KfGdqMLKVd",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KwREQH2xY3Q6e875JMGc9b",
+     "name": "Bash",
+     "input_chars": 55,
+     "result_chars": 410,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PRRKS1dLDmDagQFCb2DZqT",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 258,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0143Gu88oxuKghi6JoRkJek9",
+     "name": "Bash",
+     "input_chars": 36,
+     "result_chars": 346,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UW2hXobW6rEMGFSVBFGzYU",
+     "name": "Bash",
+     "input_chars": 47,
+     "result_chars": 350,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MspZceteMAEACVRXks8spB",
+     "name": "Bash",
+     "input_chars": 35,
+     "result_chars": 24,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Wn9tnfAo9puibprxSnZrpU",
+     "name": "Bash",
+     "input_chars": 72,
+     "result_chars": 410,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EhYBZGRvxVmnpNuScDWDP1",
+     "name": "Bash",
+     "input_chars": 75,
+     "result_chars": 261,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015BbL8QfV34cF8LYAqNbbRY",
+     "name": "Read",
+     "input_chars": 167,
+     "result_chars": 1011,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015VcYK9P4vhYRBuLQvDPLGf",
+     "name": "Bash",
+     "input_chars": 77,
+     "result_chars": 168,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014K6NA7dK3MyBzvWJmAVCXL",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 346,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Cb5AqmGsNfKtyyJV5f9FFZ",
+     "name": "Bash",
+     "input_chars": 35,
+     "result_chars": 24,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PoEve4j4Eg7ExJHSPB1g4f",
+     "name": "Bash",
+     "input_chars": 85,
+     "result_chars": 414,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0174cQyFQmsUKXQEdzch9Vou",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 350,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QhakJHjyPeK177hNSW6Gg1",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 303,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01Jmf3K6ES7TxvZtDzunWQdg",
+     "name": "Bash",
+     "input_chars": 48,
+     "result_chars": 350,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011ViQVTJNJzhExLNscRjZ4i",
+     "name": "Bash",
+     "input_chars": 35,
+     "result_chars": 24,
+     "is_error": false
+    }
+   ],
+   "seconds": 143.8,
+   "cost_usd": 0.3522586,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "hackage.haskell.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T25",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T25-dejo-r1",
+   "answer": "Alberto Perez\n\nSkipped: didn't verify if more than one package is listed under Chess Engine (only \"turncoat\" appeared). No further risk.",
+   "correct": true,
+   "accepted": [
+    "Alberto Perez"
+   ],
+   "turns": 6,
+   "tokens": 286233,
+   "reported_tokens": 286233,
+   "context_per_turn": [
+    40270,
+    43643,
+    47036,
+    50438,
+    50667,
+    53224
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01PcqyAg12CzkJR3Uq3o4ysX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 140,
+     "result_chars": 7180,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HTGbcJEo4camTGySffy2DW",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 127,
+     "result_chars": 6899,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01P6cqXwCYqTfca7MXNmzTcz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 120,
+     "result_chars": 6879,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Cgx8pDj9TJ6Cme2fgdgGNH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 69,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01E9B6bqVoxVetGh7GaNa442",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 128,
+     "result_chars": 4971,
+     "is_error": false
+    }
+   ],
+   "seconds": 90.2,
+   "cost_usd": 0.20801000000000003,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "hackage.haskell.org",
+   "run": 1,
+   "phase": "replay",
+   "task": "T25",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T25-dejo-r1",
+   "answer": "Alberto Perez",
+   "correct": true,
+   "accepted": [
+    "Alberto Perez"
+   ],
+   "turns": 9,
+   "tokens": 445425,
+   "reported_tokens": 445425,
+   "context_per_turn": [
+    40270,
+    41958,
+    45297,
+    45544,
+    48856,
+    52196,
+    55583,
+    55954,
+    58538
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01KpQZubWD2PagxmCvRJSsVC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 135,
+     "result_chars": 3867,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01J6vqKrtme8pgptXo8QWheN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 147,
+     "result_chars": 7044,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01F9976oLeSyWv3BRRAYBgSG",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01WiRwiMhDkPSKbzKmgKxVYD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 153,
+     "result_chars": 6937,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015K19yAqL1pv4kGieXFTrYU",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 119,
+     "result_chars": 6944,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AEMw3dFmhr3MHwVxnZrHaf",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 124,
+     "result_chars": 6955,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Q15Mhv2z1ky3Ba9K2bvVbh",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 152,
+     "result_chars": 402,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016khXqTSSsYwc1YjAfmxroJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 120,
+     "result_chars": 4965,
+     "is_error": false
+    }
+   ],
+   "seconds": 111.9,
+   "cost_usd": 0.17057999999999998,
+   "trails": {},
+   "one_call": false,
+   "note": ""
+  },
+  {
+   "tool": "playwright",
+   "site": "hackage.haskell.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T25",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T25-playwright-r1",
+   "answer": "Alberto Perez\n\nSkipped: no further verification beyond the Hackage page itself (e.g., checking the maintainer field or package repo for a different name). Risk: none significant \u2014 info pulled directly",
+   "correct": true,
+   "accepted": [
+    "Alberto Perez"
+   ],
+   "turns": 8,
+   "tokens": 331490,
+   "reported_tokens": 331490,
+   "context_per_turn": [
+    39719,
+    40689,
+    40923,
+    41184,
+    41318,
+    42011,
+    42291,
+    42665
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01UQmfWB3GseWPF1J3m3Pmyz",
+     "name": "ToolSearch",
+     "input_chars": 136,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011RJS9jkYCbuiVnma81W5wZ",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 39,
+     "result_chars": 246,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BRKQpW9xMWvvJZwWXztUey",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 48,
+     "result_chars": 272,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015qAr9UqGF1cUpWdMisRpvE",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 40,
+     "result_chars": 57,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01AA6tBaVvEckjmzd8A2FQ5D",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 51,
+     "result_chars": 1166,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CujEbwNUEkNPXLgfjPyGq5",
+     "name": "mcp__playwright__browser_navigate",
+     "input_chars": 55,
+     "result_chars": 290,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ReXpVXFTtSSKcwpseQnZ1b",
+     "name": "mcp__playwright__browser_find",
+     "input_chars": 44,
+     "result_chars": 519,
+     "is_error": false
+    }
+   ],
+   "seconds": 34.6,
+   "cost_usd": 0.1767414,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "playwright-cli",
+   "site": "hackage.haskell.org",
+   "run": 1,
+   "phase": "learn",
+   "task": "T25",
+   "folder": "D:\\my_projects\\hackathons\\cairn\\dejo-plans\\benchmark-runs\\real-bench-2026-10-21\\T25-playwright-cli-r1",
+   "answer": "Alberto Perez",
+   "correct": true,
+   "accepted": [
+    "Alberto Perez"
+   ],
+   "turns": 15,
+   "tokens": 958225,
+   "reported_tokens": 958225,
+   "context_per_turn": [
+    48631,
+    54665,
+    54911,
+    55026,
+    55291,
+    55408,
+    55577,
+    55733,
+    55999,
+    56116,
+    80174,
+    80756,
+    82508,
+    82796,
+    83148
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01EWfracpv3aC5eU4uX7RHY9",
+     "name": "Skill",
+     "input_chars": 27,
+     "result_chars": 31,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DB5NG12GxYfoM3RidEpBip",
+     "name": "Bash",
+     "input_chars": 63,
+     "result_chars": 291,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011pr9QebHxrxAhQpAFagcq6",
+     "name": "Bash",
+     "input_chars": 49,
+     "result_chars": 45,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0115jEPgsnFgLnMScEEjAQB9",
+     "name": "Bash",
+     "input_chars": 82,
+     "result_chars": 290,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01637u9NXDPKppw5T8nN8jKr",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 40,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Xubjot1aXRQeJ6Zd76DELZ",
+     "name": "Bash",
+     "input_chars": 70,
+     "result_chars": 70,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_013MxEN6ahdxyPK9ac5FfHVm",
+     "name": "Bash",
+     "input_chars": 122,
+     "result_chars": 26,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SraMgc56hqU82EJ4ZfXK5c",
+     "name": "Read",
+     "input_chars": 180,
+     "result_chars": 188,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01YNYt8hQUZoP8ZHBHdav7TD",
+     "name": "Bash",
+     "input_chars": 55,
+     "result_chars": 12,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011XfichXJpEdaDUBv2RqkSy",
+     "name": "Read",
+     "input_chars": 163,
+     "result_chars": 56832,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EHf3ZYqxULMQtLCHukHLkh",
+     "name": "Bash",
+     "input_chars": 76,
+     "result_chars": 272,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015msNy1SPmzq9jNVnZgWBeW",
+     "name": "Bash",
+     "input_chars": 44,
+     "result_chars": 3586,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WKdj2jRD5NL3auXy2HtJh5",
+     "name": "Bash",
+     "input_chars": 83,
+     "result_chars": 290,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Hfm1PaTMhyqtZsaBiCjRmR",
+     "name": "Bash",
+     "input_chars": 45,
+     "result_chars": 519,
+     "is_error": false
+    }
+   ],
+   "seconds": 68.9,
+   "cost_usd": 0.4293635999999999,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  }
+ ]
+}
