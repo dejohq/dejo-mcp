@@ -169,6 +169,24 @@ def settings(request: Request, variant: str | None = Query(None)) -> HTMLRespons
     )
 
 
+@app.get("/preferences", response_class=HTMLResponse)
+def preferences(request: Request) -> HTMLResponse:
+    """A native `<select>` whose values are not its words, as on most real forms: picking
+    "September" means choosing the value `sep`."""
+    return page(
+        "Preferences",
+        """<h1>Preferences</h1>
+           <label for="month">Statement month</label>
+           <select id="month" onchange="shown.textContent = this.selectedOptions[0].label">
+             <option value="">Choose one</option>
+             <option value="jan">January</option>
+             <option value="sep">September</option>
+           </select>
+           <p>Statements for <span id="shown">no month</span></p>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

@@ -23,6 +23,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   `e3 combobox "Category" [chosen "Productivity"]: options Choose one · Development · …`,
   cut with "+N more" on long lists, and every option counts when the view ranks lines by
   the task.
+- **`select` with an option that is not there stops at once and names the real ones.** It
+  waited Playwright's full 15 seconds and then returned the bare "Locator.select_option:
+  Timeout 15000ms exceeded". Plain words now also match what the option shows, not only the
+  value behind it, so `select e3 "September"` picks the option whose value is `sep`.
 
 ## 0.2.1 — 2026-10-23
 

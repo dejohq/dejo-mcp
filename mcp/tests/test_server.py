@@ -401,3 +401,32 @@ def test_a_url_the_trail_cannot_start_from_falls_back_to_its_own_start(mcp_serve
 
     assert done.startswith(f'done: "{task}"'), done
     assert "charge = ₹ 18,400" in done
+
+
+def test_an_option_picked_by_its_words_is_learned_and_replayed(mcp_server, demo_server):
+    """The view prints a dropdown's words, so that is what an agent sends; the value behind
+    "September" is `sep`. A wrong option is refused at once with the real ones named."""
+    task = "show the September statements"
+    url = f"{demo_server}/preferences"
+    wrong = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        url=url,
+        steps='select label "Statement month" "Octember"',
+    )
+    assert '"January", "September"' in wrong and "Timeout" not in wrong
+
+    learned = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        url=url,
+        steps='select label "Statement month" "September"\nread css "#shown" as month',
+    )
+    assert learned.startswith(f'saved "{task}"') and "month = September" in learned
+
+    replayed = call(mcp_server, "dejo_run", site=demo_server, task=task)
+    assert "month = September" in replayed, replayed

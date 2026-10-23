@@ -19,6 +19,7 @@ Two rules hold throughout:
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,13 @@ MS_PER_SECOND = 1000
 SCREENS_PER_SCROLL = 0.9  # just under a full screen, so nothing scrolls past unseen
 SCREENS_TO_REACH_END = 40  # far enough to hit either end of any ordinary page
 FALLBACK_VIEWPORT_HEIGHT = 720
+
+# A <select>'s options as [value, label] pairs, or null for anything that is not one.
+_SELECT_OPTIONS_JS = (
+    "el => el.tagName === 'SELECT' ? [...el.options].map(o => [o.value, o.label]) : null"
+)
+# Options named when the one asked for is not there: enough to see what kind of list it is.
+OPTIONS_NAMED = 30
 
 # Resolves once the browser has drawn twice, which is when a scroll has been committed.
 _TWO_FRAMES = "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
@@ -132,8 +140,9 @@ ACTIONS: dict[str, ActionSpec] = {
         "select",
         "choose from a dropdown",
         value_means=(
-            'the option: plain text matches by value, "label:September" matches by what is '
-            'shown, "index:2" matches by position, and commas pick several at once'
+            "the option: plain text matches the value behind it, or else the words shown; "
+            '"label:September" matches only the words, "index:2" the position, and commas '
+            "pick several at once"
         ),
         verifies_with="value_is",
     ),
@@ -414,19 +423,19 @@ def _set_checked(page: Page, t: _T, value: str | None, second: _T | None) -> Non
 
 
 def _select(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    try:
-        t.select_option(**_select_options(value or ""))
-    except PlaywrightError as not_a_dropdown:
+    # Read the options first. `select_option` waits its whole timeout for an option that is
+    # not there and then raises Playwright's bare "Timeout 15000ms exceeded", which tells
+    # the agent nothing about what it could have picked.
+    options = t.evaluate(_SELECT_OPTIONS_JS)
+    if options is None:
         # `select` only works on a real <select>. Half the dropdowns on the modern web are
-        # a button and a list of divs — Radix, Headless UI, anything built on them — and
-        # Playwright's own message for that says nothing about what to do instead.
-        if "not a <select>" not in str(not_a_dropdown).lower():
-            raise
+        # a button and a list of divs — Radix, Headless UI, anything built on them.
         raise ActionNeedsMore(
             "this is not a real <select>, so there is nothing to choose from. It is a "
             "custom dropdown built out of a button and a list — click the button, then "
             "look at the page again and click the option you want."
-        ) from not_a_dropdown
+        )
+    t.select_option(**_select_options(value or "", options))
 
 
 def _upload(page: Page, t: _T, value: str | None, second: _T | None) -> None:
@@ -670,31 +679,45 @@ def _as_bool(value: str | None) -> bool:
     return str(value).strip().lower() in {"true", "1", "yes", "on", "checked"}
 
 
-def _select_options(value: str) -> dict[str, Any]:
-    """Turn one written value into keyword arguments for `select_option`.
+def _select_options(value: str, options: Sequence[Sequence[str]]) -> dict[str, Any]:
+    """Turn one written value into keyword arguments for `select_option`, checked against
+    the dropdown's real `(value, label)` options.
 
     A dropdown option can be picked by the value behind it, by the words a person actually
     sees, or by position. Sites change the hidden value far more often than the visible
-    label, so `label:September` is the more durable way to record a choice.
+    label, so `label:September` is the more durable way to record a choice. Plain text is
+    the value if one matches, else the words shown: the page view prints the words, and
+    `select e3 "Python"` failed on a value of `python`.
 
     Playwright's Python API takes these as separate keyword arguments. The list-of-dicts
     form works only in JavaScript, and here it fails without saying why.
     """
+    known_values = [v for v, _ in options]
+    known_labels = [label for _, label in options]
     values: list[str] = []
     labels: list[str] = []
     indexes: list[int] = []
+    missing: list[str] = []
 
     for part in (piece.strip() for piece in value.split(",")):
         if not part:
             continue
         if part.startswith("label:"):
-            labels.append(part[len("label:") :])
+            wanted, found, into = part[len("label:") :], known_labels, labels
         elif part.startswith("index:"):
-            indexes.append(int(part[len("index:") :]))
+            position = int(part[len("index:") :])
+            (indexes if 0 <= position < len(options) else missing).append(position)
+            continue
         elif part.startswith("value:"):
-            values.append(part[len("value:") :])
+            wanted, found, into = part[len("value:") :], known_values, values
+        elif part in known_values:
+            wanted, found, into = part, known_values, values
         else:
-            values.append(part)
+            wanted, found, into = part, known_labels, labels
+        (into if wanted in found else missing).append(wanted)
+
+    if missing:
+        raise ActionNeedsMore(_no_such_option(missing, known_labels))
 
     chosen: dict[str, Any] = {}
     if values:
@@ -704,6 +727,16 @@ def _select_options(value: str) -> dict[str, Any]:
     if indexes:
         chosen["index"] = indexes
     return chosen
+
+
+def _no_such_option(missing: list[str | int], labels: list[str]) -> str:
+    shown = ", ".join(f'"{label}"' for label in labels[:OPTIONS_NAMED])
+    more = f" and {len(labels) - OPTIONS_NAMED} more" if len(labels) > OPTIONS_NAMED else ""
+    asked = ", ".join(f'"{m}"' if isinstance(m, str) else f"index:{m}" for m in missing)
+    return (
+        f"this dropdown has no option {asked}. Its options are {shown}{more}. "
+        "Send the step again with one of them, written as it is shown."
+    )
 
 
 def sanity_check() -> None:
