@@ -220,6 +220,13 @@ class TestTheBrowserDoesNotAnnounceItself:
         is a fact about the screen, not about who is typing."""
         assert "Headless" not in browser.page.evaluate("() => navigator.userAgent")
 
+    def test_a_profile_does_not_say_it_is_headless_either(self, tmp_path) -> None:
+        """The MCP server always opens a profile, and only the no-profile path used to fix
+        the agent: three sites of the real-site bench turned "HeadlessChrome" away and let
+        the same browser in without it (23 Oct 2026)."""
+        with Browser(headless=True, profile=tmp_path / "p", downloads=tmp_path / "d") as running:
+            assert "Headless" not in running.page.evaluate("() => navigator.userAgent")
+
     def test_it_prefers_the_real_chrome_on_this_machine(self, browser: Browser) -> None:
         """Sites that gate sign-in treat Chromium as suspicious however it behaves."""
         from dejo.browser import REAL_CHROME

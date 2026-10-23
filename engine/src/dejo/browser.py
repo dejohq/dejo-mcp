@@ -108,6 +108,9 @@ NOISY_DEFAULTS = ["--enable-automation"]
 # sight. The window is genuinely not being watched by anyone; that is a fact about the
 # screen, not about who is typing, and it is no business of the site's.
 HEADLESS_TELL = "HeadlessChrome"
+# The honest agent per browser (real Chrome or the bundled Chromium), read once per process:
+# finding it costs a whole browser launch.
+_HONEST_AGENTS: dict[str | None, str | None] = {}
 
 # What to do with a confirm box. Accepting is the default because Playwright's own
 # default — dismissing — silently cancels saves and submits.
@@ -742,11 +745,13 @@ class Browser:
     def _profile_opened_by(self, channel: str | None) -> Any:
         """Launch the saved profile with one named browser, and record which one won."""
         self._channel = channel
+        honest = self._honest_agent_for_profile()
         settings = {
             **self._launch_options(),
             "accept_downloads": True,
             "viewport": VIEWPORT,
             "has_touch": self._touch,
+            **({"user_agent": honest} if honest else {}),
             **self._context_options(),
         }
         context = self._playwright.chromium.launch_persistent_context(
@@ -780,6 +785,27 @@ class Browser:
         reported = page.evaluate("() => navigator.userAgent")
         blank.close()
         return reported.replace(HEADLESS_TELL, "Chrome") if HEADLESS_TELL in reported else None
+
+    def _honest_agent_for_profile(self) -> str | None:
+        """The same honest user agent, for a profile, which has to be given it at launch.
+
+        A profile is opened as one persistent context, so there is no browser to ask first.
+        Only the no-profile path used to fix the agent, and the MCP server always has a
+        profile: every real Dejo session said "HeadlessChrome", and Cloudflare and plain
+        403 walls turned it away on three sites of the real-site bench that let the same
+        browser in once the word was gone (23 Oct 2026). Read once per browser, from a
+        throwaway launch of it."""
+        if not self._headless:
+            return None
+        if self._channel not in _HONEST_AGENTS:
+            probe = self._playwright.chromium.launch(**self._launch_options())
+            try:
+                reported = probe.new_page().evaluate("() => navigator.userAgent")
+            finally:
+                probe.close()
+            fixed = reported.replace(HEADLESS_TELL, "Chrome")
+            _HONEST_AGENTS[self._channel] = fixed if fixed != reported else None
+        return _HONEST_AGENTS[self._channel]
 
     def _context_options(self) -> dict[str, Any]:
         """The context settings that are the same however the browser was launched."""

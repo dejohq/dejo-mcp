@@ -2,6 +2,16 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## 0.2.1 — 2026-10-23
+
+- **Dejo no longer tells websites it is a hidden browser.** With a browser profile, which is
+  every MCP session, Dejo's headless Chrome introduced itself as `HeadlessChrome`, and
+  Cloudflare checks and plain 403 walls turned it away on sight. The honest user agent (the
+  real Chrome version, without that one word) was only used when no profile was open. On the
+  six real-site benchmark tasks that had been blocked for every headless tool, Dejo now opened
+  all six sites and answered five of them right
+  (`benchmarks/benchmark-real-2026-10-23-agent.json`).
+
 ## 0.2.0 — 2026-10-23
 
 **Learning a website now costs fewer tokens, on average, than using a browser tool with no
