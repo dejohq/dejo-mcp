@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import secrets
+import time
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -150,6 +151,16 @@ VIEWPORT = {"width": 1280, "height": 800}
 # has timed out. Shorter than the real wait: it is a second opinion, and a person is
 # already waiting.
 FRESH_CHECK_MS = 10_000
+
+# How long a sign-in kept in a session cookie (one with no expiry) outlives Dejo's browser.
+# Chrome drops such cookies when the browser closes, and Dejo's closes after every sign-in
+# window and server restart. A month is longer than sites keep a session alive themselves,
+# so the site, not Dejo, decides when it ends.
+SESSION_COOKIE_KEEP_S = 30 * 24 * 60 * 60
+
+# How often a waiting browser makes its session cookies lasting. A person may close the
+# sign-in window themselves, and then there is no clean close to do it at.
+SESSION_COOKIE_EVERY_S = 5
 
 # Where downloaded files land unless a caller says otherwise. A default matters: a task
 # like "download this month's invoice" is not done if the file only existed inside a
@@ -622,6 +633,7 @@ class Browser:
         self._watched: list[Page] = []
         self._overlays: list[str] = []
         self._armed: dict[Page, set[str]] = {}
+        self._cookies_kept_at = 0.0
 
     # ------------------------------------------------------------- lifecycle
 
@@ -1004,6 +1016,7 @@ class Browser:
         return list(self._overlays)
 
     def stop(self) -> None:
+        self.keep_session_cookies()
         for closer in (self._context, self._browser):
             if closer is not None:
                 closer.close()
@@ -1093,6 +1106,42 @@ class Browser:
         finally:
             with suppress(PlaywrightError):
                 fresh.close()
+
+    def idle(self, ms: int) -> None:
+        """Keep answering the browser for `ms` while nothing has been asked of it.
+
+        Playwright's sync API only handles the browser's messages while a call is running.
+        A worker blocked on its job queue made no calls, and a page left alone that way
+        stalls: a sign-in window sat on Cloudflare's "Just a moment..." for good, while the
+        same window answered once a second got through in 5 s (saashub.com, 23 Oct 2026).
+        """
+        if time.monotonic() - self._cookies_kept_at >= SESSION_COOKIE_EVERY_S:
+            self.keep_session_cookies()
+        page = next((tab for tab in self._context.pages if not tab.is_closed()), None)
+        if page is None:
+            time.sleep(ms / 1000)  # no page open, so nothing is waiting for an answer
+            return
+        with suppress(PlaywrightError):
+            # The page can close mid-wait (the person shuts the window). Next slice finds that.
+            page.wait_for_timeout(ms)
+
+    def keep_session_cookies(self) -> None:
+        """Give every session cookie an expiry, so closing this profile does not sign it out.
+
+        Chrome drops a cookie with no expiry when the browser closes. saashub.com keeps its
+        sign-in in one, so `dejo_login` there worked and the very next run was signed out
+        again (23 Oct 2026). Rewritten inside the browser, they land in Chrome's own
+        encrypted cookie store like any other cookie: nothing is written anywhere else.
+        """
+        self._cookies_kept_at = time.monotonic()
+        if self._profile is None or self._context is None:
+            return  # nothing outlives a browser with no profile anyway
+        with suppress(PlaywrightError):
+            # A browser the person already closed has nothing left to keep.
+            session = [cookie for cookie in self._context.cookies() if cookie["expires"] == -1]
+            if session:
+                until = time.time() + SESSION_COOKIE_KEEP_S
+                self._context.add_cookies([{**cookie, "expires": until} for cookie in session])
 
     def snapshot(self) -> Snapshot:
         """The page as a short list of things you can act on.

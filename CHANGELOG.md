@@ -2,6 +2,22 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **A sign-in window behind a Cloudflare check no longer spins forever.** Between calls,
+  Dejo's browser thread waited on its job queue and made no Playwright calls, and Playwright
+  only handles the browser while a call runs. A page left alone that way stalled:
+  `dejo_login` on saashub.com sat on "Just a moment..." for good, and an `alert()` stayed open
+  until the next call. The worker now keeps the browser answered while it waits
+  (`engine/tests/test_worker.py`).
+- **A sign-in kept in a session cookie now survives Dejo's browser closing.** Chrome drops a
+  cookie with no expiry when the browser closes, and Dejo's closes after every sign-in window
+  and server restart, so on sites like saashub.com `dejo_login` worked and the next run was
+  signed out. Session cookies in a profile are now given a 30-day expiry inside the browser,
+  at close and every few seconds while it waits (for a person who shuts the window
+  themselves). They stay in Chrome's own encrypted cookie store; nothing is written anywhere
+  else.
+
 ## 0.2.1 — 2026-10-23
 
 - **Dejo no longer tells websites it is a hidden browser.** With a browser profile, which is
