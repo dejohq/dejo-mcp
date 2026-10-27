@@ -32,8 +32,10 @@ from __future__ import annotations
 from fastapi.responses import HTMLResponse
 
 # How long the late content takes to arrive. Long enough that a snapshot taken immediately
-# misses it, short enough that tests stay quick.
-LATE_MS = 400
+# misses it, short enough that tests stay quick. 400 ms was not long enough on a loaded
+# Windows runner: opening the page and one step took longer, and the content was already
+# there when the test checked that it was not (CI, 27 Oct 2026).
+LATE_MS = 2000
 
 HARD_PAGE = f"""<!doctype html>
 <html lang="en">
