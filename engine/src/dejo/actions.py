@@ -64,6 +64,10 @@ el => {
 """
 _CLICK_OWN_LABEL_JS = "el => (el.labels && el.labels[0] || el.closest('label')).click()"
 
+# How a step writes a line break, and the fields that can hold one.
+NEW_LINE = "\\n"
+_HOLDS_LINES_JS = "el => el.tagName === 'TEXTAREA' || el.isContentEditable"
+
 # Options named when the one asked for is not there: enough to see what kind of list it is.
 OPTIONS_NAMED = 30
 
@@ -411,13 +415,24 @@ def _hover(page: Page, t: _T, value: str | None, second: _T | None) -> None:
 
 
 def _fill(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.fill(value or "")
+    t.fill(_lines_for(t, value or ""))
 
 
 def _type(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     # One key at a time. Search and autocomplete boxes listen for keystrokes and ignore a
     # value that simply appears, which is exactly what `fill` does.
-    t.press_sequentially(value or "")
+    t.press_sequentially(_lines_for(t, value or ""))
+
+
+def _lines_for(t: _T, text: str) -> str:
+    """`\\n` written in a step, as a real new line where the field can hold one.
+
+    A step is one line, so a description with several lines can only be written with `\\n`,
+    and it went in as a backslash and an n (launchingnext.com). A one-line box cannot hold a
+    new line, and a backslash there may be meant, so it keeps what was written."""
+    if NEW_LINE not in text or not t.evaluate(_HOLDS_LINES_JS):
+        return text
+    return text.replace(NEW_LINE, "\n")
 
 
 def _clear(page: Page, t: _T, value: str | None, second: _T | None) -> None:

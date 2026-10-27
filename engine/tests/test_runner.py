@@ -985,3 +985,17 @@ def test_look_raw_from_a_ref_with_no_section_is_cut_and_says_where_to_go_on() ->
     assert "Footer link 1" in shown
     assert len(shown.splitlines()) <= RAW_FROM_LINES + 1
     assert re.search(r"\+ more: look raw from e\d+$", shown)
+
+
+def test_a_new_line_written_in_a_fill_breaks_the_line_in_a_text_area(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchingnext.com: `\\n` in a description went in as a backslash and an n."""
+    outcome = run(
+        runner_for(browser, store, "describe the tool"),
+        f'go {demo_server}/directory\nfill label "About it" "One line.\\nAnother line."\n'
+        'fill label "Tool name" "a\\nb"',
+    )
+    assert outcome.ok, outcome.text()
+    assert browser.page.input_value("#about") == "One line.\nAnother line."
+    assert browser.page.input_value("#tool") == "a\\nb", "a one-line box keeps what was written"

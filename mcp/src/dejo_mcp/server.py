@@ -102,6 +102,7 @@ RUN_DESCRIPTION = (
     "Steps:\n"
     "go URL\n"
     'click T | fill T "text" | select T "option" | check T | press Enter\n'
+    "(in a multi-line box, \\n in the text starts a new line)\n"
     "read T as name   (the value you will report)\n"
     'expect url "part" | expect text "words" | expect see T\n'
     "look words       (show the page, these words first)\n"

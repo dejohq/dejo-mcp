@@ -298,6 +298,8 @@ def directory(request: Request) -> HTMLResponse:
              <option value="ai">AI agents</option>
            </select>
            <div class="menu">Category: <span id="picked">none</span></div>
+           <label for="tool">Tool name</label> <input id="tool">
+           <label for="about">About it</label> <textarea id="about"></textarea>
            <select id="region" disabled><option>Europe</option><option>Asia</option></select>""",
         variant=variant_of(request, None),
     )
