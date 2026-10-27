@@ -740,6 +740,7 @@ class Browser:
         self._armed: dict[Page, set[str]] = {}
         self._cookies_kept_at = 0.0
         self._hold: ProfileLock | None = None
+        self._failed_while_watching: list[str] | None = None
 
     # ------------------------------------------------------------- lifecycle
 
@@ -1021,6 +1022,9 @@ class Browser:
     def _remember_failure(self, page: Page, response: Any) -> None:
         if response.status >= FAILED_STATUS:
             _keep(page._dejo_failures, f"{response.status} {response.url}")  # type: ignore[attr-defined]
+            if self._failed_while_watching is not None:
+                failed = f"{response.status} {response.request.method} {response.url}"
+                _keep(self._failed_while_watching, failed)
 
     def set_time(self, when: str) -> None:
         """Tell every page it is a different date.
@@ -1650,7 +1654,10 @@ class Browser:
         self.settle()
 
     def watch_for_messages(self) -> None:
-        """Start keeping what the page says for a moment (see MESSAGE_PLACES)."""
+        """Start keeping what the page says for a moment (see MESSAGE_PLACES), and every
+        request that fails: a form that fails on the server often says nothing on the page
+        at all (mcpserver.dev's dialog just stayed open)."""
+        self._failed_while_watching = []
         with suppress(PlaywrightError):
             self.page.evaluate(_WATCH_MESSAGES_JS, [MESSAGE_PLACES, MESSAGES_KEPT, MESSAGE_CHARS])
 
@@ -1661,6 +1668,12 @@ class Browser:
             return list(self.page.evaluate(_MESSAGES_SAID_JS))
         except PlaywrightError:
             return []
+
+    def requests_failed(self) -> list[str]:
+        """The requests that came back 4xx or 5xx since `watch_for_messages`, as
+        `502 POST https://...`, and stop keeping them."""
+        failed, self._failed_while_watching = self._failed_while_watching or [], None
+        return failed
 
     def wait_until_quiet(self, timeout_ms: int = QUIET_WAIT_MS) -> None:
         """Wait for the page to stop working, not merely to have arrived.

@@ -518,3 +518,19 @@ def test_a_toast_shown_after_a_sent_form_is_in_the_reply(mcp_server, demo_server
         steps='fill label "Server" "dejo"\nclick! button "List it"',
     )
     assert 'the page said: "Thanks! Your server is in the queue."' in said, said
+
+
+def test_a_sent_step_whose_request_failed_says_so(mcp_server, demo_server):
+    """mcpserver.dev: after `click! Submit` the dialog stayed open, with no message and no
+    toast, and nothing in the reply said whether it had worked."""
+    task = "send for review"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/listing")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click! button "Send for review"',
+    )
+    assert "no message appeared" in said, said
+    assert f"requests that failed: 502 POST {demo_server}/listing/review" in said

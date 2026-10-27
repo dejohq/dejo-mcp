@@ -241,9 +241,11 @@ class Session:
         ):
             self.browser.settle()
         said: list[str] = []
+        failed: list[str] = []
         if risky:
             self.browser.settle_after_sending()
             said = self.browser.messages_seen()
+            failed = self.browser.requests_failed()
 
         # A password is remembered as "there is a password here", never as the password.
         secret = secret_name(element) if action in _TEXT_ENTRY else None
@@ -291,6 +293,7 @@ class Session:
             "saved_to": self.browser.last_download_path,
             # What the page said while a sent step settled: a toast can be gone by now.
             "said": said,
+            "failed_requests": failed,
             "secret": secret,
             "note": (
                 f"This was a {secret} field, so Dejo did not remember what was typed. "

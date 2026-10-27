@@ -1078,8 +1078,13 @@ def _go_to(url: str) -> Step:
 def _after_sending(step: Action, did: dict[str, Any]) -> str:
     """What a `!` line's page said while it settled, for the reply."""
     said = " · ".join(f'"{message}"' for message in did.get("said") or [])
-    told = f"the page said: {said}" if said else "no message appeared"
-    return f"after line {step.line} ({_short(step)}): {told}"
+    told = [f"the page said: {said}" if said else "no message appeared"]
+    failed = did.get("failed_requests") or []
+    if failed:
+        told.append("requests that failed: " + " · ".join(failed))
+    elif not said:
+        told[0] += " and no request failed; the page below shows where it stands"
+    return f"after line {step.line} ({_short(step)}): " + "; ".join(told)
 
 
 def _whole_page(element: Element | None, answer: Any) -> bool:
