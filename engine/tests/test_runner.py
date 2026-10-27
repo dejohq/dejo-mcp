@@ -645,6 +645,16 @@ def test_a_human_check_stops_the_first_call_and_keeps_nothing(
     assert store.load_draft(domain_of(demo_server), "the bus fare") is None
 
 
+def test_reddits_prove_your_humanity_is_a_human_check(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """25 Oct, reddit.com/user/...: the check was shown as a normal page, "send steps"."""
+    outcome = run(runner_for(browser, store, "zz"), f"go {demo_server}/humanity\nlook")
+
+    assert not outcome.ok
+    assert "human check" in outcome.reason
+
+
 def test_a_refusal_is_not_called_a_wrong_address(
     browser: Browser, store: DejoStore, demo_server: str
 ) -> None:

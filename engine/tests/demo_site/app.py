@@ -758,6 +758,16 @@ def challenge() -> HTMLResponse:
     )
 
 
+@app.get("/humanity", response_class=HTMLResponse)
+def humanity() -> HTMLResponse:
+    """Reddit's own check, with no widget a page can see: only its words say what it is."""
+    return HTMLResponse(
+        "<html><head><title>Reddit - Prove your humanity</title></head><body>"
+        "<h1>Prove your humanity</h1><p>We need to make sure you are a person.</p>"
+        "</body></html>"
+    )
+
+
 @app.get("/refused", response_class=HTMLResponse)
 def refused() -> HTMLResponse:
     """A site that turns automated browsers away with a plain 403."""

@@ -116,6 +116,8 @@ CHALLENGE_HEADINGS = (
     "performing security verification",
     "verify you are human",
     "checking your browser before",
+    # Reddit's own check (reddit.com/user/..., 25 Oct 2026), shown as a normal page.
+    "prove your humanity",
 )
 
 # Stops the browser advertising that a program is driving it. Without these,
