@@ -178,3 +178,12 @@ class TestABrowserSwapIsSaidOutLoud:
 
     def test_a_normal_open_says_nothing(self, mcp_server) -> None:
         assert self._swapped(mcp_server, note=None).take_profile_note() is None
+
+
+def test_the_server_reports_dejos_version(mcp_server) -> None:
+    """Every client showed 1.30.0, the MCP library's version, as Dejo's."""
+    from dejo_mcp import __version__
+
+    hello = mcp_server.server.create_initialization_options()
+    assert hello.server_name == "dejo"
+    assert hello.server_version == __version__

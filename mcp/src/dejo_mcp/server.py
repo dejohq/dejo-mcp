@@ -891,8 +891,14 @@ class DejoServer:
     builds the schema from Python signatures and adds fields no model needs to read."""
 
     def __init__(self, tools: DejoTools) -> None:
+        # Imported here, not at the top: the package imports this module to build its own
+        # namespace, so its version is only there once that has finished.
+        from . import __version__
+
         self.dejo_tools = tools
-        self.server: Server = Server("dejo", instructions=INSTRUCTIONS)
+        # Without a version, the SDK reports its own (1.30.0) as the server's, and that is
+        # what every client showed as Dejo's version.
+        self.server: Server = Server("dejo", version=__version__, instructions=INSTRUCTIONS)
         self.server.list_tools()(self._list)
         self.server.call_tool(validate_input=True)(self._call)
 
