@@ -239,6 +239,33 @@ el => {
 }
 """
 
+# How long the held-back check may look for its element: it is there, or the press itself
+# says so.
+HELD_BACK_WAIT_MS = 2000
+
+# The fields a browser would not send a form with, when `el` is how it is sent: its submit
+# button, or a field Enter was pressed in. Each as [its name, the browser's own message].
+# Read with `validity`, which asks without firing the page's own "invalid" handlers.
+_HELD_BACK_JS = """
+el => {
+  const form = el.form || el.closest("form");
+  if (!form || form.noValidate || el.formNoValidate) return [];
+  const type = (el.getAttribute("type") || "").toLowerCase();
+  const sends = (el.tagName === "BUTTON" && (type === "" || type === "submit"))
+    || (el.tagName === "INPUT" && ["submit", "image"].includes(type))
+    || el.tagName === "INPUT" || el.tagName === "TEXTAREA";
+  if (!sends) return [];
+  const nameOf = (field) => {
+    const label = field.labels && field.labels[0];
+    return ((label && label.innerText) || field.getAttribute("aria-label")
+      || field.placeholder || field.name || field.type || "a field").trim();
+  };
+  return [...form.elements]
+    .filter((field) => field.willValidate && !field.validity.valid)
+    .map((field) => [nameOf(field), field.validationMessage]);
+}
+"""
+
 # How much visible page text one look() may return. Enough to read a heading, an amount
 # and an error message; not so much that a caller pays for the whole page every time.
 MAX_TEXT_CHARS = 1200
@@ -1772,6 +1799,14 @@ class Browser:
             still = still + STILL_POLL_MS if (now is not None and now == shape and not busy) else 0
             shape = now
         self.settle()
+
+    def held_back(self, element: Element) -> list[tuple[str, str]]:
+        """The fields the browser would not send a form with, if `element` sent it now."""
+        try:
+            found = self.locate(element).evaluate(_HELD_BACK_JS, timeout=HELD_BACK_WAIT_MS)
+            return [tuple(pair) for pair in found]
+        except (PlaywrightError, NoSuchElement):
+            return []
 
     def icon_names(self, aria_refs: list[str]) -> dict[str, str]:
         """What each nameless control is, by Playwright ref, where the page says: `shows

@@ -534,3 +534,24 @@ def test_a_sent_step_whose_request_failed_says_so(mcp_server, demo_server):
     )
     assert "no message appeared" in said, said
     assert f"requests that failed: 502 POST {demo_server}/listing/review" in said
+
+
+def test_a_form_the_browser_held_back_says_which_fields(mcp_server, demo_server):
+    """A submit that the browser stopped with "Please fill out this field" looked like
+    success: the bubble is not on the page, and nothing else changed."""
+    task = "list my server"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/listing")
+    held = call(
+        mcp_server, "dejo_run", site=demo_server, task=task, steps='click! button "List it"'
+    )
+    assert "the browser did not send the form" in held, held
+    assert "Server: Please fill out this field." in held
+
+    sent = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='fill label "Server" "dejo"\nclick! button "List it"',
+    )
+    assert "Thanks! Your server is in the queue." in sent, "a held-back press is not one that ran"

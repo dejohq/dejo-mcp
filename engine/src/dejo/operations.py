@@ -221,6 +221,13 @@ class Session:
         self.last_result = None
         if risky:
             self.browser.watch_for_messages()
+        # Asked before the press, while the fields are as the press finds them. The browser
+        # says "Please fill out this field" in a bubble no snapshot holds and simply does not
+        # send the form, so the press looked as if it had worked. Nothing happened, so such
+        # a press is not a step, and a `!` press that was held back has not run.
+        enter = action == "press" and (value or "").lower() == "enter"
+        sends = element is not None and (action in actions.PRESSES or enter)
+        held = self.browser.held_back(element) if sends and element is not None else []
 
         element, lasting = self._perform(action, element=element, value=value, second=second)
 
@@ -240,6 +247,12 @@ class Session:
             and (self.browser.await_url_change(url_before))
         ):
             self.browser.settle()
+        if held and self.browser.page.url == url_before:
+            fields = "; ".join(f"{name}: {said}" for name, said in held)
+            raise ActionFailed(
+                f"the browser did not send the form, because of these fields: {fields} "
+                "Fill them, then send the line again."
+            )
         said: list[str] = []
         failed: list[str] = []
         if risky:

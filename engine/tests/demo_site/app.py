@@ -346,7 +346,7 @@ def listing(request: Request) -> HTMLResponse:
         "List your server",
         """<h1>List your server</h1>
            <form id="listing">
-             <label for="server">Server</label> <input id="server" name="server">
+             <label for="server">Server</label> <input id="server" name="server" required>
              <button type="submit">List it</button>
              <button type="button" id="broken">Send for review</button>
            </form>
