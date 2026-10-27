@@ -444,6 +444,27 @@ async def spa_data() -> dict[str, str]:
     return {"name": "Dejo", "about": "A browser your agent remembers."}
 
 
+@app.get("/sign-up", response_class=HTMLResponse)
+def sign_up(request: Request) -> HTMLResponse:
+    """Sign-in buttons that are only a logo, the way devhunt.org draws them: no words, no
+    label, nothing a screen reader could say."""
+    github = '<svg class="lucide lucide-github" viewBox="0 0 24 24"><path d="M9 19"/></svg>'
+    google = (
+        '<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9"/>'
+        '<path fill="#4285F4" d="M46 24"/><path fill="#FBBC05" d="M10 28"/></svg>'
+    )
+    blank = '<svg viewBox="0 0 24 24"><path d="M1 1"/></svg>'
+    return page(
+        "Sign up",
+        f"""<h1>Sign up</h1>
+            <button type="button" onclick="said.textContent='GitHub'">{github}</button>
+            <button type="button" onclick="said.textContent='Google'">{google}</button>
+            <button type="button">{blank}</button>
+            <p id="said">nobody</p>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

@@ -1075,3 +1075,25 @@ def test_a_click_into_a_single_page_app_shows_the_page_it_drew(
     assert outcome.ok, outcome.text()
     assert outcome.view is not None
     assert "A browser your agent remembers." in outcome.view.text
+
+
+def test_an_icon_button_says_what_its_icon_is(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """devhunt.org: the GitHub and Google sign-in buttons were bare `button` lines, in the
+    view and in raw."""
+    shown = run(runner_for(browser, store, "zz"), f"go {demo_server}/sign-up\nlook").view
+    assert shown is not None
+    assert re.search(r"e\d+ (button )?\[icon: github\]", shown.text), shown.text
+    assert re.search(r"e\d+ (button )?\[icon: google\]", shown.text)
+    assert re.search(r"e\d+ (button )?\[icon, no name\]", shown.text)
+
+
+def test_a_nameless_button_is_named_by_the_words_it_shows_first() -> None:
+    """devhunt.org: Playwright printed "Continue with Github" as a bare `button`."""
+    from dejo.browser import _icon_name
+
+    assert _icon_name("Continue with Github", "", "lucide-github") == 'shows "Continue with Github"'
+    assert _icon_name("", "Close dialog", "") == "icon: Close dialog"
+    assert _icon_name("", "", "lucide lucide-github h-5") == "icon: github"
+    assert _icon_name("", "", "#000") == ""

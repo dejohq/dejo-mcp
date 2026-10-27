@@ -50,6 +50,10 @@ LONG_TEXT = 1_000
 PASSAGE_SIDE = 120
 PASSAGES_SHOWN = 6
 
+# Controls that are often only an icon. With no words, the view says what the icon is, or
+# that it has no name (devhunt.org's GitHub and Google sign-in buttons were bare `button`).
+ICON_ROLES = frozenset({"button", "link"})
+
 # Siblings of the same shape that make a fold. Three is where a run reads as a list.
 FOLD_MIN = 3
 # Rows a fold shows. The first rows are what "the first X" tasks need; `look gK` shows all.
@@ -293,6 +297,7 @@ def render(
     everything: bool = False,
     budget: int = LINE_BUDGET,
     find: str = "",
+    icons: Mapping[str, str] | None = None,
 ) -> View:
     """Turn Playwright's ai snapshot into the view an agent reads.
 
@@ -300,12 +305,14 @@ def render(
     words of `look <words>`). `frames` maps an iframe's Playwright ref to a CSS selector for
     it, as in `snapshot.parse`. At most one of the paging inputs may be given: `start` (a
     ref: the next slice from there), `group` (`g2`: every row of that fold) or `everything`
-    (no budget, only the 30,000-char reply cap). `find` is the words of `look <words>`:
+    (no budget, only the 30,000-char reply cap). `icons` names the icons of nameless
+    controls, by Playwright ref (`Browser.icon_names`, asked about `nameless_controls`).
+    `find` is the words of `look <words>`:
     where one element holds a long text, the passages of it that say them are shown too.
     """
     if sum((bool(start), bool(group), everything)) > 1:
         raise ViewError("Ask for one of: from <ref>, a group, or all, not several at once.")
-    page = _Page(snapshot, url)
+    page = _Page(snapshot, url, icons or {})
     if group:
         sequence, limit = page.group_lines(group.strip()), budget
     elif start:
@@ -324,6 +331,19 @@ def render(
     return View(text, view.targets, view.groups, view.hidden_lines, view.known)
 
 
+def nameless_controls(snapshot: str) -> list[str]:
+    """Playwright refs of the buttons and links with no name: icons mostly, whose names
+    `Browser.icon_names` can look for in the page."""
+    return [
+        branch.node.aria_ref
+        for branch in _walk(_tree(lines(snapshot)))
+        if branch.node.ref
+        and branch.node.role in ICON_ROLES
+        and not branch.node.name
+        and not _clean(branch.node.trailing or _words(branch))
+    ]
+
+
 def focus_words(text: str) -> list[str]:
     """The words worth ranking lines by: everything but the common words, CSS names split.
 
@@ -340,8 +360,9 @@ def focus_words(text: str) -> list[str]:
 class _Page:
     """The snapshot read once: its tree, every printable element, and the folds."""
 
-    def __init__(self, snapshot: str, url: str):
+    def __init__(self, snapshot: str, url: str, icons: Mapping[str, str]):
         self.url = url
+        self.icons = icons
         self.root = _tree(lines(snapshot))
         self.frame_number = _iframe_numbers(self.root)
         self.order_of = {b.node.ref: b.order for b in _walk(self.root) if b.node.ref}
@@ -419,6 +440,9 @@ class _Page:
             label, filled = node.name or node.trailing or self._words_under(branch), False
         label = _clean(label)
         states = [f"[{flag}]" for flag in node.flags.split() if flag.split("=")[0] in STATES]
+        if not label and node.role in ICON_ROLES:
+            # A state, not a name: `button "github"` would find nothing, the ref does.
+            states.append(f"[{self.icons.get(node.aria_ref) or 'icon, no name'}]")
         if filled:
             states.append("[filled]")
         choices = _choices(branch)

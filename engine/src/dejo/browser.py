@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -202,6 +203,41 @@ _WATCH_MESSAGES_JS = """
 }
 """
 _MESSAGES_SAID_JS = "() => window.__dejoSaid || []"
+
+# What a control with no name is, read from the page: the words it shows, or that its icon
+# carries (an svg's title, an image's alt, a label inside), else a known name among its
+# classes, ids and links, else Google's logo by its colours. At most ICONS_NAMED controls
+# per look, and at most ICON_NAME_CHARS of what one says.
+ICONS_NAMED = 30
+ICON_NAME_CHARS = 40
+ICON_WORDS = (
+    "google", "github", "gitlab", "apple", "microsoft", "facebook", "linkedin", "discord",
+    "slack", "twitter", "youtube", "instagram", "close", "menu", "search", "settings",
+    "share", "copy", "edit", "delete", "trash", "download", "upload", "plus", "minus",
+    "heart", "star", "bell", "user", "cart", "home", "play", "pause", "more",
+)  # fmt: skip
+GOOGLE_COLOURS = ("#4285f4", "#ea4335", "#fbbc05")
+_ICON_JS = """
+el => {
+  const said = [];
+  for (const node of el.querySelectorAll("svg title, img[alt], [aria-label], [title]")) {
+    said.push(node.tagName.toLowerCase() === "title" ? node.textContent
+      : node.getAttribute("alt") || node.getAttribute("aria-label") || node.getAttribute("title"));
+  }
+  const marks = [];
+  for (const node of [el, ...el.querySelectorAll("*")]) {
+    const kind = node.className;
+    marks.push(node.id, typeof kind === "string" ? kind : kind && kind.baseVal,
+      node.getAttribute("data-icon"), node.getAttribute("data-testid"),
+      node.getAttribute("href"), node.getAttribute("xlink:href"), node.getAttribute("fill"));
+  }
+  return {
+    shows: el.innerText || "",
+    said: said.filter(Boolean).join(" "),
+    marks: marks.filter(Boolean).join(" "),
+  };
+}
+"""
 
 # How much visible page text one look() may return. Enough to read a heading, an amount
 # and an error message; not so much that a caller pays for the whole page every time.
@@ -582,6 +618,22 @@ def _mac_locale() -> str | None:
     except (OSError, subprocess.SubprocessError):
         return None
     return _language_tag(said)
+
+
+def _icon_name(shows: str, said: str, marks: str) -> str:
+    """What a nameless control is: the words it shows (devhunt.org's "Continue with Github"
+    button was printed with no name, words on show and all), else what its icon says or is
+    marked as (see ICON_WORDS), else ""."""
+    words = " ".join(shows.split())[:ICON_NAME_CHARS].replace('"', "'")
+    if words:
+        return f'shows "{words}"'
+    words = " ".join(said.split())[:ICON_NAME_CHARS]
+    lowered = marks.lower()
+    tokens = set(re.findall(r"[a-z]+", lowered))
+    known = words or next((word for word in ICON_WORDS if word in tokens), "")
+    if not known and all(colour in lowered for colour in GOOGLE_COLOURS):
+        known = "google"
+    return f"icon: {known}" if known else ""
 
 
 def profile_named(
@@ -1720,6 +1772,20 @@ class Browser:
             still = still + STILL_POLL_MS if (now is not None and now == shape and not busy) else 0
             shape = now
         self.settle()
+
+    def icon_names(self, aria_refs: list[str]) -> dict[str, str]:
+        """What each nameless control is, by Playwright ref, where the page says: `shows
+        "Continue with Github"` or `icon: github`. See ICON_WORDS."""
+        named: dict[str, str] = {}
+        for aria_ref in aria_refs[:ICONS_NAMED]:
+            try:
+                seen = self.page.locator(f"aria-ref={aria_ref}").evaluate(_ICON_JS)
+            except PlaywrightError:
+                continue
+            name = _icon_name(seen["shows"], seen["said"], seen["marks"])
+            if name:
+                named[aria_ref] = name
+        return named
 
     def watch_for_messages(self) -> None:
         """Start keeping what the page says for a moment (see MESSAGE_PLACES), and every
