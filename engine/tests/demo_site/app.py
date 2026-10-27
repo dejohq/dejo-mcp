@@ -571,6 +571,21 @@ def blank() -> HTMLResponse:
     return HTMLResponse("<!doctype html><title>widget</title>")
 
 
+# Keys /slow-once has answered slowly already, and how slowly: well past a short test
+# timeout, the way a site has a slow moment.
+SLOW_ONCE_SEEN: set[str] = set()
+SLOW_ONCE_S = 4.0
+
+
+@app.get("/slow-once", response_class=HTMLResponse)
+async def slow_once(request: Request, key: str = "") -> HTMLResponse:
+    """Slow the first time it is asked for with a key, at once after that."""
+    if key not in SLOW_ONCE_SEEN:
+        SLOW_ONCE_SEEN.add(key)
+        await asyncio.sleep(SLOW_ONCE_S)
+    return page("Slow once", '<h1 id="answered">Answered</h1>', variant=variant_of(request, None))
+
+
 @app.get("/down", response_class=HTMLResponse)
 def down() -> HTMLResponse:
     """A site whose server is down behind Cloudflare: an error page, HTTP 522."""

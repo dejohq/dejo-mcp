@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import socket
+import uuid
 from collections.abc import Iterator
 
 import pytest
@@ -110,19 +111,10 @@ class TestAStuckProfileIsToldApartFromADownSite:
     def test_one_slow_load_in_the_profile_is_tried_again_before_anything_is_blamed(
         self, profiled: Browser, demo_server
     ) -> None:
-        first = []
+        """The page is slow only the first time, the way a site has a slow moment."""
+        profiled.goto(f"{demo_server}/slow-once?key={uuid.uuid4().hex}")
 
-        def hang_once(route) -> None:
-            if not first:
-                first.append(route)
-                return
-            route.continue_()
-
-        profiled.page.context.route("**/news", hang_once)
-
-        profiled.goto(f"{demo_server}/news")
-
-        assert profiled.page.locator("#headline").inner_text() == "Rates hold for September"
+        assert profiled.page.locator("#answered").inner_text() == "Answered"
 
     def test_a_stuck_profile_is_not_sent_to_be_deleted_first(
         self, profiled: Browser, demo_server
