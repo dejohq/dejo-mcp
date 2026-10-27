@@ -820,3 +820,25 @@ def test_a_missing_click_the_next_step_needs_still_breaks(
 
     assert not replay.ok
     assert replay.repair is not None and replay.repair.step_index == 2
+
+
+def _refused(browser: Browser, store: DejoStore, demo_server: str, line: str) -> str:
+    """Why `line` was refused on the launch page, or "" when it ran."""
+    outcome = run(runner_for(browser, store, "launch"), f"go {demo_server}/launch\n{line}")
+    return "" if outcome.ok else outcome.reason
+
+
+def test_a_link_named_submit_only_opens_a_page(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """mcpmarket.com: the footer link to /submit was refused as risky. A link opens a page."""
+    assert _refused(browser, store, demo_server, 'click link "Submit"') == ""
+    assert browser.page.url.endswith("/submit")
+
+
+def test_a_link_that_deletes_and_a_button_that_sends_are_still_risky(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    deletes = _refused(browser, store, demo_server, 'click link "Delete launch"')
+    assert 'is "delete"' in deletes
+    assert 'is "send"' in _refused(browser, store, demo_server, 'click button "Send"')

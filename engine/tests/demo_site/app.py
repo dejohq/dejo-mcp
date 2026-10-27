@@ -242,6 +242,47 @@ def news(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/launch", response_class=HTMLResponse)
+def launch(request: Request) -> HTMLResponse:
+    """A launch site's submit page, with the controls whose words sound risky and are not
+    (a footer link to /submit, a "Publish" tab, a tag chip's "Remove") beside ones that are
+    (a link that deletes, a button that sends, a row's "Remove")."""
+    return page(
+        "Launch",
+        """<h1>Launch</h1>
+           <div role="tablist">
+             <button role="tab" aria-selected="true" onclick="panel.textContent='Draft view'">
+               Draft</button>
+             <button role="tab" aria-selected="false"
+                     onclick="panel.textContent='Publish view'">Publish</button>
+           </div>
+           <p id="panel">Draft view</p>
+           <form id="details">
+             <label for="tags">Tags</label> <input id="tags">
+             <span class="chip" id="chip-js">javascript
+               <button type="button" aria-label="Remove javascript"
+                       onclick="this.parentElement.remove()">×</button></span>
+           </form>
+           <button type="button" onclick="panel.textContent='Sent'">Send</button>
+           <table><tr><td>Old launch</td>
+             <td><button type="button" onclick="this.closest('tr').remove()">Remove</button></td>
+           </tr></table>
+           <a href="/launch" data-method="delete">Delete launch</a>
+           <footer><a href="/submit">Submit</a></footer>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/submit", response_class=HTMLResponse)
+def submit_info(request: Request) -> HTMLResponse:
+    """Where a footer "Submit" link goes: a page about submitting, which sends nothing."""
+    return page(
+        "Submit a site",
+        "<h1>Submit a site</h1>",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

@@ -264,7 +264,8 @@ _PLACE_JS = """
 
 # Words that say a click does something that cannot be taken back: money moves, a message
 # leaves, something is deleted or published. Matched as whole words or phrases on the real
-# element, never on the agent's wording. A false alarm costs the agent one resend with `!`;
+# element, never on the agent's wording, and only on controls that do something: a link
+# opens a page, whatever it is called. A false alarm costs the agent one resend with `!`;
 # a miss can cost a real order, so the list leans to safe. Plain "Search", "Add", "Apply" or
 # "Sort order" are deliberately not here.
 RISKY_WORDS = (
@@ -307,8 +308,13 @@ _RISK_JS = """
   );
   const method = form ? (form.getAttribute("method") || "get").toLowerCase() : "";
   const signsIn = !!form && !!form.querySelector("input[type=password]");
+  const role = (el.getAttribute("role") || (tag === "A" && el.hasAttribute("href") ? "link" : ""))
+    .toLowerCase();
+  // Rails and Turbo send a link as a DELETE or a POST when it says so.
+  const linkMethod = (el.getAttribute("data-method") || el.getAttribute("data-turbo-method")
+    || "get").toLowerCase();
   return {
-    words, submits, method, signsIn,
+    words, submits, method, signsIn, role, linkMethod,
     field: !!form && (tag === "INPUT" || tag === "TEXTAREA"),
   };
 }
@@ -1274,6 +1280,10 @@ class Browser:
                 return "submits a form that sends data (POST)"
             return None
         if pressing_enter:
+            return None
+        if seen["role"] == "link" and seen["linkMethod"] == "get":
+            # A link only opens a page. mcpmarket.com's footer link to /submit was refused as
+            # risky; the submit of a POST form is a button, and the rule above has it.
             return None
         words = f" {' '.join(seen['words'].split())} "
         for risky in RISKY_WORDS:
