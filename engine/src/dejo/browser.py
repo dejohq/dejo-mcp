@@ -596,6 +596,24 @@ _DESCRIBE_JS = """
     return '';
   };
 
+  // An element with no words of its own (a chip's drawn cross) is told apart by the words
+  // of the nearest box around it: `span:has-text("AI agents") > button`. Playwright's own
+  // :has-text, so it is checked against the page in Python, never here.
+  const besideOf = (node) => {
+    if ((node.innerText || '').trim() || node.getAttribute('aria-label')) return [null, null];
+    let box = node.parentElement;
+    for (let depth = 1; box && depth <= 3; depth++, box = box.parentElement) {
+      const words = (box.innerText || '').trim().split('\\n')[0].trim().slice(0, 40);
+      if (words) {
+        const path = `${box.tagName.toLowerCase()}:has-text(${JSON.stringify(words)}) > `
+          + '* > '.repeat(depth - 1) + node.tagName.toLowerCase();
+        return [words, path];
+      }
+    }
+    return [null, null];
+  };
+  const [beside, besideCss] = besideOf(el);
+
   const type = (el.getAttribute('type') || '').toLowerCase();
   let value = null;
   if ('value' in el && typeof el.value === 'string') {
@@ -614,6 +632,8 @@ _DESCRIBE_JS = """
     title: el.getAttribute('title'),
     alt: el.getAttribute('alt'),
     value: value,
+    beside: beside,
+    beside_css: besideCss,
   };
 }
 """

@@ -95,6 +95,12 @@ _LOCATOR_KIND |= {"title": "title", "css": "css"}
 # read; a css path's numbers are positions, not values.
 _WORDED_LOCATORS = frozenset({"role", "text", "label", "title", "alt", "placeholder"})
 
+# A css path that names something (an id, a class, an attribute), not only tags in order.
+_PATH_MARKS = re.compile(r"[#.\[]")
+
+# Locator kinds that find an element by what it is called, not where it is.
+_NAMING_LOCATORS = _WORDED_LOCATORS | {"test_id", "structural"}
+
 # Reads that hand back only a part of their element, so the element may be the whole page.
 _PART_READS = frozenset({"passage"})
 
@@ -464,6 +470,10 @@ class Runner:
         if waiting and step.target.kind != "ref":
             self._wait_to_appear(step.target)
         element = self._element(step.target, many=waiting) if step.target else None
+        if element is not None and not element.name and not element.selector:
+            # Read now, so the step can say what it is: `click button in "AI agents"`, not
+            # `click button`, which reads as any button at all.
+            element = self.browser.describe(element)
         second = self._element(step.second) if step.second else None
         value = step.value
         if step.action == "goto" and value:
@@ -1296,11 +1306,19 @@ def _css_hint(element: Element) -> str:
 
 
 def _stored_how(step: Step) -> str:
+    """How a saved step finds its element, said truly: a css path alone is a place in the
+    page, and launchit.site's chip cross saved that way read "(by name)"."""
     only = step.locators[0] if len(step.locators) == 1 else None
     if only is not None and only.nth is not None:
         return " (by place)"
-    if step.locators:
+    if any(locator.kind in _NAMING_LOCATORS for locator in step.locators):
         return " (by name)"
+    if any(":has-text(" in locator.value for locator in step.locators):
+        return " (by the words beside it)"
+    if any(_PATH_MARKS.search(locator.value) for locator in step.locators):
+        return " (by css)"
+    if step.locators:
+        return " (by position)"
     return ""
 
 
@@ -1315,6 +1333,8 @@ def _intent_of(step: Action, element: Element | None) -> str:
     text = step.text
     if step.target is not None and step.target.kind == "ref" and element is not None:
         called = f'{element.role} "{element.name}"' if element.name else element.role
+        if not element.name and element.beside:
+            called = f'{element.role or "it"} in "{element.beside}"'.lstrip()
         text = text.replace(step.target.value, called or step.target.value, 1)
     if step.action in ("fill", "type") and step.value is not None:
         verb = text.split(" ", 1)[0]

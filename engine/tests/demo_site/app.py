@@ -613,6 +613,24 @@ def stack(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/chips", response_class=HTMLResponse)
+def chips(request: Request) -> HTMLResponse:
+    """Category chips whose remove buttons are only a drawn cross, with no name at all, the
+    way launchit.site draws them."""
+    cross = '<svg viewBox="0 0 8 8" width="8" height="8"><path d="M0 0L8 8M8 0L0 8"/></svg>'
+    chip = (
+        '<span class="chip">{name}<button type="button" '
+        'onclick="this.parentElement.remove()">' + cross + "</button></span>"
+    )
+    return page(
+        "Chips",
+        "<h1>Categories</h1><div id='chips'>"
+        + "".join(chip.format(name=name) for name in ("Developer tools", "AI agents", "Data"))
+        + "</div>",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

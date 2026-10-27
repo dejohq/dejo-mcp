@@ -1342,3 +1342,26 @@ def test_a_js_line_that_only_reads_does_not_stop_the_save(
     outcome = run(runner, 'read css "#headline" as headline')
 
     assert outcome.saved is not None, outcome.text()
+
+
+def test_a_nameless_button_is_saved_by_the_words_beside_it(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: the cross on a category chip was saved as `click! button (by name)`,
+    which reads as any button, and was stored by its place: the second chip's cross."""
+    runner = runner_for(browser, store, "drop a category")
+    shown = run(runner, f"go {demo_server}/chips\nlook").view
+    assert shown is not None
+    cross = re.search(r"e\d+: AI agents · (e\d+) button", shown.text)
+    assert cross is not None, shown.text
+
+    outcome = run(runner, f'click {cross.group(1)}\nread css "#chips" as left')
+
+    assert outcome.ok, outcome.text()
+    assert 'click button in "AI agents" (by the words beside it)' in outcome.text()
+    step = outcome.saved.steps[1] if outcome.saved else None
+    assert step is not None and step.locators[0].value == 'span:has-text("AI agents") > button'
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="drop a category")
+    assert replay.ok, replay.reason
+    assert "AI agents" not in replay.answers["left"]
