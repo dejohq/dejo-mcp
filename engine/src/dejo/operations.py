@@ -225,6 +225,7 @@ class Session:
         # says "Please fill out this field" in a bubble no snapshot holds and simply does not
         # send the form, so the press looked as if it had worked. Nothing happened, so such
         # a press is not a step, and a `!` press that was held back has not run.
+        tabs_before = list(self.browser.tabs)
         enter = action == "press" and (value or "").lower() == "enter"
         sends = element is not None and (action in actions.PRESSES or enter)
         held = self.browser.held_back(element) if sends and element is not None else []
@@ -267,6 +268,7 @@ class Session:
 
         text_after = self.browser.text()
         left = self._what_became_of(element, action, url_before)
+        opened = [] if action == "new_tab" else self.browser.tabs_opened_since(tabs_before)
 
         # Catch stragglers LAST, immediately before the entry is written. The download
         # event can arrive after the click returns, and reading the page takes long enough
@@ -309,6 +311,9 @@ class Session:
             # What the page said while a sent step settled: a toast can be gone by now.
             "said": said,
             "failed_requests": failed,
+            # Tabs the step opened, as `host/path (title)`. The page the step was on is
+            # still the one in use, so nothing else in the reply would say so.
+            "opened": opened,
             "secret": secret,
             "note": (
                 f"This was a {secret} field, so Dejo did not remember what was typed. "

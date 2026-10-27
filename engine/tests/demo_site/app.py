@@ -489,6 +489,19 @@ def logo(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/continue", response_class=HTMLResponse)
+def continue_with(request: Request) -> HTMLResponse:
+    """A "Continue with Google" button that opens the sign-in in a new tab, the way
+    fazier.com does, and leaves this page exactly as it was."""
+    return page(
+        "Join",
+        """<h1>Join</h1>
+           <button type="button" onclick="window.open('/books', '_blank')">
+             Continue with Google</button>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

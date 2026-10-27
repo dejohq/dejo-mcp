@@ -162,7 +162,8 @@ class Outcome:
     repaired: Step | None = None
     """The trail step this program fixed in place, as it was saved."""
     after_sending: list[str] = field(default_factory=list)
-    """For each `!` line, what the page said while it settled, which may be gone by now."""
+    """For each `!` line, what the page said while it settled, which may be gone by now; and
+    for any line that opened a tab, which tab."""
     js_result: str | None = None
     """What a `js` line returned, as JSON. Not an answer: it is never saved or replayed."""
     trail_total: int = 0
@@ -466,6 +467,11 @@ class Runner:
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
             out.after_sending.append(_after_sending(step, did))
+        for tab in did.get("opened") or []:
+            out.after_sending.append(
+                f"line {step.line} opened a new tab: {tab}. This call stayed in the tab it was "
+                "in; to work in the new one, send: tab latest"
+            )
         self.domain = self.domain or domain_of(self.browser.page.url)
         if self.browser.page.url != was:
             self._map_this_page()

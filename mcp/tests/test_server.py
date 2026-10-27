@@ -555,3 +555,20 @@ def test_a_form_the_browser_held_back_says_which_fields(mcp_server, demo_server)
         steps='fill label "Server" "dejo"\nclick! button "List it"',
     )
     assert "Thanks! Your server is in the queue." in sent, "a held-back press is not one that ran"
+
+
+def test_a_tab_a_click_opened_is_named_in_the_reply(mcp_server, demo_server):
+    """fazier.com: "Continue with Google" opened a new tab, and the reply showed the old page
+    as if nothing had happened."""
+    task = "join"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/continue")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click button "Continue with Google"',
+    )
+    host = demo_server.split("://")[1]
+    assert f"line 1 opened a new tab: {host}/books (Books · Acme Billing)" in said, said
+    assert "tab latest" in said

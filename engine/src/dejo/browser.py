@@ -134,6 +134,8 @@ MAIN_TAB = "main"
 # and Windows and not enough there, which means it was never long enough anywhere, only
 # lucky.
 TAB_GRACE_MS = 3000
+# How long a tab a step opened gets to load before the reply names it.
+TAB_LOAD_MS = 3000
 TAB_POLL_MS = 50
 
 # A single-page app navigates by changing the URL itself, after its click handler has
@@ -1799,6 +1801,20 @@ class Browser:
             still = still + STILL_POLL_MS if (now is not None and now == shape and not busy) else 0
             shape = now
         self.settle()
+
+    def tabs_opened_since(self, before: list[Page]) -> list[str]:
+        """The tabs opened since `before`, as `host/path (title)`, each given a moment to
+        load first: a popup starts as about:blank."""
+        named = []
+        for tab in [tab for tab in self.tabs if tab not in before and not tab.is_closed()]:
+            with suppress(PlaywrightError):
+                tab.wait_for_load_state("domcontentloaded", timeout=TAB_LOAD_MS)
+            try:
+                where, title = urlparse(tab.url), tab.title()
+            except PlaywrightError:
+                continue
+            named.append(f"{where.netloc}{where.path}" + (f" ({title})" if title else ""))
+        return named
 
     def held_back(self, element: Element) -> list[tuple[str, str]]:
         """The fields the browser would not send a form with, if `element` sent it now."""
