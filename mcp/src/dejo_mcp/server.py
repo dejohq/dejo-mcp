@@ -64,6 +64,14 @@ ACTIVE_PROFILE_FILE = ".active"
 # wall of text in front of the line that matters.
 MAX_LISTED = 25
 
+# Seen in bench T12: a saved trail answered the wrong thing, and the agent asked again 28
+# times in other words. Every time, matching found the same trail and gave the same answer.
+REPLACE_THE_TRAIL = (
+    "If this is NOT what the user asked for, asking again in other words finds this same "
+    "trail. Instead send steps whose first line is restart, then the steps that do the task "
+    "right: they replace this trail."
+)
+
 # Claude Code loads a tool marked with this key before the first turn, instead of waiting
 # for the agent to search for it. One search turn costs about 28k tokens of re-read context,
 # and the agent needs `dejo_run` on every website task, so it is loaded up front. Other
@@ -632,6 +640,7 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
             "next: the trail reads no value. If the task needs one, send steps: read T as "
             "name. It is added to this trail. If the task was only to DO something, it is done."
         )
+    lines.append(REPLACE_THE_TRAIL)
     return "\n".join(lines)
 
 

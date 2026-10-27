@@ -480,3 +480,26 @@ def test_a_cookie_banner_not_shown_again_does_not_break_the_replay(mcp_server, d
     assert said.startswith('done: "read the headline"'), said
     assert "headline = Rates hold for September" in said
     assert 'skipped step 2 (click button "Accept cookies")' in said
+
+
+def test_a_wrong_answer_says_how_to_replace_the_trail(mcp_server, demo_server):
+    """Bench T12: the saved read answered the wrong thing, and the agent re-asked 28 times in
+    other words, each time getting the same trail back."""
+    task = "the next charge"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/payments")
+    call(mcp_server, "dejo_run", site=demo_server, task=task, steps='read css "#card" as charge')
+    asked = "how much is the next charge"
+
+    replayed = call(mcp_server, "dejo_run", site=demo_server, task=asked)
+    assert "charge = Visa ending 4242" in replayed
+    assert "first line is restart" in replayed
+
+    call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=asked,
+        steps='restart\nread css "#next-charge" as charge',
+    )
+    again = call(mcp_server, "dejo_run", site=demo_server, task=task)
+    assert "charge = ₹ 18,400" in again, again
