@@ -233,6 +233,8 @@ class Session:
             and (self.browser.await_url_change(url_before))
         ):
             self.browser.settle()
+        if risky:
+            self.browser.settle_after_sending()
 
         # A password is remembered as "there is a password here", never as the password.
         secret = secret_name(element) if action in _TEXT_ENTRY else None

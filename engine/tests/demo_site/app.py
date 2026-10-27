@@ -30,6 +30,7 @@ Then open http://127.0.0.1:8787  and  http://127.0.0.1:8787/?variant=b
 from __future__ import annotations
 
 import argparse
+import asyncio
 import socket
 import sys
 from pathlib import Path
@@ -40,6 +41,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from .hard import hard_page
 
 app = FastAPI(title="Acme Billing (Dejo demo site)", docs_url=None, redoc_url=None)
+
+# How long /contact/send takes to answer: well past the moment a click returns.
+CONTACT_REPLY_S = 1.5
 
 INVOICES = [
     {"id": "2026-09", "month": "September 2026", "amount": "48,200", "state": "due"},
@@ -185,6 +189,39 @@ def preferences(request: Request) -> HTMLResponse:
            <p>Statements for <span id="shown">no month</span></p>""",
         variant=variant_of(request, None),
     )
+
+
+@app.get("/contact", response_class=HTMLResponse)
+def contact(request: Request) -> HTMLResponse:
+    """A form sent with fetch, the way most launch sites do it: the fields lock, the button
+    says "Sending...", and only after the server answers does the page say it worked."""
+    return page(
+        "Contact",
+        """<h1>Contact</h1>
+           <form id="contact">
+             <label for="note">Note</label> <input id="note" name="note">
+             <button type="submit">Send note</button>
+           </form>
+           <p id="result"></p>
+           <script>
+             contact.onsubmit = async (event) => {
+               event.preventDefault();
+               note.disabled = true;
+               contact.querySelector("button").textContent = "Sending...";
+               await fetch("/contact/send", {method: "POST"});
+               contact.remove();
+               result.textContent = "Note sent. Thank you!";
+             };
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.post("/contact/send")
+async def contact_send() -> Response:
+    """Slow on purpose: long enough that a reply written at once sees the half-sent form."""
+    await asyncio.sleep(CONTACT_REPLY_S)
+    return Response(status_code=204)
 
 
 @app.get("/hard", response_class=HTMLResponse)

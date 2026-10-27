@@ -1183,6 +1183,8 @@ class Executor:
             value=value,
         )
         self.browser.settle()
+        if step.risky:
+            self.browser.settle_after_sending()
         # This step is recorded as one that changes the address. If it has not changed
         # yet, the app may be doing it itself a moment later — which is how every
         # single-page sidebar link works. Cheap when it was going to change anyway.

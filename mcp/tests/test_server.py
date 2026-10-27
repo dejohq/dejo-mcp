@@ -444,3 +444,19 @@ def test_what_a_js_line_returns_is_in_the_reply(mcp_server, demo_server):
         steps='js "() => [...document.querySelectorAll(`option`)].map(o => o.label)"',
     )
     assert 'js returned: ["Choose one", "January", "September"]' in said
+
+
+def test_a_sent_form_is_shown_after_the_site_answers(mcp_server, demo_server):
+    """23 Oct: the reply came while the form still said "Sending...", and only the next call
+    showed it had worked."""
+    task = "send a note"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/contact")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='fill label "Note" "hello"\nclick! button "Send note"',
+    )
+    assert "Note sent. Thank you!" in said, said
+    assert "Sending..." not in said

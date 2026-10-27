@@ -138,6 +138,24 @@ TAB_POLL_MS = 50
 SPA_NAV_GRACE_MS = 700
 SPA_NAV_POLL_MS = 25
 
+# After a step that sends something (`click!`), the page has to finish answering before the
+# reply is written. A form that posts in the background disables its fields, waits for the
+# server, then shows "Submission Successful!"; replying in between showed a half-sent form
+# (mcpservers.org, 23 Oct). Done means: no request of the page's own work in flight and
+# nothing redrawn for SENT_STILL_MS. Capped, because a page that polls is never done.
+SENT_WAIT_MS = 10_000
+SENT_STILL_MS = 500
+SENT_POLL_MS = 100
+# Requests that are the page doing its work. Images, fonts and beacons keep arriving on a
+# busy page and say nothing about whether the form was answered.
+WORK_REQUESTS = frozenset({"document", "fetch", "xhr"})
+# Changes whenever the page redraws something that matters: elements added or removed, or
+# its words.
+_PAGE_SHAPE = (
+    "() => document.querySelectorAll('*').length + ':' "
+    "+ (document.body ? document.body.innerText.length : 0)"
+)
+
 # How much visible page text one look() may return. Enough to read a heading, an amount
 # and an error message; not so much that a caller pays for the whole page every time.
 MAX_TEXT_CHARS = 1200
@@ -422,6 +440,16 @@ def _keep(kept: list[str], line: str) -> None:
     kept.append(line)
     if len(kept) > MAX_DIAGNOSTICS:
         del kept[0]
+
+
+def _track_work(page: Page, request: Any, *, started: bool) -> None:
+    """Keep the page's own requests in flight, for `settle_after_sending`."""
+    if request.resource_type not in WORK_REQUESTS:
+        return
+    if started:
+        page._dejo_in_flight.add(request)  # type: ignore[attr-defined]
+    else:
+        page._dejo_in_flight.discard(request)  # type: ignore[attr-defined]
 
 
 def profile_named(
@@ -879,6 +907,10 @@ class Browser:
         page.on("console", lambda message: self._remember_console(page, message))
         page.on("pageerror", lambda error: _keep(page._dejo_console, f"error: {error}"))  # type: ignore[attr-defined]
         page.on("response", lambda response: self._remember_failure(page, response))
+        page._dejo_in_flight = set()  # type: ignore[attr-defined]
+        page.on("request", lambda request: _track_work(page, request, started=True))
+        page.on("requestfinished", lambda request: _track_work(page, request, started=False))
+        page.on("requestfailed", lambda request: _track_work(page, request, started=False))
 
         # Whatever this site is known to cover itself with, this tab gets it too.
         for selector in self._overlays:
@@ -1488,6 +1520,28 @@ class Browser:
         with suppress(PlaywrightError):
             self.page.wait_for_load_state("domcontentloaded")
         self.flush_downloads()
+
+    def settle_after_sending(self, timeout_ms: int = SENT_WAIT_MS) -> None:
+        """Wait until the page has answered what was just sent (see SENT_WAIT_MS).
+
+        `settle()` is not enough: a form sent with fetch loads nothing, so
+        `domcontentloaded` has long fired, and Playwright's `networkidle` stays true once
+        the first load reached it. Polling through `wait_for_timeout` keeps Playwright
+        handling the page's events, which is what moves the requests in and out."""
+        still = waited = 0
+        shape: str | None = None
+        while still < SENT_STILL_MS and waited < timeout_ms:
+            with suppress(PlaywrightError):
+                self.page.wait_for_timeout(SENT_POLL_MS)
+            waited += SENT_POLL_MS
+            try:
+                now = self.page.evaluate(_PAGE_SHAPE)
+            except PlaywrightError:
+                now = None  # the page is being replaced: not still
+            busy = bool(getattr(self.page, "_dejo_in_flight", ()))
+            still = still + SENT_POLL_MS if (now is not None and now == shape and not busy) else 0
+            shape = now
+        self.settle()
 
     def wait_until_quiet(self, timeout_ms: int = QUIET_WAIT_MS) -> None:
         """Wait for the page to stop working, not merely to have arrived.
