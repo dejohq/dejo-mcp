@@ -95,6 +95,9 @@ _LOCATOR_KIND |= {"title": "title", "css": "css"}
 # read; a css path's numbers are positions, not values.
 _WORDED_LOCATORS = frozenset({"role", "text", "label", "title", "alt", "placeholder"})
 
+# Reads that hand back only a part of their element, so the element may be the whole page.
+_PART_READS = frozenset({"passage"})
+
 # Reads that answer about many elements at once, so several matches are the point.
 _MANY_READS = {"count", "all_text"}
 
@@ -307,6 +310,7 @@ class Runner:
             start=argument if mode == "from" else "",
             group=argument if mode == "group" else "",
             everything=mode == "all",
+            find=argument if mode == "words" else "",
         )
         return self._view
 
@@ -556,13 +560,22 @@ class Runner:
                 "the read found nothing there",
                 "the value may sit in another element; look at the page below",
             )
-        if step.kind not in _MANY_READS and _whole_page(element, answer):
+        if step.kind not in _MANY_READS and _whole_page(element, answer, part=step.kind):
             if self.session.trace:
                 self.session.trace.pop()
+            if step.kind in _PART_READS:
+                raise _Stopped(
+                    f"that part is {len(str(answer)):,} characters, more than one answer may "
+                    f"be ({LONGEST_ANSWER:,})",
+                    "name a smaller part: a lower heading, or words from the one paragraph "
+                    "that answers",
+                )
             raise _Stopped(
                 f"that read is the whole page ({len(str(answer)):,} characters), and every "
                 "replay would hand all of it back",
-                "read the element that holds the answer instead",
+                "read the element that holds the answer instead, or only the part of this "
+                f'one that does: read passage "a heading or words in it" '
+                f"{_target_line(step.target)} as {step.name}",
             )
         entry = self.session.trace[-1] if self.session.trace else None
         kept = entry.element if entry is not None else None
@@ -1111,8 +1124,10 @@ def _after_sending(step: Action, did: dict[str, Any]) -> str:
     return f"after line {step.line} ({_short(step)}): " + "; ".join(told)
 
 
-def _whole_page(element: Element | None, answer: Any) -> bool:
-    if element is not None and (element.css or "").strip().lower() in WHOLE_PAGE:
+def _whole_page(element: Element | None, answer: Any, *, part: str = "") -> bool:
+    """Is this read the whole page? A `passage` of the page is not, while it stays short."""
+    whole = element is not None and (element.css or "").strip().lower() in WHOLE_PAGE
+    if whole and part not in _PART_READS:
         return True
     return len(str(answer)) > LONGEST_ANSWER
 
@@ -1242,6 +1257,13 @@ def _intent_of(step: Action, element: Element | None) -> str:
         verb = text.split(" ", 1)[0]
         return f"{verb} {_target_words(step.target)}" if step.target else verb
     return text
+
+
+def _target_line(target: language.Target | None) -> str:
+    """A target as a line writes it."""
+    if target is None:
+        return ""
+    return target.value if target.kind == "ref" else f'{target.kind} "{target.value}"'
 
 
 def _short(step: language.Step) -> str:

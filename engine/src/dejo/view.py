@@ -43,6 +43,13 @@ TEXT_LIMIT = 120
 # " · +246 more" ending always fits before the line is cut (a country list has 249).
 CHOICES_LIMIT = 100
 
+# An element whose text is longer than this is one long text (a plain-text page, an article
+# in one block): `look <words>` shows the parts of it that say them, PASSAGE_SIDE characters
+# either side of each, at most PASSAGES_SHOWN of them.
+LONG_TEXT = 1_000
+PASSAGE_SIDE = 120
+PASSAGES_SHOWN = 6
+
 # Siblings of the same shape that make a fold. Three is where a run reads as a list.
 FOLD_MIN = 3
 # Rows a fold shows. The first rows are what "the first X" tasks need; `look gK` shows all.
@@ -285,6 +292,7 @@ def render(
     group: str = "",
     everything: bool = False,
     budget: int = LINE_BUDGET,
+    find: str = "",
 ) -> View:
     """Turn Playwright's ai snapshot into the view an agent reads.
 
@@ -292,7 +300,8 @@ def render(
     words of `look <words>`). `frames` maps an iframe's Playwright ref to a CSS selector for
     it, as in `snapshot.parse`. At most one of the paging inputs may be given: `start` (a
     ref: the next slice from there), `group` (`g2`: every row of that fold) or `everything`
-    (no budget, only the 30,000-char reply cap).
+    (no budget, only the 30,000-char reply cap). `find` is the words of `look <words>`:
+    where one element holds a long text, the passages of it that say them are shown too.
     """
     if sum((bool(start), bool(group), everything)) > 1:
         raise ViewError("Ask for one of: from <ref>, a group, or all, not several at once.")
@@ -306,7 +315,13 @@ def render(
     else:
         sequence, limit = page.sequence(expand=False), budget
     shown, rest = _cut(sequence, limit)
-    return _assemble(page, shown, rest, focus_words(focus), title, frames or {})
+    view = _assemble(page, shown, rest, focus_words(focus), title, frames or {})
+    found = _passages(page, focus_words(find))
+    if not found:
+        return view
+    lines = view.text.split("\n")
+    text = "\n".join([lines[0], *found, *lines[1:]])
+    return View(text, view.targets, view.groups, view.hidden_lines, view.known)
 
 
 def focus_words(text: str) -> list[str]:
@@ -902,6 +917,35 @@ def _best(page: _Page, words: list[str]) -> list[Item]:
             scored.append((score + (CONTROL_BONUS if item.control else 0.0), item.order, item))
     scored.sort(key=lambda entry: (-entry[0], entry[1]))
     return [item for _, _, item in scored[:BEST_COUNT]]
+
+
+def _passages(page: _Page, words: list[str]) -> list[str]:
+    """`e1 says: …words around a match…`, for each element whose text is too long to print.
+
+    market.lobehub.com served a 48k markdown guide as one element: its line was cut at 120
+    characters, and `look <words>` could only point at that one line again."""
+    if not words:
+        return []
+    found: list[str] = []
+    for item in page.items:
+        text = item.said or item.words
+        if len(text) <= LONG_TEXT:
+            continue
+        lowered = text.lower()
+        spans: list[tuple[int, int]] = []
+        for word in words:
+            for match in re.finditer(re.escape(word), lowered):
+                start = max(match.start() - PASSAGE_SIDE, 0)
+                end = min(match.end() + PASSAGE_SIDE, len(text))
+                if spans and start <= spans[-1][1]:
+                    spans[-1] = (spans[-1][0], max(end, spans[-1][1]))
+                else:
+                    spans.append((start, end))
+        for start, end in sorted(spans)[:PASSAGES_SHOWN]:
+            before = "…" if start else ""
+            after = "…" if end < len(text) else ""
+            found.append(f"{item.ref} says: {before}{text[start:end].strip()}{after}")
+    return found[:PASSAGES_SHOWN]
 
 
 def _href_words(href: str | None, url: str) -> str:

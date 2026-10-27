@@ -1028,3 +1028,37 @@ def test_wait_waits_for_what_is_not_there_yet(
     )
     assert outcome.ok, outcome.text()
     assert outcome.answers == {"first": "Developer tools"}
+
+
+# ------------------------------------------------------------------- one long text
+
+
+def test_a_long_plain_text_page_is_read_by_the_part_that_answers(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """market.lobehub.com/s/publish-mcp: a 48k markdown file was one element, `read e1` was
+    refused as the whole page, and there was no smaller element to read."""
+    runner = runner_for(browser, store, "the price of publishing")
+    run(runner, f"go {demo_server}/publish.md\nlook")
+    whole = run(runner, "read e1 as guide")
+    assert not whole.ok
+    assert 'read passage "' in whole.next_step
+
+    outcome = run(runner, 'read passage "Pricing" e1 as pricing')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {
+        "pricing": "## Pricing\n\nPublishing is free for open source servers."
+    }
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the price of publishing")
+    assert replay.ok, replay.reason
+    assert replay.answers["pricing"].endswith("free for open source servers.")
+
+
+def test_look_words_shows_the_passages_of_a_long_text(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    runner = runner_for(browser, store, "zz")
+    outcome = run(runner, f"go {demo_server}/publish.md\nlook open source")
+    assert outcome.view is not None
+    assert "Publishing is free for open source servers." in outcome.view.text

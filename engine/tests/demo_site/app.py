@@ -392,6 +392,24 @@ def categories(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/publish.md")
+def publish_guide() -> Response:
+    """A long markdown file served as plain text, the way market.lobehub.com serves its
+    guide for agents: the whole page is one element, far past what one read may hand back."""
+    filler = "\n\n".join(
+        f"## Note {n}\n\nThis part says nothing about money or manifests. " * 3
+        for n in range(1, 40)
+    )
+    body = (
+        "# Publish your MCP server\n\nSend this guide to your agent.\n\n"
+        "## Requirements\n\nYou need a manifest.\nIt must be valid JSON.\n\n"
+        f"{filler}\n\n"
+        "## Pricing\n\nPublishing is free for open source servers.\n\n"
+        "## Contact\n\nWrite to the team.\n"
+    )
+    return Response(body, media_type="text/plain")
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

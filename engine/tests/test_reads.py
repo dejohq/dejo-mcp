@@ -277,10 +277,25 @@ EXERCISED = {
     "url",
     "title",
     "page_text",
+    # Covered in tests/test_runner.py, on a page that is one long text.
+    "passage",
     # Covered in tests/test_escape_hatch.py.
     "console_errors",
     "failed_requests",
 }
+
+
+GUIDE = "# Guide\n\nIntro.\n\n## Pricing\n\nFree.\n\n### Teams\n\nAsk us.\n\n## Contact\n\nMail."
+
+
+def test_a_passage_under_a_heading_runs_to_the_next_heading_as_high() -> None:
+    assert reads.passage_of(GUIDE, "pricing") == "## Pricing\n\nFree.\n\n### Teams\n\nAsk us."
+
+
+def test_a_passage_with_no_heading_is_its_paragraph() -> None:
+    assert reads.passage_of(GUIDE, "ask   us") == "Ask us."
+    assert reads.passage_of("One.\n\nTwo words here.\n\nThree.", "words") == "Two words here."
+    assert reads.passage_of(GUIDE, "nowhere") == ""
 
 
 def test_every_read_is_exercised() -> None:

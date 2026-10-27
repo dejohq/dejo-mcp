@@ -14,6 +14,7 @@ What is deliberately absent — `inner_html`, `bounding_box`, `evaluate` — and
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -25,6 +26,9 @@ from playwright.sync_api import Page
 # answer now or does not.
 READ_TIMEOUT_MS = 5000
 
+
+# A markdown heading: `## Pricing`.
+_HEADING = re.compile(r"^(#{1,6})\s")
 
 # What a field shows a person: a box's value, a dropdown's chosen words. Null for anything
 # else, which is read for its text. A password box is never read this way: what is typed in
@@ -50,6 +54,8 @@ class ReadSpec:
     returns: str
     needs_target: bool = True
     needs_attribute: bool = False
+    attribute_means: str = "the attribute name, like: read attr href e4"
+    """What the extra word a read needs is, for a message about it missing."""
     many: bool = False
     """Does this read WANT more than one match?
 
@@ -61,7 +67,7 @@ class ReadSpec:
     def describe(self) -> str:
         parts = [f"{self.name} — {self.summary}", f"gives back {self.returns}"]
         if self.needs_attribute:
-            parts.append("needs `attribute`, e.g. href")
+            parts.append(f"needs {self.attribute_means}")
         if not self.needs_target:
             parts.append("no ref needed")
         return "; ".join(parts)
@@ -112,6 +118,15 @@ READS: dict[str, ReadSpec] = {
         "one attribute of an element, such as href or aria-expanded",
         "text, or nothing if the attribute is absent",
         needs_attribute=True,
+    ),
+    "passage": ReadSpec(
+        "passage",
+        "the part of one long text that holds some words: the section under a heading that "
+        "says them, or the paragraph that does. For a page that is one long text, such as a "
+        "markdown file, which is far too long to read whole",
+        "text",
+        needs_attribute=True,
+        attribute_means='the words, like: read passage "Pricing" e1 as pricing',
     ),
     "count": ReadSpec(
         "count",
@@ -215,6 +230,38 @@ def _text(page: Page, t: PWLocator, attribute: str | None) -> str:
     return t.inner_text(timeout=READ_TIMEOUT_MS).strip()
 
 
+def _passage(page: Page, t: PWLocator, attribute: str | None) -> str:
+    return passage_of(t.inner_text(timeout=READ_TIMEOUT_MS), attribute or "")
+
+
+def passage_of(text: str, words: str) -> str:
+    """The section under the first markdown heading that says `words`, to the next heading
+    as high as it; else the first paragraph that says them; else "".
+
+    Seen on market.lobehub.com: a 48k guide served as plain text was one element, too long to
+    read whole, with nothing smaller on the page to read."""
+    wanted = " ".join(words.split()).lower()
+    lines = text.splitlines()
+    for start, line in enumerate(lines):
+        heading = _HEADING.match(line)
+        if heading is None or wanted not in line.lower():
+            continue
+        level = len(heading.group(1))
+        end = next(
+            (
+                at
+                for at in range(start + 1, len(lines))
+                if (later := _HEADING.match(lines[at])) and len(later.group(1)) <= level
+            ),
+            len(lines),
+        )
+        return "\n".join(lines[start:end]).strip()
+    for paragraph in re.split(r"\n\s*\n", text):
+        if wanted in " ".join(paragraph.split()).lower():
+            return paragraph.strip()
+    return ""
+
+
 def _all_text(page: Page, t: PWLocator, attribute: str | None) -> list[str]:
     # `or ""` because a node can genuinely have no text — an `svg` inside a button is the
     # normal case — and Playwright hands back None for those. Without the guard this
@@ -287,6 +334,7 @@ _READERS: dict[str, Any] = {
     "enabled": _enabled,
     "editable": _editable,
     "attribute": _attribute,
+    "passage": _passage,
     "count": _count,
     "url": _url,
     "title": _title,

@@ -419,6 +419,8 @@ _DESCRIBE_JS = """
   // than no selector: replay takes the first match and clicks something else entirely.
   const cssOf = (node) => {
     const doc = node.ownerDocument;
+    // A page that is one text (a plain-text file) has its words in the body itself.
+    if (node === doc.body || node === doc.documentElement) return node.tagName.toLowerCase();
     if (stableId(node.id)
         && doc.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) {
       return `#${CSS.escape(node.id)}`;
