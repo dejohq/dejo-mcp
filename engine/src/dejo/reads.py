@@ -26,6 +26,21 @@ from playwright.sync_api import Page
 READ_TIMEOUT_MS = 5000
 
 
+# What a field shows a person: a box's value, a dropdown's chosen words. Null for anything
+# else, which is read for its text. A password box is never read this way: what is typed in
+# one is not an answer to hand back.
+_FIELD_TEXT_JS = """
+el => {
+  if (el.tagName === "SELECT") return [...el.selectedOptions].map((o) => o.label).join(", ");
+  if (el.tagName === "TEXTAREA") return el.value;
+  if (el.tagName === "INPUT" && !["password", "checkbox", "radio", "hidden"].includes(el.type)) {
+    return el.value;
+  }
+  return null;
+}
+"""
+
+
 @dataclass(frozen=True)
 class ReadSpec:
     """One question Dejo can answer about a page."""
@@ -191,6 +206,12 @@ def read(
 
 
 def _text(page: Page, t: PWLocator, attribute: str | None) -> str:
+    # A field has no text of its own: its words are what it holds. `read` of a box full of
+    # text said "the read found nothing there" (launchingnext.com), so a field is read for
+    # its value, and a dropdown for the option it shows.
+    held = t.evaluate(_FIELD_TEXT_JS, timeout=READ_TIMEOUT_MS)
+    if held is not None:
+        return str(held).strip()
     return t.inner_text(timeout=READ_TIMEOUT_MS).strip()
 
 

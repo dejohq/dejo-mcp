@@ -999,3 +999,18 @@ def test_a_new_line_written_in_a_fill_breaks_the_line_in_a_text_area(
     assert outcome.ok, outcome.text()
     assert browser.page.input_value("#about") == "One line.\nAnother line."
     assert browser.page.input_value("#tool") == "a\\nb", "a one-line box keeps what was written"
+
+
+def test_a_read_of_a_field_reads_what_it_holds(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchingnext.com: `read e58` on a box holding text said "the read found nothing
+    there". A field's words are its value; a dropdown's are the option on show."""
+    outcome = run(
+        runner_for(browser, store, "what was entered"),
+        f'go {demo_server}/directory\nfill label "Tool name" "Dejo"\n'
+        'select label "Category" "AI agents"\n'
+        'read label "Tool name" as tool\nread css "#category" as category',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"tool": "Dejo", "category": "AI agents"}
