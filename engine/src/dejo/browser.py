@@ -709,6 +709,11 @@ class NoSuchElement(RuntimeError):
     """A control was named in a way this page cannot be asked for."""
 
 
+class PageNotDrawn(PlaywrightError):
+    """The page could not be described in time, twice. A Playwright error, so everything
+    that handles one handles this, with a sentence instead of Playwright's own words."""
+
+
 class NoSuchTab(RuntimeError):
     """Asked to continue in a tab that is not open."""
 
@@ -1446,8 +1451,22 @@ class Browser:
 
         The raw text is what the page view (`view.render`) is drawn from, so the view and the
         controls a caller acts on always come from the same look."""
-        raw = self.page.locator("body").aria_snapshot(mode="ai")
+        try:
+            raw = self._aria_snapshot()
+        except PlaywrightTimeout:
+            # A heavy page can take longer to describe than one wait allows (fazier.com's
+            # home page), and is usually done a moment later.
+            try:
+                raw = self._aria_snapshot()
+            except PlaywrightTimeout:
+                raise PageNotDrawn(
+                    f"the page did not finish drawing in {self._timeout_ms // 1000} s, twice, "
+                    "so there is nothing to show yet. Look again in a moment"
+                ) from None
         return raw, self._frame_selectors(raw)
+
+    def _aria_snapshot(self) -> str:
+        return self.page.locator("body").aria_snapshot(mode="ai")
 
     def mark_view(self) -> str:
         """Leave a token in the page for the view just printed, and return it."""

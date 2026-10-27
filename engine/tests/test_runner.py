@@ -1135,3 +1135,48 @@ def test_an_upload_onto_something_that_opens_no_chooser_says_so(
     )
     assert not outcome.ok
     assert "opened no file chooser" in outcome.reason
+
+
+# ------------------------------------------------------------------- slow pages
+
+
+def _slow_snapshots(browser: Browser, monkeypatch, failures: int) -> None:
+    """The next `failures` snapshots time out, as on a page too heavy to draw in time."""
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
+    real, left = browser._aria_snapshot, [failures]
+
+    def slow() -> str:
+        if left[0]:
+            left[0] -= 1
+            raise PlaywrightTimeout("Locator.aria_snapshot: Timeout 15000ms exceeded.")
+        return real()
+
+    monkeypatch.setattr(browser, "_aria_snapshot", slow)
+
+
+def test_a_page_too_slow_to_draw_once_is_looked_at_again(
+    browser: Browser, store: DejoStore, demo_server: str, monkeypatch
+) -> None:
+    """fazier.com: `Locator.aria_snapshot: Timeout 15000ms exceeded.` reached the agent."""
+    runner = runner_for(browser, store, "zz")
+    run(runner, f"go {demo_server}/books")
+    _slow_snapshots(browser, monkeypatch, failures=1)
+
+    outcome = run(runner, "look")
+
+    assert outcome.ok, outcome.text()
+
+
+def test_a_page_that_never_draws_says_so_in_words(
+    browser: Browser, store: DejoStore, demo_server: str, monkeypatch
+) -> None:
+    runner = runner_for(browser, store, "zz")
+    run(runner, f"go {demo_server}/books")
+    _slow_snapshots(browser, monkeypatch, failures=10)
+
+    outcome = run(runner, "look")
+
+    assert not outcome.ok
+    assert "did not finish drawing" in outcome.reason
+    assert "Timeout" not in outcome.text()
