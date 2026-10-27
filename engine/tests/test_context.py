@@ -660,3 +660,33 @@ class TestTheThreeThingsAUserActuallyHits:
 
         assert outcome.matched_by is not None, "the second look should have found it"
         assert step.locators[0].misses == 0, "a slow page must not be recorded as a miss"
+
+
+class TestTheBrowserSaysWhereTheMachineIs:
+    """claudeai.directory guessed "United States" for a user in India: the browser said
+    en-US, whatever the machine said. Sites pick country, currency and dates from it."""
+
+    @staticmethod
+    def _language(tmp_path) -> list[str]:
+        with Browser(headless=True, downloads=tmp_path / "d") as running:
+            return running.page.evaluate("() => [navigator.language, navigator.languages[0]]")
+
+    def test_the_machines_language_and_region_are_used(self, tmp_path, monkeypatch) -> None:
+        for name in ("LC_ALL", "LC_MESSAGES", "DEJO_LOCALE"):
+            monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv("LANG", "hi_IN.UTF-8")
+        if sys.platform in ("win32", "darwin"):
+            pytest.skip("this machine says its locale another way; DEJO_LOCALE is tested below")
+        assert self._language(tmp_path) == ["hi-IN", "hi-IN"]
+
+    def test_a_setting_overrides_the_machine(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("DEJO_LOCALE", "en-IN")
+        assert self._language(tmp_path) == ["en-IN", "en-IN"]
+
+    def test_the_c_locale_names_no_language(self) -> None:
+        from dejo.browser import _language_tag
+
+        assert _language_tag("C.UTF-8") is None
+        assert _language_tag("POSIX") is None
+        assert _language_tag("en_IN.UTF-8") == "en-IN"
+        assert _language_tag("de_DE@euro") == "de-DE"

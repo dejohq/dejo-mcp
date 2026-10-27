@@ -26,7 +26,10 @@ Three things here matter more than the rest:
 from __future__ import annotations
 
 import json
+import os
 import secrets
+import subprocess
+import sys
 import time
 from contextlib import suppress
 from pathlib import Path
@@ -39,7 +42,7 @@ from playwright.sync_api import Page, sync_playwright
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from . import snapshot as aria
-from .home import HOME, PROFILE_OWNER
+from .home import HOME, PROFILE_OWNER, setting
 from .locks import ProfileHeld, ProfileLock
 from .models import Locator
 from .snapshot import Element, Snapshot
@@ -208,6 +211,18 @@ MAX_TEXT_CHARS = 1200
 # nav collapses into a hamburger button, so a trail recorded at one size cannot be
 # replayed at another. Whatever this is, it must not change between runs.
 VIEWPORT = {"width": 1280, "height": 800}
+
+# Where the machine says its language and region, most specific first, outside Windows. A
+# browser left to itself reports en-US, or drops the region ("hi" for hi_IN, en-GB for
+# en_IN), and sites pick country, currency and dates from it: claudeai.directory took a user
+# in India for one in the United States. The time zone needs nothing: Chrome reads the
+# machine's own. `DEJO_LOCALE` (en-IN, de-DE) overrides all of it.
+LOCALE_SETTINGS = ("LC_ALL", "LC_MESSAGES", "LANG")
+NO_LOCALE = frozenset({"", "C", "POSIX"})
+# Windows' own limit on a locale name, LOCALE_NAME_MAX_LENGTH.
+WINDOWS_LOCALE_CHARS = 85
+# How long macOS gets to say its locale before the browser starts without one.
+MAC_LOCALE_TIMEOUT_S = 2
 
 # How long a fresh browser gets to prove an address loads, once the profile's own attempt
 # has timed out. Shorter than the real wait: it is a second opinion, and a person is
@@ -522,6 +537,51 @@ def _track_work(page: Page, request: Any, *, started: bool) -> None:
         page._dejo_in_flight.add(request)  # type: ignore[attr-defined]
     else:
         page._dejo_in_flight.discard(request)  # type: ignore[attr-defined]
+
+
+def machine_locale() -> str | None:
+    """This machine's language and region as a browser names them (en-IN), or None to leave
+    the browser's own. See LOCALE_SETTINGS."""
+    chosen = setting("DEJO_LOCALE")
+    if chosen:
+        return chosen
+    if sys.platform == "win32":
+        return _windows_locale()
+    for name in LOCALE_SETTINGS:
+        found = _language_tag(os.environ.get(name, ""))
+        if found:
+            return found
+    return _mac_locale() if sys.platform == "darwin" else None
+
+
+def _language_tag(posix: str) -> str | None:
+    """`en_IN.UTF-8` -> `en-IN`. None for the C locale, which names no language."""
+    base = posix.split(".")[0].split("@")[0]
+    return None if base in NO_LOCALE else base.replace("_", "-")
+
+
+def _windows_locale() -> str | None:
+    import ctypes
+
+    found = ctypes.create_unicode_buffer(WINDOWS_LOCALE_CHARS)
+    if not ctypes.windll.kernel32.GetUserDefaultLocaleName(found, WINDOWS_LOCALE_CHARS):  # type: ignore[attr-defined]
+        return None
+    return found.value or None
+
+
+def _mac_locale() -> str | None:
+    """A Mac app started from the Dock has no LANG, so the system is asked."""
+    try:
+        said = subprocess.run(
+            ["defaults", "read", "-g", "AppleLocale"],
+            capture_output=True,
+            text=True,
+            timeout=MAC_LOCALE_TIMEOUT_S,
+            check=False,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return _language_tag(said)
 
 
 def profile_named(
@@ -953,6 +1013,9 @@ class Browser:
     def _context_options(self) -> dict[str, Any]:
         """The context settings that are the same however the browser was launched."""
         options: dict[str, Any] = {"permissions": self._permissions}
+        here = machine_locale()
+        if here:
+            options["locale"] = here
         if self._geolocation is not None:
             latitude, longitude = self._geolocation
             options["geolocation"] = {"latitude": latitude, "longitude": longitude}

@@ -361,6 +361,10 @@ in a fresh browser, and it loaded there. The site is fine; that profile is stuck
 new profile (`dejo --profile <name>`, or `dejo_profile` from your agent) and sign in there, or
 close every Dejo window and delete the profile folder the message names.
 
+**A site shows the wrong country, currency or date format.** Dejo's browser tells sites the
+language and region this machine is set to (on Linux and macOS, from `LANG`), and Chrome uses
+the machine's own time zone. To choose another, set `DEJO_LOCALE`, like `DEJO_LOCALE=en-IN`.
+
 **A captcha.** Dejo stops and says so. It does not mark the route broken and does not try to
 solve it. Clear it yourself once, and run again.
 
