@@ -341,6 +341,10 @@ class TestAProfileBelongsToOneBrowser:
         running._timeout_ms = 1000
         running._geolocation = None
         running._permissions = []
+        # The honest user agent is read from a throwaway launch of the real browser, which
+        # the fake cannot do. It is cached per process, so these passed only after another
+        # test had already launched that browser, and failed when run on their own.
+        running._honest_agent_for_profile = lambda: None
         return running
 
     def test_a_profile_no_browser_will_open_does_not_guess_why(self, tmp_path) -> None:
