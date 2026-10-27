@@ -67,6 +67,16 @@ REFUSED = frozenset({403, 429})
 # over 25k tokens or 50k characters), so the reply is cut here instead.
 LOOK_CAP_CHARS = 30_000
 
+# `look raw from eN` stops at the end of eN's section: one of these, the nearest above it.
+# A form is printed as one only when it has a name, so the cap below is what holds the rest.
+SECTION_ROLES = frozenset(
+    {"form", "dialog", "alertdialog", "region", "article", "main", "table", "contentinfo"}
+)
+# At most this many raw lines from a ref: a long form fits, a page's footer does not.
+RAW_FROM_LINES = 80
+_RAW_ROLE = re.compile(r"""^\s*- ['"]?([a-z]+)""")
+_RAW_REF = re.compile(r"\[ref=([^\]]+)\]")
+
 # How many matches a "too many" stop names before saying "+N more".
 MATCHES_SHOWN = 4
 
@@ -1216,12 +1226,57 @@ def _capped(text: str) -> str:
 
 
 def _raw_from(raw: str, view: pageview.View, ref: str) -> str:
+    """The raw page from `ref` to the end of the section it sits in, at most RAW_FROM_LINES
+    lines, ending with where the rest starts.
+
+    It used to run to the end of the page: from a form's first field on mcpserver.dev that
+    was the whole footer, about 200 lines, when only the form was wanted."""
     shown = view.targets.get(ref) or view.known.get(ref)
     if shown is None:
         raise pageview.ViewError(f"there is no {ref} on this page")
+    lines = raw.splitlines()
     marker = f"[ref={shown.aria_ref}]"
-    at = raw.find(marker)
-    return raw[raw.rfind("\n", 0, at) + 1 :] if at >= 0 else raw
+    start = next((at for at, line in enumerate(lines) if marker in line), 0)
+    end = _end_of_section(lines, start)
+    if end - start > RAW_FROM_LINES:
+        end, more = start + RAW_FROM_LINES, "+ more: look raw from {}"
+    else:
+        more = "the page goes on: look raw from {}"
+    following = _first_ref(lines[end:], view)
+    tail = [more.format(following)] if following else []
+    return "\n".join([*lines[start:end], *tail])
+
+
+def _end_of_section(lines: list[str], start: int) -> int:
+    """Where the section holding line `start` ends: the next line no deeper than the
+    nearest SECTION_ROLES line above it. The end of the page when there is none."""
+    depth = _indent(lines[start])
+    for above in range(start - 1, -1, -1):
+        indent = _indent(lines[above])
+        if indent >= depth:
+            continue
+        depth = indent
+        role = _RAW_ROLE.match(lines[above])
+        if role is not None and role.group(1) in SECTION_ROLES:
+            return next(
+                (at for at in range(start + 1, len(lines)) if _indent(lines[at]) <= indent),
+                len(lines),
+            )
+    return len(lines)
+
+
+def _first_ref(lines: list[str], view: pageview.View) -> str:
+    """The first ref an agent can use in these raw lines, as Dejo prints it."""
+    dejo_ref = {target.aria_ref: ref for ref, target in view.known.items()}
+    for line in lines:
+        for aria_ref in _RAW_REF.findall(line):
+            if aria_ref in dejo_ref:
+                return dejo_ref[aria_ref]
+    return ""
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip())
 
 
 def _covering(message: str) -> str:

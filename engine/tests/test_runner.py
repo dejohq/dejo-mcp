@@ -12,12 +12,12 @@ import re
 import pytest
 from tests.demo_site.app import ORDERS
 
-from dejo import program
+from dejo import program, view
 from dejo.browser import Browser, domain_of
 from dejo.executor import Executor
 from dejo.models import Locator
 from dejo.operations import Session, TraceEntry
-from dejo.runner import Outcome, Runner, drop_detours
+from dejo.runner import RAW_FROM_LINES, Outcome, Runner, _raw_from, drop_detours
 from dejo.snapshot import Element
 from dejo.store import DejoStore
 
@@ -943,3 +943,45 @@ def test_a_ref_in_a_folded_row_can_be_used(
 
     assert outcome.ok, outcome.text()
     assert outcome.answers == {"title": "Vagabonding"}
+
+
+# ------------------------------------------------------------------- look raw from
+
+
+def _page_with_a_form_and_a_long_footer() -> str:
+    links = "\n".join(f'    - link "Footer link {n}" [ref=e{100 + n}]' for n in range(200))
+    return (
+        "- main [ref=e1]:\n"
+        '  - heading "Submit" [level=1] [ref=e2]\n'
+        "  - form [ref=e3]:\n"
+        '    - textbox "Name" [ref=e4]\n'
+        '    - textbox "Website" [ref=e5]\n'
+        '    - button "Submit" [ref=e6]\n'
+        '  - paragraph [ref=e7]: "Reviewed within a week"\n'
+        "- contentinfo [ref=e8]:\n"
+        f"{links}\n"
+    )
+
+
+def test_look_raw_from_a_ref_stops_at_the_end_of_its_section() -> None:
+    """mcpserver.dev: `look raw from eN` printed the whole footer, ~200 lines, when only the
+    form was wanted."""
+    raw = _page_with_a_form_and_a_long_footer()
+    seen = view.render(raw, url="https://example.com/", title="Submit")
+
+    shown = _raw_from(raw, seen, "e4")
+
+    assert 'textbox "Name"' in shown and 'button "Submit"' in shown
+    assert "Footer link" not in shown
+    assert shown.endswith("the page goes on: look raw from e7")
+
+
+def test_look_raw_from_a_ref_with_no_section_is_cut_and_says_where_to_go_on() -> None:
+    raw = _page_with_a_form_and_a_long_footer()
+    seen = view.render(raw, url="https://example.com/", title="Submit")
+
+    shown = _raw_from(raw, seen, "e101")
+
+    assert "Footer link 1" in shown
+    assert len(shown.splitlines()) <= RAW_FROM_LINES + 1
+    assert re.search(r"\+ more: look raw from e\d+$", shown)
