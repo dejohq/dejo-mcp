@@ -356,10 +356,11 @@ it open, or the profile is in a state no browser accepts. Close any other run fi
 was not it, deleting `~/.dejo/browser-profile` fixes it, at the cost of signing you out.
 To run two agents at once, give each its own profile: `DEJO_PROFILE=~/.dejo/profile-b dejo-mcp`.
 
-**"Nothing loads in Dejo's browser profile."** A page timed out, Dejo tried the same address
-in a fresh browser, and it loaded there. The site is fine; that profile is stuck. Switch to a
-new profile (`dejo --profile <name>`, or `dejo_profile` from your agent) and sign in there, or
-close every Dejo window and delete the profile folder the message names.
+**"Nothing loads in Dejo's browser profile."** A page timed out twice in the profile, Dejo
+tried the same address in a fresh browser, and the site's real page loaded there (an error page
+from a site that is down does not count). The site is fine; that profile is stuck. Switch to a
+new profile (`dejo --profile <name>`, or `dejo_profile` from your agent) and sign in there.
+Delete the profile folder the message names only if every site keeps timing out in it.
 
 **A site shows the wrong country, currency or date format.** Dejo's browser tells sites the
 language and region this machine is set to (on Linux and macOS, from `LANG`), and Chrome uses

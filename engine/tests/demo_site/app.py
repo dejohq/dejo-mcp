@@ -571,6 +571,12 @@ def blank() -> HTMLResponse:
     return HTMLResponse("<!doctype html><title>widget</title>")
 
 
+@app.get("/down", response_class=HTMLResponse)
+def down() -> HTMLResponse:
+    """A site whose server is down behind Cloudflare: an error page, HTTP 522."""
+    return HTMLResponse("<h1>Connection timed out</h1><p>Error code 522</p>", status_code=522)
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

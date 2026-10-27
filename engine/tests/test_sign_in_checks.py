@@ -96,6 +96,46 @@ class TestAStuckProfileIsToldApartFromADownSite:
         with pytest.raises(PlaywrightTimeout):
             profiled.goto(silent_address)
 
+    def test_a_site_that_answers_with_an_error_page_is_not_loading_fine(
+        self, profiled: Browser, demo_server
+    ) -> None:
+        """mcp.directory, origin down: the profile timed out, the fresh browser got
+        Cloudflare's 522 page, counted that as "loads fine", and Dejo told the user to delete
+        a profile signed in to about fifteen sites."""
+        profiled.page.context.route("**/*", lambda route: None)
+
+        with pytest.raises(PlaywrightTimeout):
+            profiled.goto(f"{demo_server}/down")
+
+    def test_one_slow_load_in_the_profile_is_tried_again_before_anything_is_blamed(
+        self, profiled: Browser, demo_server
+    ) -> None:
+        first = []
+
+        def hang_once(route) -> None:
+            if not first:
+                first.append(route)
+                return
+            route.continue_()
+
+        profiled.page.context.route("**/news", hang_once)
+
+        profiled.goto(f"{demo_server}/news")
+
+        assert profiled.page.locator("#headline").inner_text() == "Rates hold for September"
+
+    def test_a_stuck_profile_is_not_sent_to_be_deleted_first(
+        self, profiled: Browser, demo_server
+    ) -> None:
+        profiled.page.context.route("**/*", lambda route: None)
+
+        with pytest.raises(ProfileStuck) as stuck:
+            profiled.goto(f"{demo_server}/")
+
+        said = str(stuck.value)
+        assert said.index("dejo_profile") < said.index("delete"), said
+        assert "do not delete it" in said
+
     def test_without_a_profile_there_is_nothing_to_blame(
         self, tmp_path, silent_address: str
     ) -> None:

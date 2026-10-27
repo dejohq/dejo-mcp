@@ -312,8 +312,17 @@ CUT_OFF_TELLS = ("net::ERR_ABORTED", "interrupted by another navigation")
 
 # How long a fresh browser gets to prove an address loads, once the profile's own attempt
 # has timed out. Shorter than the real wait: it is a second opinion, and a person is
-# already waiting.
+# already waiting. It proves something only with a page of the site's own: an HTTP status
+# under this one, at a web address (a browser error page is at chrome-error://).
 FRESH_CHECK_MS = 10_000
+FRESH_CHECK_ERROR_FROM = 400
+# How many times a profile is asked for an address before the fresh browser is asked
+# whether the profile is to blame: one slow load proves nothing about a profile.
+PROFILE_ATTEMPTS = 2
+# Where a stalled load is ended before the address is asked for again, and how long that
+# takes at most: a blank page needs no network.
+BLANK = "about:blank"
+BLANK_WAIT_MS = 2000
 
 # How long a sign-in kept in a session cookie (one with no expiry) outlives Dejo's browser.
 # Chrome drops such cookies when the browser closes, and Dejo's closes after every sign-in
@@ -794,11 +803,12 @@ def _arrived(here: str, asked: str) -> bool:
 def _stuck_profile_advice(profile: Path, url: str) -> str:
     """Say which profile is stuck, and both ways out of it."""
     return (
-        f"Nothing loads in Dejo's browser profile at {profile}: {url} timed out there, but "
-        "the same address loads in a fresh browser. The website is fine; this profile is "
-        "stuck. Either switch to a new profile (dejo_profile with a new name, or "
-        "`dejo --profile <name>`) and sign in there, or close every Dejo window and delete "
-        f"{profile}, which signs that profile out of every site."
+        f"Nothing loads in Dejo's browser profile at {profile}: {url} timed out there twice, "
+        "but the same address loads in a fresh browser. The website is fine; this profile is "
+        "stuck. Switch to a new profile (dejo_profile with a new name, or `dejo --profile "
+        "<name>`) and sign in there; do not delete it for one site. Only if every site keeps "
+        f"timing out in it: close every Dejo window and delete {profile}, which signs that "
+        "profile out of every site."
     )
 
 
@@ -1392,23 +1402,32 @@ class Browser:
 
         A page that never loads has two very different causes: the site, or this profile.
         Only the second is worth a different sentence, and only a second browser can tell
-        them apart, so it is asked once, and only after the real attempt has already failed.
+        them apart. It is asked only after the profile has failed twice: once is a slow
+        moment, and blaming the profile sent a person to delete it while the site was down.
         """
         self.last_status = None
-        try:
-            response = self._go(url)
-            # Kept because an error page passes every address check: Google answers a
-            # document that is gone with a 404 page at the document's own address.
-            self.last_status = response.status if response is not None else None
-        except PlaywrightTimeout as stuck:
-            if _arrived(self.page.url, url):
-                # A slow site: the page is there and still loading its last parts. Failing
-                # here left the first `go` out of a trail the agent then learned anyway, so
-                # every replay began on a blank page (real-site bench, 23 Oct 2026).
+        for attempt in range(PROFILE_ATTEMPTS if self._profile is not None else 1):
+            try:
+                response = self._go(url)
+                # Kept because an error page passes every address check: Google answers a
+                # document that is gone with a 404 page at the document's own address.
+                self.last_status = response.status if response is not None else None
                 return
-            if self._profile is None or not self._loads_without_profile(url):
-                raise
-            raise ProfileStuck(_stuck_profile_advice(self._profile, url)) from stuck
+            except PlaywrightTimeout as stuck:
+                if _arrived(self.page.url, url):
+                    # A slow site: the page is there and still loading its last parts.
+                    # Failing here left the first `go` out of a trail the agent then learned
+                    # anyway, so every replay began on a blank page (real-site bench, 23 Oct).
+                    return
+                if attempt + 1 < PROFILE_ATTEMPTS and self._profile is not None:
+                    # The load that timed out is still pending, and the same address sent
+                    # again is aborted at once (net::ERR_ABORTED). A blank page ends it.
+                    with suppress(PlaywrightError):
+                        self.page.goto(BLANK, timeout=BLANK_WAIT_MS)
+                    continue
+                if self._profile is None or not self._loads_without_profile(url):
+                    raise
+                raise ProfileStuck(_stuck_profile_advice(self._profile, url)) from stuck
 
     def _go(self, url: str) -> Any:
         """`page.goto`, once more if the page's own move cut it off.
@@ -1441,10 +1460,18 @@ class Browser:
             # No second browser to compare with. Then nothing is known about the profile.
             return False
         try:
-            fresh.new_page().goto(url, wait_until="domcontentloaded", timeout=FRESH_CHECK_MS)
-            return True
+            page = fresh.new_page()
+            answer = page.goto(url, wait_until="domcontentloaded", timeout=FRESH_CHECK_MS)
         except PlaywrightError:
             return False
+        else:
+            # A real page, not an answer of any kind: mcp.directory's origin was down, the
+            # fresh browser got Cloudflare's HTTP 522 page, and that counted as "loads fine".
+            return (
+                answer is not None
+                and answer.status < FRESH_CHECK_ERROR_FROM
+                and page.url.startswith(("http://", "https://"))
+            )
         finally:
             with suppress(PlaywrightError):
                 fresh.close()
