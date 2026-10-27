@@ -1193,3 +1193,16 @@ def test_go_while_the_page_moves_by_itself_still_gets_there(
     )
     assert outcome.ok, outcome.text()
     assert outcome.answers == {"heading": "Slow page"}
+
+
+def test_an_open_modal_dialog_is_shown_first(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """tinystartups.com: the upsell dialog came after the footer, past "+129 more lines",
+    and every click failed with "something covers it"."""
+    shown = run(runner_for(browser, store, "zz"), f"go {demo_server}/upsell\nlook").view
+    assert shown is not None
+    lines = shown.text.split("\n")
+    assert lines[1].startswith("a dialog is open over the page"), shown.text[:300]
+    assert re.match(r'e\d+ dialog "Go premium"', lines[2])
+    assert 'button "No thanks"' in "\n".join(lines[:6])

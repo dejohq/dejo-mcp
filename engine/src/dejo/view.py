@@ -50,6 +50,13 @@ LONG_TEXT = 1_000
 PASSAGE_SIDE = 120
 PASSAGES_SHOWN = 6
 
+# Said first when a modal dialog is open, which the view then shows first.
+MODAL_NOTE = (
+    "a dialog is open over the page, shown first; the page behind it cannot be used until "
+    "it is closed"
+)
+_DIALOG_ROLES = frozenset({"dialog", "alertdialog"})
+
 # Controls that are often only an icon. With no words, the view says what the icon is, or
 # that it has no name (devhunt.org's GitHub and Google sign-in buttons were bare `button`).
 ICON_ROLES = frozenset({"button", "link"})
@@ -320,6 +327,7 @@ def render(
     budget: int = LINE_BUDGET,
     find: str = "",
     icons: Mapping[str, str] | None = None,
+    modal: frozenset[str] = frozenset(),
 ) -> View:
     """Turn Playwright's ai snapshot into the view an agent reads.
 
@@ -334,7 +342,7 @@ def render(
     """
     if sum((bool(start), bool(group), everything)) > 1:
         raise ViewError("Ask for one of: from <ref>, a group, or all, not several at once.")
-    page = _Page(snapshot, url, icons or {})
+    page = _Page(snapshot, url, icons or {}, modal)
     if group:
         sequence, limit = page.group_lines(group.strip()), budget
     elif start:
@@ -351,6 +359,29 @@ def render(
     lines = view.text.split("\n")
     text = "\n".join([lines[0], *found, *lines[1:]])
     return View(text, view.targets, view.groups, view.hidden_lines, view.known)
+
+
+def dialogs(snapshot: str) -> list[str]:
+    """Playwright refs of the dialogs on the page, for `Browser.modal_dialogs` to ask which
+    are modal: the snapshot does not say."""
+    return [node.aria_ref for node in lines(snapshot) if node.role in _DIALOG_ROLES]
+
+
+def _dialog_first(
+    blocks: list[_Block], root: _Branch, modal: frozenset[str]
+) -> tuple[list[_Block], bool]:
+    """The blocks with those of an open modal dialog moved to the front, and whether there
+    was one. tinystartups.com put its upsell after the footer, past the view's budget, while
+    the page behind it could not be clicked at all."""
+    spans = [
+        (branch.order, max(inner.order for inner in _walk(branch)))
+        for branch in _walk(root)
+        if branch.node.aria_ref and branch.node.aria_ref in modal
+    ]
+    if not spans:
+        return blocks, False
+    inside = [block for block in blocks if any(a <= _first_order(block) <= b for a, b in spans)]
+    return inside + [block for block in blocks if block not in inside], bool(inside)
 
 
 def nameless_controls(snapshot: str) -> list[str]:
@@ -382,14 +413,16 @@ def focus_words(text: str) -> list[str]:
 class _Page:
     """The snapshot read once: its tree, every printable element, and the folds."""
 
-    def __init__(self, snapshot: str, url: str, icons: Mapping[str, str]):
+    def __init__(self, snapshot: str, url: str, icons: Mapping[str, str], modal: frozenset[str]):
         self.url = url
         self.icons = icons
         self.root = _tree(lines(snapshot))
         self.frame_number = _iframe_numbers(self.root)
         self.order_of = {b.node.ref: b.order for b in _walk(self.root) if b.node.ref}
         _mark_blocky(self.root)
-        self.blocks = _name_groups(self._blocks(self.root, absorb=False))
+        self.blocks, self.modal = _dialog_first(
+            _name_groups(self._blocks(self.root, absorb=False)), self.root, modal
+        )
         self.groups = {block.id: block for block in self.blocks if isinstance(block, Group)}
         self.items = sorted(_flatten(self.blocks), key=lambda item: item.order)
 
@@ -946,6 +979,8 @@ def _assemble(
     ]
 
     text = [f"page {_quoted(_clean(title))} {page.url}"]
+    if page.modal:
+        text.append(MODAL_NOTE)
     if best:
         joined = " · ".join(item.brief for item in best)
         text.append(f"best for {_quoted(' '.join(words))}: {joined}")

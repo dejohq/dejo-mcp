@@ -241,6 +241,8 @@ el => {
 }
 """
 
+_IS_MODAL_JS = "el => el.getAttribute('aria-modal') === 'true' || el.matches(':modal')"
+
 # How long the held-back check may look for its element: it is there, or the press itself
 # says so.
 HELD_BACK_WAIT_MS = 2000
@@ -1880,6 +1882,15 @@ class Browser:
             return [tuple(pair) for pair in found]
         except (PlaywrightError, NoSuchElement):
             return []
+
+    def modal_dialogs(self, aria_refs: list[str]) -> frozenset[str]:
+        """Which of these dialogs are modal: `aria-modal`, or a <dialog> opened as one."""
+        modal = set()
+        for aria_ref in aria_refs:
+            with suppress(PlaywrightError):
+                if self.page.locator(f"aria-ref={aria_ref}").evaluate(_IS_MODAL_JS):
+                    modal.add(aria_ref)
+        return frozenset(modal)
 
     def icon_names(self, aria_refs: list[str]) -> dict[str, str]:
         """What each nameless control is, by Playwright ref, where the page says: `shows

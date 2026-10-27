@@ -524,6 +524,22 @@ async def slow_page(request: Request) -> HTMLResponse:
     return page("Slow", "<h1>Slow page</h1>", variant=variant_of(request, None))
 
 
+@app.get("/upsell", response_class=HTMLResponse)
+def upsell(request: Request) -> HTMLResponse:
+    """A long page with a modal dialog put after its footer, the way tinystartups.com shows
+    an upsell: in the page's order the dialog comes last, past any view's budget."""
+    lines = "".join(f"<p>Startup number {n} launched today.</p>" for n in range(400))
+    return page(
+        "Startups",
+        f"""<h1>Startups</h1>{lines}<footer>About</footer>
+            <div role="dialog" aria-modal="true" aria-label="Go premium">
+              <p>Upgrade to list more startups.</p>
+              <button type="button" onclick="this.parentElement.remove()">No thanks</button>
+            </div>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

@@ -294,13 +294,16 @@ class Runner:
         raw, frames = self.browser.raw_snapshot()
         url, title = self.browser.page.url, self.browser.page.title()
         icons = self.browser.icon_names(pageview.nameless_controls(raw))
+        modal = self.browser.modal_dialogs(pageview.dialogs(raw))
         self.domain = self.domain or domain_of(url)
         controls = parse_controls(raw, frames=frames)
         self.session.remember_page(Snapshot(url=url, title=title, elements=controls))
         self._controls = {element.aria_ref: element for element in controls}
         self._token = self.browser.mark_view()
         if mode == "raw":
-            self._view = pageview.render(raw, url=url, title=title, frames=frames, icons=icons)
+            self._view = pageview.render(
+                raw, url=url, title=title, frames=frames, icons=icons, modal=modal
+            )
             return _capped(raw if not argument else _raw_from(raw, self._view, argument))
         words = " ".join(filter(None, [self.task, focus, argument if mode == "words" else ""]))
         self._view = pageview.render(
@@ -314,6 +317,7 @@ class Runner:
             everything=mode == "all",
             find=argument if mode == "words" else "",
             icons=icons,
+            modal=modal,
         )
         return self._view
 
