@@ -1240,3 +1240,21 @@ def test_every_look_in_a_program_is_shown_in_order(
     folded = said.find("g1 4 rows:")
     raw = said.find('link "See America"')
     assert 0 <= folded < raw, said
+
+
+def test_an_invisible_captcha_badge_is_not_a_human_check(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """pulsemcp.com/servers?q=dejo: the results had loaded, and reCAPTCHA's invisible badge
+    in the corner was taken for "a captcha in the way"."""
+    outcome = run(
+        runner_for(browser, store, "zz"),
+        f'go {demo_server}/servers\nread css "#first" as first',
+    )
+    assert outcome.ok, outcome.text()
+    assert browser.captcha_on_page() is None
+
+
+def test_a_captcha_a_person_must_tick_still_counts(browser: Browser, demo_server: str) -> None:
+    browser.goto(f"{demo_server}/verify")
+    assert browser.captcha_on_page() is not None

@@ -540,6 +540,37 @@ def upsell(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/servers", response_class=HTMLResponse)
+def servers(request: Request) -> HTMLResponse:
+    """Search results under reCAPTCHA's invisible badge, pinned half off the corner the way
+    pulsemcp.com has it: it asks nobody anything."""
+    return page(
+        "Servers",
+        """<h1>Showing 1 - 1 of 1 servers</h1><p id="first">Dejo</p>
+           <iframe src="/blank?recaptcha=anchor&size=invisible" title="reCAPTCHA"
+                   style="position:fixed; right:-186px; bottom:14px; width:256px; height:60px">
+           </iframe>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/verify", response_class=HTMLResponse)
+def verify(request: Request) -> HTMLResponse:
+    """A form that waits on a reCAPTCHA checkbox a person has to tick."""
+    return page(
+        "Verify",
+        """<h1>Verify</h1>
+           <iframe src="/blank?recaptcha=anchor" title="reCAPTCHA" width="304" height="78">
+           </iframe>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/blank", response_class=HTMLResponse)
+def blank() -> HTMLResponse:
+    return HTMLResponse("<!doctype html><title>widget</title>")
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

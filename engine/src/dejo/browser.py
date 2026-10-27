@@ -93,6 +93,20 @@ CAPTCHA_MARKERS = (
     ".cf-turnstile",
     "#challenge-running",
 )
+# A captcha widget that asks nothing of anyone: reCAPTCHA's invisible badge, which says so
+# in its address and sits pinned half off the corner of the window. pulsemcp.com's search
+# results had loaded under one, and Dejo stopped on "a captcha is in the way". A widget a
+# person has to use is at least this big each way, and mostly inside the window's width.
+CAPTCHA_MIN_PX = 20
+_ASKS_A_PERSON_JS = """
+(el, smallest) => {
+  if ((el.getAttribute("src") || "").includes("size=invisible")) return false;
+  const box = el.getBoundingClientRect();
+  if (box.width < smallest || box.height < smallest) return false;
+  const inside = Math.min(box.right, window.innerWidth) - Math.max(box.left, 0);
+  return inside >= box.width / 2;
+}
+"""
 # Cloudflare's full-page check carries none of the widgets above where a page can see them:
 # it says who it is in its title and its heading. Seen on three real sites on 22 Oct 2026
 # ("Just a moment..." / "Performing security verification"), shown to the agent as if it
@@ -1965,7 +1979,11 @@ class Browser:
                 # do — and it sits in the markup invisible, blocking nothing. Counting
                 # those made Dejo announce a human check and refuse to work on a site that
                 # was answering perfectly well.
-                if any(found.nth(index).is_visible() for index in range(found.count())):
+                if any(
+                    found.nth(index).is_visible()
+                    and found.nth(index).evaluate(_ASKS_A_PERSON_JS, CAPTCHA_MIN_PX)
+                    for index in range(found.count())
+                ):
                     return marker
             except PlaywrightError:
                 # A closed or navigating page cannot be asked. That is not a captcha.
