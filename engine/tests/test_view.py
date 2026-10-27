@@ -505,3 +505,35 @@ def test_a_disabled_button_with_no_ref_is_still_shown() -> None:
 
     assert '\nbutton "Submit" [disabled]' in shown.text
     assert "" not in shown.targets, "a line with no ref offers nothing to act on"
+
+
+def _carousel(copies: int) -> str:
+    cards = ""
+    ref = 10
+    for _ in range(copies):
+        for who in ("Ana", "Bo", "Cy"):
+            cards += (
+                f"  - listitem [ref=e{ref}]:\n"
+                f'    - heading "{who} says" [level=3] [ref=e{ref + 1}]\n'
+                f'    - paragraph [ref=e{ref + 2}]: "Dejo saved me hours, {who} writes."\n'
+                f'    - link "Read {who}" [ref=e{ref + 3}]:\n'
+                f"      - /url: /reviews/{who}\n"
+            )
+            ref += 4
+    return f"- list [ref=e1]:\n{cards}"
+
+
+def test_a_block_cloned_many_times_is_printed_once() -> None:
+    """tinylaunch.com: a testimonial carousel cloned about 20 times filled the view."""
+    shown = view.render(_carousel(6), url="https://example.com/", title="Launch")
+
+    assert shown.text.count("Dejo saved me hours, Ana writes.") == 1, shown.text
+    assert "the 9 lines above appear 5 more times, word for word" in shown.text
+    assert "e74" in shown.known, "the clones' refs still work"
+
+
+def test_a_short_run_of_look_alikes_still_folds() -> None:
+    stars = "".join(f'  - button "★" [ref=e{n}]\n' for n in range(2, 7))
+    shown = view.render(f"- generic [ref=e1]:\n{stars}", url="https://example.com/", title="x")
+    assert "5 buttons" in shown.text
+    assert "more times" not in shown.text

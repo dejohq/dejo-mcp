@@ -54,6 +54,12 @@ PASSAGES_SHOWN = 6
 # that it has no name (devhunt.org's GitHub and Google sign-in buttons were bare `button`).
 ICON_ROLES = frozenset({"button", "link"})
 
+# A run of siblings that repeats word for word is printed once (see `_without_repeats`):
+# runs of up to REPEAT_PERIOD siblings, holding at least REPEAT_MIN_LINES lines between them.
+# A carousel shows a handful of cards; a single repeated line is a fold's job, not this.
+REPEAT_PERIOD = 12
+REPEAT_MIN_LINES = 3
+
 # Siblings of the same shape that make a fold. Three is where a run reads as a list.
 FOLD_MIN = 3
 # Rows a fold shows. The first rows are what "the first X" tasks need; `look gK` shows all.
@@ -281,8 +287,24 @@ class _Fold:
     rows: tuple[tuple[Item, ...], ...]
 
 
-_Block = Item | Group
-_Draft = Item | _Fold
+@dataclass(frozen=True)
+class _Repeat:
+    """Siblings that say exactly what the ones before them said, left out (see REPEAT_*)."""
+
+    order: int
+    lines: int
+    times: int
+
+    @property
+    def text(self) -> str:
+        return (
+            f"(the {self.lines} lines above appear {self.times} more times, word for word; "
+            "their refs work too)"
+        )
+
+
+_Block = Item | Group | _Repeat
+_Draft = Item | _Fold | _Repeat
 
 
 def render(
@@ -697,8 +719,10 @@ def _fold(kids: list[_Branch], drafts: list[list[_Draft]], url: str) -> list[_Dr
     Look-alike: same role, the same sequence of element kinds inside (a repeat counts once,
     so a quote with two tags and one with four still match), and the same first path
     segment on the first link. Siblings with nothing to show do not break a run."""
-    present = [(kid, found) for kid, found in zip(kids, drafts, strict=True) if found]
-    shapes = [_shape(kid, found, url) for kid, found in present]
+    present = _without_repeats(
+        [(kid, found) for kid, found in zip(kids, drafts, strict=True) if found]
+    )
+    shapes = [_shape(kid, found, url) if kid is not None else None for kid, found in present]
     out: list[_Draft] = []
     index = 0
     while index < len(present):
@@ -712,6 +736,52 @@ def _fold(kids: list[_Branch], drafts: list[list[_Draft]], url: str) -> list[_Dr
             out += present[index][1]
             index += 1
     return out
+
+
+def _without_repeats(
+    present: list[tuple[_Branch | None, list[_Draft]]],
+) -> list[tuple[_Branch | None, list[_Draft]]]:
+    """Siblings with a run that repeats word for word kept once, and a note for the rest.
+
+    tinylaunch.com cloned a testimonial carousel about 20 times, and the clones filled the
+    view. A run of up to REPEAT_PERIOD siblings counts when it holds REPEAT_MIN_LINES lines
+    or more; smaller look-alikes (a row of stars, pager dots) fold as before."""
+    signs = [_signature(found) for _, found in present]
+    out: list[tuple[_Branch | None, list[_Draft]]] = []
+    at = 0
+    while at < len(present):
+        period, times = _repetition(signs, at)
+        unit = present[at : at + period]
+        lines = sum(len(list(_flatten(found))) for _, found in unit)
+        if times < 2 or lines < REPEAT_MIN_LINES:
+            out.append(present[at])
+            at += 1
+            continue
+        out.extend(unit)
+        first_again = next(_flatten(present[at + period][1]))
+        out.append((None, [_Repeat(first_again.order, lines, times - 1)]))
+        at += period * times
+    return out
+
+
+def _repetition(signs: list[tuple[tuple[str, ...], ...]], at: int) -> tuple[int, int]:
+    """The run starting at `at` that repeats most, as (siblings in it, times in a row)."""
+    best = (1, 1)
+    for period in range(1, min(REPEAT_PERIOD, (len(signs) - at) // 2) + 1):
+        unit = signs[at : at + period]
+        if not all(unit):
+            continue
+        times = 1
+        while signs[at + times * period : at + (times + 1) * period] == unit:
+            times += 1
+        if times > 1 and period * times > best[0] * best[1]:
+            best = (period, times)
+    return best
+
+
+def _signature(found: Sequence[_Draft]) -> tuple[tuple[str, ...], ...]:
+    """What a sibling says, without its refs: two clones of one card have the same."""
+    return tuple((item.kind, item.role, item.name, item.said) for item in _flatten(found))
 
 
 def _shape(kid: _Branch, found: list[_Draft], url: str) -> tuple[str, tuple[str, ...], str] | None:
@@ -738,7 +808,7 @@ def _flatten(found: Sequence[_Draft | Group]) -> Iterator[Item]:
     for draft in found:
         if isinstance(draft, Item):
             yield draft
-        else:
+        elif not isinstance(draft, _Repeat):
             for row in draft.rows:
                 yield from row
 
@@ -747,7 +817,7 @@ def _name_groups(drafts: list[_Draft]) -> list[_Block]:
     """Give every fold its id, g1 first, in page order."""
     named: list[_Block] = []
     for draft in drafts:
-        if isinstance(draft, Item):
+        if isinstance(draft, Item | _Repeat):
             named.append(draft)
             continue
         number = sum(isinstance(block, Group) for block in named) + 1
@@ -764,7 +834,7 @@ def _noun(rows: tuple[tuple[Item, ...], ...]) -> str:
 
 
 def _first_order(block: _Block) -> int:
-    return block.order if isinstance(block, Item) else block.rows[0][0].order
+    return block.order if isinstance(block, Item | _Repeat) else block.rows[0][0].order
 
 
 # ------------------------------------------------------------------------- rendering
@@ -775,6 +845,8 @@ def _block_lines(blocks: Sequence[_Block], *, expand: bool) -> list[_Line]:
     for block in blocks:
         if isinstance(block, Item):
             out.append(_Line(block.line, (block,)))
+        elif isinstance(block, _Repeat):
+            out.append(_Line(block.text))
         elif expand:
             out += _expanded(block, 0)
         else:
