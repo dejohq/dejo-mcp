@@ -139,14 +139,17 @@ TAB_POLL_MS = 50
 SPA_NAV_GRACE_MS = 700
 SPA_NAV_POLL_MS = 25
 
-# After a step that sends something (`click!`), the page has to finish answering before the
-# reply is written. A form that posts in the background disables its fields, waits for the
-# server, then shows "Submission Successful!"; replying in between showed a half-sent form
-# (mcpservers.org, 23 Oct). Done means: no request of the page's own work in flight and
-# nothing redrawn for SENT_STILL_MS. Capped, because a page that polls is never done.
-SENT_WAIT_MS = 10_000
-SENT_STILL_MS = 500
-SENT_POLL_MS = 100
+# After a step that sends something (`click!`), or moves to another address, the page has
+# to finish its work before the reply is written. A form that posts in the background
+# disables its fields, waits for the server, then shows "Submission Successful!"; replying
+# in between showed a half-sent form (mcpservers.org, 23 Oct). A single-page app changes
+# its address at once and draws the page when its data comes back; replying in between
+# showed only the footer (lobehub.com). Done means: no request of the page's own work in
+# flight and nothing redrawn for STILL_FOR_MS. Capped, because a page that polls is never
+# done.
+STILL_WAIT_MS = 10_000
+STILL_FOR_MS = 500
+STILL_POLL_MS = 100
 # Requests that are the page doing its work. Images, fonts and beacons keep arriving on a
 # busy page and say nothing about whether the form was answered.
 WORK_REQUESTS = frozenset({"document", "fetch", "xhr"})
@@ -512,7 +515,7 @@ def _keep(kept: list[str], line: str) -> None:
 
 
 def _track_work(page: Page, request: Any, *, started: bool) -> None:
-    """Keep the page's own requests in flight, for `settle_after_sending`."""
+    """Keep the page's own requests in flight, for `settle_until_still`."""
     if request.resource_type not in WORK_REQUESTS:
         return
     if started:
@@ -1633,8 +1636,8 @@ class Browser:
             self.page.wait_for_load_state("domcontentloaded")
         self.flush_downloads()
 
-    def settle_after_sending(self, timeout_ms: int = SENT_WAIT_MS) -> None:
-        """Wait until the page has answered what was just sent (see SENT_WAIT_MS).
+    def settle_until_still(self, timeout_ms: int = STILL_WAIT_MS) -> None:
+        """Wait until the page has finished what the last step started (see STILL_WAIT_MS).
 
         `settle()` is not enough: a form sent with fetch loads nothing, so
         `domcontentloaded` has long fired, and Playwright's `networkidle` stays true once
@@ -1642,16 +1645,16 @@ class Browser:
         handling the page's events, which is what moves the requests in and out."""
         still = waited = 0
         shape: str | None = None
-        while still < SENT_STILL_MS and waited < timeout_ms:
+        while still < STILL_FOR_MS and waited < timeout_ms:
             with suppress(PlaywrightError):
-                self.page.wait_for_timeout(SENT_POLL_MS)
-            waited += SENT_POLL_MS
+                self.page.wait_for_timeout(STILL_POLL_MS)
+            waited += STILL_POLL_MS
             try:
                 now = self.page.evaluate(_PAGE_SHAPE)
             except PlaywrightError:
                 now = None  # the page is being replaced: not still
             busy = bool(getattr(self.page, "_dejo_in_flight", ()))
-            still = still + SENT_POLL_MS if (now is not None and now == shape and not busy) else 0
+            still = still + STILL_POLL_MS if (now is not None and now == shape and not busy) else 0
             shape = now
         self.settle()
 

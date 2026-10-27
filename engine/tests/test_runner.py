@@ -1062,3 +1062,16 @@ def test_look_words_shows_the_passages_of_a_long_text(
     outcome = run(runner, f"go {demo_server}/publish.md\nlook open source")
     assert outcome.view is not None
     assert "Publishing is free for open source servers." in outcome.view.text
+
+
+def test_a_click_into_a_single_page_app_shows_the_page_it_drew(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """lobehub.com: a click into a listing returned while only the footer was drawn; the
+    next look had the page."""
+    outcome = run(
+        runner_for(browser, store, "zz"), f'go {demo_server}/spa\nclick link "Dejo server"'
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.view is not None
+    assert "A browser your agent remembers." in outcome.view.text

@@ -44,6 +44,8 @@ app = FastAPI(title="Acme Billing (Dejo demo site)", docs_url=None, redoc_url=No
 
 # How long /contact/send takes to answer: well past the moment a click returns.
 CONTACT_REPLY_S = 1.5
+# How long a single-page app's data takes, after its address has already changed.
+SPA_DATA_S = 0.8
 
 INVOICES = [
     {"id": "2026-09", "month": "September 2026", "amount": "48,200", "state": "due"},
@@ -408,6 +410,38 @@ def publish_guide() -> Response:
         "## Contact\n\nWrite to the team.\n"
     )
     return Response(body, media_type="text/plain")
+
+
+@app.get("/spa", response_class=HTMLResponse)
+@app.get("/spa/listing", response_class=HTMLResponse)
+def spa(request: Request) -> HTMLResponse:
+    """A single-page app, the way lobehub.com draws a listing: the link changes the address
+    at once, and the listing is drawn only once its data has come back."""
+    return page(
+        "Servers",
+        """<h1 id="title">Servers</h1>
+           <a id="item" href="/spa/listing">Dejo server</a>
+           <section id="detail"></section>
+           <footer>About · Terms</footer>
+           <script>
+             item.onclick = async (event) => {
+               event.preventDefault();
+               history.pushState({}, "", "/spa/listing");
+               title.textContent = "";
+               const listing = await (await fetch("/spa/data")).json();
+               title.textContent = listing.name;
+               detail.textContent = listing.about;
+             };
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/spa/data")
+async def spa_data() -> dict[str, str]:
+    """Slow on purpose, as an API behind a listing is."""
+    await asyncio.sleep(SPA_DATA_S)
+    return {"name": "Dejo", "about": "A browser your agent remembers."}
 
 
 @app.get("/hard", response_class=HTMLResponse)

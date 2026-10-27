@@ -243,9 +243,11 @@ class Session:
         said: list[str] = []
         failed: list[str] = []
         if risky:
-            self.browser.settle_after_sending()
+            self.browser.settle_until_still()
             said = self.browser.messages_seen()
             failed = self.browser.requests_failed()
+        elif action != "goto" and self.browser.page.url != url_before:
+            self.browser.settle_until_still()
 
         # A password is remembered as "there is a password here", never as the password.
         secret = secret_name(element) if action in _TEXT_ENTRY else None
