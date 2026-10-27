@@ -627,9 +627,9 @@ class Runner:
                 f"{target.value} is from the page before an earlier line moved to a new page",
                 "use the refs below, or a role, text or css target",
             )
-        shown = self._view.targets.get(target.value)
+        shown = self._view.targets.get(target.value) or self._view.known.get(target.value)
         if shown is None:
-            raise _Stopped(f"there is no {target.value} in the latest view", "use a ref below")
+            raise _Stopped(f"there is no {target.value} on this page", "use a ref below")
         element = self._controls.get(shown.aria_ref) or Element(
             ref=shown.ref,
             role=shown.node.role,
@@ -1205,7 +1205,7 @@ def _capped(text: str) -> str:
 
 
 def _raw_from(raw: str, view: pageview.View, ref: str) -> str:
-    shown = view.targets.get(ref)
+    shown = view.targets.get(ref) or view.known.get(ref)
     if shown is None:
         raise pageview.ViewError(f"there is no {ref} on this page")
     marker = f"[ref={shown.aria_ref}]"

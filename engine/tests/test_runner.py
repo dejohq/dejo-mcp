@@ -7,6 +7,8 @@ and how many times the shop's "Pay now" really ran.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from tests.demo_site.app import ORDERS
 
@@ -920,3 +922,24 @@ def test_a_checkbox_its_own_label_covers_is_ticked_through_the_label(
     replay = Executor(store, browser).run(domain_of(demo_server), task="pick clients")
     assert replay.ok, replay.reason
     assert replay.answers == {"chosen": "claude, cursor"}
+
+
+# ------------------------------------------------------------------- refs
+
+
+def test_a_ref_in_a_folded_row_can_be_used(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """agenticskills.io: rows 4-7 of a folded group were refused ("there is no e72 in the
+    latest view"), even right after `look g2`, though the page had them."""
+    runner = runner_for(browser, store, "fourth")
+    shown = run(runner, f"go {demo_server}/books\nlook").view
+    assert shown is not None and "+1 more" in shown.text
+    raw, _ = browser.raw_snapshot()
+    last = re.search(r'link "Vagabonding" \[ref=(e\d+)\]', raw)
+    assert last is not None and f"{last.group(1)} " not in shown.text, "the row is folded away"
+
+    outcome = run(runner, f'click {last.group(1)}\nread css "#title" as title')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"title": "Vagabonding"}

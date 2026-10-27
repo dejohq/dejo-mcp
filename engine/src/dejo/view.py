@@ -238,6 +238,10 @@ class View:
     """Every fold on the page, all rows, whether shown or not."""
     hidden_lines: int
     """Element lines left out by the budget (0 when everything fitted)."""
+    known: dict[str, Target] = field(default_factory=dict)
+    """Every ref on the page, printed or not: rows folded away, lines past the budget, and
+    the refs `look raw` shows. A ref the page has is a ref an agent may use (agenticskills.io:
+    a folded row's ref was refused while the page plainly had it)."""
 
 
 @dataclass
@@ -800,7 +804,12 @@ def _assemble(
 
     printed = [*on_screen, *best, *listed]
     targets = {item.ref: _target(item, frames) for item in printed}
-    return View("\n".join(text), targets, page.groups, len(rest))
+    known = {
+        branch.node.ref: _node_target(branch.node, frames)
+        for branch in _walk(page.root)
+        if branch.node.ref
+    }
+    return View("\n".join(text), targets, page.groups, len(rest), known)
 
 
 def _note(rest: list[_Line]) -> str:
@@ -823,8 +832,11 @@ def _pager_line(pager: list[Item]) -> tuple[str, list[Item]]:
 
 
 def _target(item: Item, frames: Mapping[str, str]) -> Target:
-    node = item.node
-    return Target(item.ref, node, frames.get(node.frame_ref) if node.frame_ref else None)
+    return _node_target(item.node, frames)
+
+
+def _node_target(node: Node, frames: Mapping[str, str]) -> Target:
+    return Target(node.ref, node, frames.get(node.frame_ref) if node.frame_ref else None)
 
 
 def _is_pager(item: Item) -> bool:
