@@ -35,6 +35,7 @@ from playwright.sync_api import Error as PlaywrightError
 
 from . import program as language
 from . import view as pageview
+from . import waits
 from .actions import PRESSES
 from .browser import NoSuchElement, domain_of
 from .distill import distill, locators_for, postcondition_for
@@ -429,7 +430,10 @@ class Runner:
     def _act(self, step: Action, out: Outcome) -> None:
         if step.risky:
             self._refuse_a_repeat(step)
-        element = self._element(step.target) if step.target else None
+        waiting = step.action == "wait_for" and step.target is not None
+        if waiting and step.target.kind != "ref":
+            self._wait_to_appear(step.target)
+        element = self._element(step.target, many=waiting) if step.target else None
         second = self._element(step.second) if step.second else None
         value = step.value
         if step.action == "goto" and value:
@@ -476,6 +480,26 @@ class Runner:
                 f"the page answered HTTP {status} instead of the page",
                 "check the address; nothing on an error page is worth learning",
             )
+
+    def _wait_to_appear(self, target: language.Target) -> None:
+        """Wait up to the usual timeout for what a `wait` line names, before it is looked up.
+
+        A wait is for something that is not there yet. Looked up first, the way every other
+        line is, `wait css "..."` failed at once with "nothing on this page matches" while
+        saashub.com's list still said "Loading..."."""
+        found = self.browser.matches(
+            Locator("css", target.value) if target.kind == "css" else _locator_for(target)
+        )
+        try:
+            if found is None:
+                raise PlaywrightError("not a target this page can be asked for")
+            found.first.wait_for(state="visible", timeout=waits.DEFAULT_WAIT_MS)
+        except PlaywrightError:
+            raise _Stopped(
+                f"waited {waits.DEFAULT_WAIT_MS // 1000} s for {_target_words(target)} and it "
+                "never appeared",
+                "look at the page below for what it shows instead",
+            ) from None
 
     def _refuse_a_human_check(self, written: int) -> None:
         """Stop the moment a step lands on a human check instead of the page.

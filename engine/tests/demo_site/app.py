@@ -375,6 +375,23 @@ def listing_review() -> Response:
     return Response("upstream down", status_code=502)
 
 
+@app.get("/categories", response_class=HTMLResponse)
+def categories(request: Request) -> HTMLResponse:
+    """A type-ahead list that says "Loading..." before its choices arrive (saashub.com)."""
+    return page(
+        "Categories",
+        """<h1>Pick categories</h1>
+           <ul id="choices"><li>Loading...</li></ul>
+           <script>
+             setTimeout(() => {
+               choices.innerHTML = '<li class="choice">Developer tools</li>'
+                 + '<li class="choice">AI agents</li>';
+             }, 1200);
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

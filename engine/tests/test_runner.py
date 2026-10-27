@@ -1014,3 +1014,17 @@ def test_a_read_of_a_field_reads_what_it_holds(
     )
     assert outcome.ok, outcome.text()
     assert outcome.answers == {"tool": "Dejo", "category": "AI agents"}
+
+
+def test_wait_waits_for_what_is_not_there_yet(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """saashub.com: `wait css "..."` failed at once with "nothing on this page matches"
+    while the list still said "Loading..."."""
+    outcome = run(
+        runner_for(browser, store, "the first category"),
+        f'go {demo_server}/categories\nwait css "li.choice"\nwait text "AI agents"\n'
+        'read css "li.choice" first as first',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"first": "Developer tools"}
