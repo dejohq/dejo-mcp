@@ -191,10 +191,12 @@ class Item:
         return self.render(BEST_TEXT_LIMIT, alone=True)
 
     def render(self, limit: int, *, with_role: bool = True, alone: bool = False) -> str:
-        head = f"{self.ref} {self.role}" if self.role and with_role else self.ref
+        role = self.role if with_role or not self.ref else ""
+        head = " ".join(part for part in (self.ref, role) if part)
         named = f" {_quoted(self.name, limit)}" if self.name else ""
         said = self.said if alone or not self.bare else ""
-        return f"{head}{named}{self.tail}" + (f": {_cut_text(said, limit)}" if said else "")
+        line = f"{head}{named}{self.tail}" + (f": {_cut_text(said, limit)}" if said else "")
+        return line.lstrip()
 
 
 @dataclass(frozen=True)
@@ -377,6 +379,8 @@ class _Page:
         under it belong to it (inside a control or heading they are its name)."""
         node = branch.node
         if not node.ref:
+            if _disabled_control(node):
+                return self._control(branch), set(), True
             return None, set(), absorb
         if _is_control(node):
             return self._control(branch), set(), True
@@ -595,11 +599,26 @@ def _is_control(node: Node) -> bool:
     return "cursor=pointer" in node.flags and bool(node.name or node.trailing)
 
 
+def _disabled_control(node: Node) -> bool:
+    """A control Playwright gave no ref because it cannot be clicked now, and says why.
+
+    A button that is disabled with pointer events turned off (how shadcn styles every
+    disabled button) has no ref, and every line without one used to be left out: after
+    `click! Submit` on mcpserver.dev the button was simply gone from the view, and the agent
+    could not tell "busy" from "gone". It is printed, with no ref to act on."""
+    return node.role in CONTROL_ROLES and bool(node.name) and "disabled" in node.flags.split()
+
+
 def _mark_blocky(root: _Branch) -> None:
     for branch in reversed(list(_walk(root))):
         node = branch.node
-        own = bool(node.ref) and (
-            _is_control(node) or node.role in ("heading", "iframe") or node.role in SPECIAL_ROLES
+        own = _disabled_control(node) or (
+            bool(node.ref)
+            and (
+                _is_control(node)
+                or node.role in ("heading", "iframe")
+                or node.role in SPECIAL_ROLES
+            )
         )
         branch.blocky = own or any(kid.blocky for kid in branch.children)
 
@@ -780,15 +799,21 @@ def _assemble(
     title: str,
     frames: Mapping[str, str],
 ) -> View:
+    # Items are told apart by their place on the page, not their ref: a disabled control
+    # with no ref is printed too (see `_disabled_control`).
     on_screen = [item for line in shown for item in line.items]
-    seen = {item.ref for item in on_screen}
-    something_hidden = any(item.ref not in seen for item in page.items)
+    seen = {item.order for item in on_screen}
+    something_hidden = any(item.order not in seen for item in page.items)
     best = _best(page, words) if words and something_hidden else []
-    listed_best = {item.ref for item in best}
+    listed_best = {item.order for item in best}
     pager = [
         item
         for item in page.items
-        if item.control and _is_pager(item) and item.ref not in seen and item.ref not in listed_best
+        if item.control
+        and item.ref
+        and _is_pager(item)
+        and item.order not in seen
+        and item.order not in listed_best
     ]
 
     text = [f"page {_quoted(_clean(title))} {page.url}"]
@@ -803,7 +828,7 @@ def _assemble(
         text.append(pager_line)
 
     printed = [*on_screen, *best, *listed]
-    targets = {item.ref: _target(item, frames) for item in printed}
+    targets = {item.ref: _target(item, frames) for item in printed if item.ref}
     known = {
         branch.node.ref: _node_target(branch.node, frames)
         for branch in _walk(page.root)
@@ -859,7 +884,7 @@ def _best(page: _Page, words: list[str]) -> list[Item]:
     plain counting missed Lagos (post-hoc, lab-results.md §7); it is measured again in
     Phase 2."""
     stems = list(dict.fromkeys(_stem(word) for word in words))
-    own = {item.ref: _tokens(item.words) for item in page.items}
+    own = {item.order: _tokens(item.words) for item in page.items}
     count = len(page.items)
     weight = {
         stem: math.log((count + 1) / (sum(stem in seen for seen in own.values()) + 1)) + IDF_FLOOR
@@ -871,7 +896,7 @@ def _best(page: _Page, words: list[str]) -> list[Item]:
         if item.kind == "heading":
             heading = item.words
         context = (_tokens(_href_words(item.node.href, page.url)), _tokens(heading))
-        score = sum(OWN_WEIGHT * weight[stem] for stem in stems if stem in own[item.ref])
+        score = sum(OWN_WEIGHT * weight[stem] for stem in stems if stem in own[item.order])
         score += sum(weight[stem] for stem in stems for seen in context if stem in seen)
         if score > 0:
             scored.append((score + (CONTROL_BONUS if item.control else 0.0), item.order, item))

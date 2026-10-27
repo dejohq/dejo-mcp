@@ -488,3 +488,20 @@ def test_what_a_field_holds_never_joins_the_words_around_it() -> None:
     )
     assert "best for" in page.text
     assert "hunter2" not in page.text
+
+
+def test_a_disabled_button_with_no_ref_is_still_shown() -> None:
+    """mcpserver.dev: after `click! Submit` the view showed no Submit at all. The button was
+    disabled with pointer-events off (how shadcn buttons are styled), so Playwright gave it
+    no ref, and the agent could not tell "busy" from "gone"."""
+    raw = (
+        "- dialog [ref=e1]:\n"
+        '  - textbox "Name" [ref=e2]: Dejo\n'
+        '  - button "Cancel" [ref=e3]\n'
+        '  - button "Submit" [disabled]\n'
+        '  - button "Saving" [cursor=pointer]\n'
+    )
+    shown = view.render(raw, url="https://example.com/", title="Submit")
+
+    assert '\nbutton "Submit" [disabled]' in shown.text
+    assert "" not in shown.targets, "a line with no ref offers nothing to act on"
