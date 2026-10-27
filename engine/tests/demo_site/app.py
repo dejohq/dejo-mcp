@@ -465,6 +465,30 @@ def sign_up(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/logo", response_class=HTMLResponse)
+def logo(request: Request) -> HTMLResponse:
+    """A logo picker the way devhunt.org has one: a "Select an image" button opens a hidden
+    file box that takes PNG only, and empties itself when given anything else."""
+    return page(
+        "Logo",
+        """<h1>Logo</h1>
+           <input type="file" id="logo-file" accept="image/png" hidden>
+           <button type="button" onclick="document.getElementById('logo-file').click()">
+             Select an image</button>
+           <p id="chosen">no logo</p>
+           <label>Banner <input type="file" id="banner"></label>
+           <script>
+             const box = document.getElementById("logo-file");
+             box.onchange = () => {
+               const file = box.files[0];
+               if (file && file.type !== "image/png") { box.value = ""; return; }
+               chosen.textContent = file ? file.name : "no logo";
+             };
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

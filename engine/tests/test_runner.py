@@ -1097,3 +1097,41 @@ def test_a_nameless_button_is_named_by_the_words_it_shows_first() -> None:
     assert _icon_name("", "Close dialog", "") == "icon: Close dialog"
     assert _icon_name("", "", "lucide lucide-github h-5") == "icon: github"
     assert _icon_name("", "", "#000") == ""
+
+
+# ------------------------------------------------------------------- uploads
+
+
+def test_an_upload_the_page_refused_says_so(
+    browser: Browser, store: DejoStore, demo_server: str, tmp_path
+) -> None:
+    """devhunt.org: `upload` onto "Select an image" said done, and nothing on the page
+    changed: the file box had thrown the file away."""
+    text = tmp_path / "logo.txt"
+    text.write_text("not a picture", encoding="utf-8")
+    picture = tmp_path / "logo.png"
+    picture.write_bytes(b"\x89PNG\r\n\x1a\n")
+    runner = runner_for(browser, store, "set the logo")
+
+    refused = run(runner, f'go {demo_server}/logo\nupload button "Select an image" "{text}"')
+    assert not refused.ok
+    assert "did not keep" in refused.reason and "image/png" in refused.reason
+
+    taken = run(
+        runner, f'upload button "Select an image" "{picture}"\nread css "#chosen" as chosen'
+    )
+    assert taken.ok, taken.text()
+    assert taken.answers == {"chosen": "logo.png"}
+
+
+def test_an_upload_onto_something_that_opens_no_chooser_says_so(
+    browser: Browser, store: DejoStore, demo_server: str, tmp_path
+) -> None:
+    picture = tmp_path / "logo.png"
+    picture.write_bytes(b"\x89PNG\r\n\x1a\n")
+    outcome = run(
+        runner_for(browser, store, "set the logo"),
+        f'go {demo_server}/logo\nupload css "#chosen" "{picture}"',
+    )
+    assert not outcome.ok
+    assert "opened no file chooser" in outcome.reason

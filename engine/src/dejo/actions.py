@@ -27,6 +27,7 @@ from typing import Any
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator as PWLocator
 from playwright.sync_api import Page
+from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from . import waits
 
@@ -74,6 +75,9 @@ OPTIONS_NAMED = 30
 # Actions that press something, so they can buy, send or delete. The rest only move, type
 # or look.
 PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event"})
+
+# How long a click gets to open the file chooser. A site opens it at once, or never.
+CHOOSER_WAIT_MS = 5000
 
 # Resolves once the browser has drawn twice, which is when a scroll has been committed.
 _TWO_FRAMES = "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
@@ -519,10 +523,34 @@ def _upload(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     # clicking it opens the operating system's file chooser, which Playwright can catch.
     if _is_file_input(t):
         t.set_input_files(paths)
+        _check_the_box_kept(t.element_handle(), paths)
         return
-    with page.expect_file_chooser() as caught:
-        t.click()
+    try:
+        with page.expect_file_chooser(timeout=CHOOSER_WAIT_MS) as caught:
+            t.click()
+    except PlaywrightTimeout:
+        raise ActionNeedsMore(
+            "clicking this opened no file chooser, so the file went nowhere. Upload onto the "
+            "page's file box itself: look raw for a button named Choose File or Browse."
+        ) from None
     caught.value.set_files(paths)
+    _check_the_box_kept(caught.value.element, paths)
+
+
+def _check_the_box_kept(box: Any, paths: list[Path]) -> None:
+    """Fail unless the file box still holds the files once the page has looked at them.
+
+    A site checks a file the moment it arrives and empties the box when it does not like
+    it, saying nothing: devhunt.org's "Select an image" took the upload, reported done, and
+    showed no logo. What the box accepts is the likeliest reason, so it is named."""
+    kept, accepts = box.evaluate("el => [el.files ? el.files.length : 0, el.accept || '']")
+    if kept >= len(paths):
+        return
+    takes = f" It takes only {accepts}." if accepts else ""
+    raise ActionNeedsMore(
+        f"the page's file box did not keep {', '.join(path.name for path in paths)}: it took "
+        f"the file and then emptied itself.{takes} Send a file it accepts."
+    )
 
 
 def _is_file_input(target: _T) -> bool:
