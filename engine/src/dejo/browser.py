@@ -289,6 +289,11 @@ WINDOWS_LOCALE_CHARS = 85
 # How long macOS gets to say its locale before the browser starts without one.
 MAC_LOCALE_TIMEOUT_S = 2
 
+# How many times a `go` is sent when the page's own move cuts it off (see `Browser._go`).
+GO_ATTEMPTS = 2
+# What Playwright says when another navigation cut a `goto` off.
+CUT_OFF_TELLS = ("net::ERR_ABORTED", "interrupted by another navigation")
+
 # How long a fresh browser gets to prove an address loads, once the profile's own attempt
 # has timed out. Shorter than the real wait: it is a second opinion, and a person is
 # already waiting.
@@ -714,6 +719,11 @@ class PageNotDrawn(PlaywrightError):
     that handles one handles this, with a sentence instead of Playwright's own words."""
 
 
+class NavigationCutOff(PlaywrightError):
+    """A `go` the page's own moves kept cutting off. Said in a sentence, not
+    `net::ERR_ABORTED`."""
+
+
 class NoSuchTab(RuntimeError):
     """Asked to continue in a tab that is not open."""
 
@@ -734,6 +744,11 @@ class ProfileStuck(RuntimeError):
     network, not a proxy, not a leftover process. Without this the only symptom is a
     timeout, which reads exactly like a slow or broken website.
     """
+
+
+def _cut_off(problem: BaseException) -> bool:
+    """Was a `goto` cut off by another navigation, rather than failing on its own?"""
+    return any(tell in str(problem) for tell in CUT_OFF_TELLS)
 
 
 def _is_missing_display(problem: BaseException) -> bool:
@@ -1365,7 +1380,7 @@ class Browser:
         """
         self.last_status = None
         try:
-            response = self.page.goto(url, wait_until="domcontentloaded")
+            response = self._go(url)
             # Kept because an error page passes every address check: Google answers a
             # document that is gone with a 404 page at the document's own address.
             self.last_status = response.status if response is not None else None
@@ -1378,6 +1393,29 @@ class Browser:
             if self._profile is None or not self._loads_without_profile(url):
                 raise
             raise ProfileStuck(_stuck_profile_advice(self._profile, url)) from stuck
+
+    def _go(self, url: str) -> Any:
+        """`page.goto`, once more if the page's own move cut it off.
+
+        A page that moves by itself (Google's consent page a moment after "Continue")
+        cancels a `go` sent in that moment, and Playwright says `net::ERR_ABORTED`. The
+        page's move is let finish, and the `go` sent again."""
+        for attempt in range(GO_ATTEMPTS):
+            try:
+                return self.page.goto(url, wait_until="domcontentloaded")
+            except PlaywrightError as cut:
+                # A download also ends a `goto` this way, and must not happen twice.
+                downloading = bool(self._pending_downloads)
+                if isinstance(cut, PlaywrightTimeout) or not _cut_off(cut) or downloading:
+                    raise
+                if attempt == GO_ATTEMPTS - 1:
+                    raise NavigationCutOff(
+                        f"going to {url} was cut off twice by the page moving somewhere by "
+                        f"itself; it is now at {self.page.url}. Look at it, then go again"
+                    ) from None
+                self.wait_until_address_still()
+                self.settle()
+        return None
 
     def _loads_without_profile(self, url: str) -> bool:
         """Does this address load in a throwaway browser with no profile at all?"""

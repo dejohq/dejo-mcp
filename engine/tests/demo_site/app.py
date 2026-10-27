@@ -46,6 +46,8 @@ app = FastAPI(title="Acme Billing (Dejo demo site)", docs_url=None, redoc_url=No
 CONTACT_REPLY_S = 1.5
 # How long a single-page app's data takes, after its address has already changed.
 SPA_DATA_S = 0.8
+# How long /slow takes: long enough for a page's own redirect to cut a `go` to it off.
+SLOW_PAGE_S = 1.0
 
 INVOICES = [
     {"id": "2026-09", "month": "September 2026", "amount": "48,200", "state": "due"},
@@ -500,6 +502,26 @@ def continue_with(request: Request) -> HTMLResponse:
              Continue with Google</button>""",
         variant=variant_of(request, None),
     )
+
+
+@app.get("/consent", response_class=HTMLResponse)
+def consent(request: Request) -> HTMLResponse:
+    """A consent page that moves on by itself a moment after "Continue", the way Google's
+    does: a `go` sent in that moment is cut off by the page's own move."""
+    return page(
+        "Consent",
+        """<h1>Before you continue</h1>
+           <button type="button" onclick="setTimeout(() => location.href = '/news', 300)">
+             Continue</button>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/slow", response_class=HTMLResponse)
+async def slow_page(request: Request) -> HTMLResponse:
+    """A page that takes a while to answer."""
+    await asyncio.sleep(SLOW_PAGE_S)
+    return page("Slow", "<h1>Slow page</h1>", variant=variant_of(request, None))
 
 
 @app.get("/hard", response_class=HTMLResponse)

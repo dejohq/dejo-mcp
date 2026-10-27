@@ -1180,3 +1180,16 @@ def test_a_page_that_never_draws_says_so_in_words(
     assert not outcome.ok
     assert "did not finish drawing" in outcome.reason
     assert "Timeout" not in outcome.text()
+
+
+def test_go_while_the_page_moves_by_itself_still_gets_there(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Right after Google's consent "Continue": `Page.goto: net::ERR_ABORTED`."""
+    outcome = run(
+        runner_for(browser, store, "zz"),
+        f'go {demo_server}/consent\nclick button "Continue"\ngo {demo_server}/slow\n'
+        'read css "h1" as heading',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"heading": "Slow page"}
