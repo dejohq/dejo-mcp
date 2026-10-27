@@ -557,3 +557,33 @@ def test_a_card_that_is_one_link_keeps_its_words() -> None:
     )
     shown = view.render(raw, url="https://www.tinylaunch.com/dashboard", title="Dashboard")
     assert 'e13 link "Dejo Waiting for approval"' in shown.text, shown.text
+
+
+SIGN_IN_MAIL = (
+    "- main [ref=e1]:\n"
+    '  - heading "Your Dang.ai sign-in code" [level=1] [ref=e2]\n'
+    "  - paragraph [ref=e3]: Your sign-in code is 482913. It expires in 10 minutes.\n"
+    "  - paragraph [ref=e4]: 739201 is your verification code\n"
+    '  - link "https://dang.ai/auth/verify?token=8f3a9c2e7b1d4f6a0e5c9d8b&email=me" [ref=e5]:\n'
+    "    - /url: https://dang.ai/auth/verify?token=8f3a9c2e7b1d4f6a0e5c9d8b&email=me\n"
+    "  - paragraph [ref=e6]: Order 123456 shipped on 2026-10-25. See https://shop.example/track?page=2\n"
+)
+
+
+def test_one_time_codes_and_sign_in_links_are_not_printed() -> None:
+    """Gmail, a Dang.ai sign-in mail: the view printed the code and the magic link's token."""
+    shown = view.render(SIGN_IN_MAIL, url="https://mail.google.com/", title="Inbox").text
+
+    for secret in ("482913", "739201", "8f3a9c2e7b1d4f6a0e5c9d8b"):
+        assert secret not in shown, f"{secret} was printed"
+    assert "e3: Your sign-in code is [hidden code]" in shown
+    assert "Order 123456 shipped on 2026-10-25" in shown, "a number that is not a code stays"
+    assert "track?page=2" in shown
+    assert "read the element" in shown
+    assert "Zip code 10001" in view.hide_one_time_secrets("Zip code 10001")
+
+
+def test_look_raw_hides_them_too() -> None:
+    masked = view.hide_one_time_secrets(SIGN_IN_MAIL)
+    assert "482913" not in masked and "8f3a9c2e7b1d4f6a0e5c9d8b" not in masked
+    assert "&email=me" in masked

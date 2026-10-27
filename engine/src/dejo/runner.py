@@ -323,7 +323,8 @@ class Runner:
             self._view = pageview.render(
                 raw, url=url, title=title, frames=frames, icons=icons, modal=modal
             )
-            return _capped(raw if not argument else _raw_from(raw, self._view, argument))
+            shown = raw if not argument else _raw_from(raw, self._view, argument)
+            return _capped(pageview.hide_one_time_secrets(shown))
         words = " ".join(filter(None, [self.task, focus, argument if mode == "words" else ""]))
         self._view = pageview.render(
             raw,

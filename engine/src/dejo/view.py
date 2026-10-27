@@ -50,6 +50,21 @@ LONG_TEXT = 1_000
 PASSAGE_SIDE = 120
 PASSAGES_SHOWN = 6
 
+# One-time secrets a view never prints (see `hide_one_time_secrets`): a 4 to 8 digit number
+# a few words from "code", and a long value of letters and digits in an address, which is
+# how a magic link carries its token.
+_CODE_WORDS = r"(?:code|otp|passcode|pin|verification|one-time)"
+# A zip, postal, area or country code is no secret.
+_PUBLIC_CODES = r"(?<!zip )(?<!postal )(?<!area )(?<!country )"
+_CODE_BEFORE = re.compile(rf"({_PUBLIC_CODES}\b{_CODE_WORDS}\b[^\d\n]{{0,30}}?)\b\d{{4,8}}\b", re.I)
+_CODE_AFTER = re.compile(rf"\b\d{{4,8}}\b(?=[^\d\n]{{0,30}}\b{_CODE_WORDS}\b)", re.I)
+_TOKEN_IN_ADDRESS = re.compile(r"([?&#][\w.-]*=)([\w%.~-]{20,})")
+HIDDEN_CODE = "[hidden code]"
+HIDDEN_TOKEN = "[hidden token]"
+SECRETS_NOTE = (
+    "codes and sign-in tokens are hidden in this view; to use one, read the element that holds it"
+)
+
 # Said first when a modal dialog is open, which the view then shows first.
 MODAL_NOTE = (
     "a dialog is open over the page, shown first; the page behind it cannot be used until "
@@ -362,12 +377,12 @@ def render(
         sequence, limit = page.sequence(expand=False), budget
     shown, rest = _cut(sequence, limit)
     view = _assemble(page, shown, rest, focus_words(focus), title, frames or {})
-    found = _passages(page, focus_words(find))
-    if not found:
-        return view
     lines = view.text.split("\n")
-    text = "\n".join([lines[0], *found, *lines[1:]])
-    return View(text, view.targets, view.groups, view.hidden_lines, view.known)
+    text = "\n".join([lines[0], *_passages(page, focus_words(find)), *lines[1:]])
+    hidden = hide_one_time_secrets(text)
+    if hidden != text:
+        hidden += "\n" + SECRETS_NOTE
+    return View(hidden, view.targets, view.groups, view.hidden_lines, view.known)
 
 
 def dialogs(snapshot: str) -> list[str]:
@@ -391,6 +406,23 @@ def _dialog_first(
         return blocks, False
     inside = [block for block in blocks if any(a <= _first_order(block) <= b for a, b in spans)]
     return inside + [block for block in blocks if block not in inside], bool(inside)
+
+
+def hide_one_time_secrets(text: str) -> str:
+    """`text` with one-time sign-in codes and the tokens of sign-in links hidden.
+
+    A view of a mailbox printed a Dang.ai sign-in code and the token of its magic link, for
+    the agent's whole conversation to keep. A `read` of the element still answers with the
+    real value: reading one is a deliberate act, a view is not."""
+    hidden = _CODE_BEFORE.sub(lambda found: found.group(1) + HIDDEN_CODE, text)
+    hidden = _CODE_AFTER.sub(HIDDEN_CODE, hidden)
+    return _TOKEN_IN_ADDRESS.sub(_hide_token, hidden)
+
+
+def _hide_token(found: re.Match[str]) -> str:
+    value = found.group(2)
+    random_looking = re.search(r"[a-z]", value, re.I) and re.search(r"\d", value)
+    return found.group(1) + (HIDDEN_TOKEN if random_looking else value)
 
 
 def nameless_controls(snapshot: str) -> list[str]:
