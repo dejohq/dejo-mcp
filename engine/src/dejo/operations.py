@@ -219,6 +219,8 @@ class Session:
         self.browser.last_download_path = None
         self.browser.last_dialog = None
         self.last_result = None
+        if risky:
+            self.browser.watch_for_messages()
 
         element, lasting = self._perform(action, element=element, value=value, second=second)
 
@@ -238,8 +240,10 @@ class Session:
             and (self.browser.await_url_change(url_before))
         ):
             self.browser.settle()
+        said: list[str] = []
         if risky:
             self.browser.settle_after_sending()
+            said = self.browser.messages_seen()
 
         # A password is remembered as "there is a password here", never as the password.
         secret = secret_name(element) if action in _TEXT_ENTRY else None
@@ -285,6 +289,8 @@ class Session:
             # `evaluate` and `screenshot` answer something; every other action answers None.
             "result": self.last_result,
             "saved_to": self.browser.last_download_path,
+            # What the page said while a sent step settled: a toast can be gone by now.
+            "said": said,
             "secret": secret,
             "note": (
                 f"This was a {secret} field, so Dejo did not remember what was typed. "

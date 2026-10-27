@@ -333,6 +333,46 @@ def clients(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/listing", response_class=HTMLResponse)
+def listing(request: Request) -> HTMLResponse:
+    """A listing form that says it worked only in a toast that is gone a moment later, then
+    empties itself, the way mcpserverhub.net does: once the page is still, nothing on it
+    says the form was sent. Its second button sends to an address that fails."""
+    return page(
+        "List your server",
+        """<h1>List your server</h1>
+           <form id="listing">
+             <label for="server">Server</label> <input id="server" name="server">
+             <button type="submit">List it</button>
+             <button type="button" id="broken">Send for review</button>
+           </form>
+           <div id="toasts"></div>
+           <script>
+             listing.onsubmit = async (event) => {
+               event.preventDefault();
+               const button = listing.querySelector("button");
+               button.textContent = "Loading...";
+               await fetch("/contact/send", {method: "POST"});
+               button.textContent = "List it";
+               listing.reset();
+               const toast = document.createElement("div");
+               toast.setAttribute("role", "status");
+               toast.textContent = "Thanks! Your server is in the queue.";
+               toasts.append(toast);
+               setTimeout(() => toast.remove(), 300);
+             };
+             broken.onclick = () => fetch("/listing/review", {method: "POST"});
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.post("/listing/review")
+def listing_review() -> Response:
+    """Fails the way a broken backend does, with nothing on the page to say so."""
+    return Response("upstream down", status_code=502)
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

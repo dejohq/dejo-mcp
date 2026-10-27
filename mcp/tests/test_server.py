@@ -503,3 +503,18 @@ def test_a_wrong_answer_says_how_to_replace_the_trail(mcp_server, demo_server):
     )
     again = call(mcp_server, "dejo_run", site=demo_server, task=task)
     assert "charge = ₹ 18,400" in again, again
+
+
+def test_a_toast_shown_after_a_sent_form_is_in_the_reply(mcp_server, demo_server):
+    """mcpserverhub.net: the button went "Loading...", the form emptied itself, and the toast
+    that said it worked was gone before the reply was written."""
+    task = "list my server"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/listing")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='fill label "Server" "dejo"\nclick! button "List it"',
+    )
+    assert 'the page said: "Thanks! Your server is in the queue."' in said, said

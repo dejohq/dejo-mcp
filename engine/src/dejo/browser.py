@@ -157,6 +157,46 @@ _PAGE_SHAPE = (
     "+ (document.body ? document.body.innerText.length : 0)"
 )
 
+# What a page says for a moment after something is sent: a toast, a status line, an alert.
+# mcpserverhub.net showed "Loading...", then a success toast, then emptied its form, and by
+# the time the page was still the toast was gone: the reply showed a blank form. So while a
+# `!` step settles, the page keeps the words of every such element that appears.
+MESSAGE_PLACES = (
+    "[role=status], [role=alert], [aria-live], [class*=toast i], [class*=snackbar i], "
+    "[class*=notification i], [data-sonner-toast]"
+)
+# How many messages, and how much of each, one step reports: a toast is a sentence, and a
+# page that announces a clock every second must not fill the reply.
+MESSAGES_KEPT = 5
+MESSAGE_CHARS = 200
+_WATCH_MESSAGES_JS = """
+([places, kept, chars]) => {
+  window.__dejoSaid = [];
+  if (window.__dejoWatching) return;
+  window.__dejoWatching = true;
+  const keep = (node) => {
+    const el = node.nodeType === 1 ? node : node.parentElement;
+    if (!el || !el.closest) return;
+    const box = el.closest(places) || el.querySelector(places);
+    if (!box) return;
+    const said = (box.innerText || box.textContent || "").replace(/\\s+/g, " ").trim()
+      .slice(0, chars);
+    if (!said) return;
+    // Words typed in one piece at a time arrive as "Than", then "Thanks!": keep the whole.
+    const all = window.__dejoSaid.filter((earlier) => !said.includes(earlier));
+    if (!all.some((later) => later.includes(said)) && all.length < kept) all.push(said);
+    window.__dejoSaid = all;
+  };
+  new MutationObserver((changes) => {
+    for (const change of changes) {
+      keep(change.target);
+      change.addedNodes.forEach(keep);
+    }
+  }).observe(document.documentElement, {childList: true, subtree: true, characterData: true});
+}
+"""
+_MESSAGES_SAID_JS = "() => window.__dejoSaid || []"
+
 # How much visible page text one look() may return. Enough to read a heading, an amount
 # and an error message; not so much that a caller pays for the whole page every time.
 MAX_TEXT_CHARS = 1200
@@ -1608,6 +1648,19 @@ class Browser:
             still = still + SENT_POLL_MS if (now is not None and now == shape and not busy) else 0
             shape = now
         self.settle()
+
+    def watch_for_messages(self) -> None:
+        """Start keeping what the page says for a moment (see MESSAGE_PLACES)."""
+        with suppress(PlaywrightError):
+            self.page.evaluate(_WATCH_MESSAGES_JS, [MESSAGE_PLACES, MESSAGES_KEPT, MESSAGE_CHARS])
+
+    def messages_seen(self) -> list[str]:
+        """What the page said since `watch_for_messages`. Empty when the page was replaced
+        since, and then what it says is on the new page for the view to show."""
+        try:
+            return list(self.page.evaluate(_MESSAGES_SAID_JS))
+        except PlaywrightError:
+            return []
 
     def wait_until_quiet(self, timeout_ms: int = QUIET_WAIT_MS) -> None:
         """Wait for the page to stop working, not merely to have arrived.

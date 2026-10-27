@@ -147,6 +147,8 @@ class Outcome:
     risky_steps: list[str] = field(default_factory=list)
     repaired: Step | None = None
     """The trail step this program fixed in place, as it was saved."""
+    after_sending: list[str] = field(default_factory=list)
+    """For each `!` line, what the page said while it settled, which may be gone by now."""
     js_result: str | None = None
     """What a `js` line returned, as JSON. Not an answer: it is never saved or replayed."""
     trail_total: int = 0
@@ -182,6 +184,7 @@ class Outcome:
                 " steps in the draft)."
             )
         lines.extend(self._answer_lines())
+        lines.extend(self.after_sending)
         if self.js_result is not None:
             lines.append(f"js returned: {_capped_line(self.js_result, JS_RESULT_LIMIT)}")
         if self.raw:
@@ -442,6 +445,7 @@ class Runner:
             out.js_result = _as_text(did["result"])
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
+            out.after_sending.append(_after_sending(step, did))
         self.domain = self.domain or domain_of(self.browser.page.url)
         if self.browser.page.url != was:
             self._map_this_page()
@@ -1059,6 +1063,13 @@ def _go_to(url: str) -> Step:
         value=url,
         postcondition=Postcondition("url_contains", href_path(url)),
     )
+
+
+def _after_sending(step: Action, did: dict[str, Any]) -> str:
+    """What a `!` line's page said while it settled, for the reply."""
+    said = " · ".join(f'"{message}"' for message in did.get("said") or [])
+    told = f"the page said: {said}" if said else "no message appeared"
+    return f"after line {step.line} ({_short(step)}): {told}"
 
 
 def _whole_page(element: Element | None, answer: Any) -> bool:
