@@ -303,6 +303,36 @@ def directory(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/clients", response_class=HTMLResponse)
+def clients(request: Request) -> HTMLResponse:
+    """Styled checkboxes, the two ways sites draw them: the real box under its own label
+    (agenticskills.io), and the real box hidden with only its label on show."""
+    return page(
+        "Clients",
+        """<h1>Which clients does it support?</h1>
+           <style>
+             .pick { position: relative; width: 160px; height: 24px; margin: 6px 0 }
+             .pick input { position: absolute; left: 2px; top: 4px; margin: 0 }
+             .pick label { position: absolute; inset: 0; z-index: 1; margin: 0;
+                           padding-left: 24px; color: #0a0b0c }
+           </style>
+           <form id="clients">
+             <div class="pick"><input type="checkbox" id="claude" name="claude">
+               <label for="claude">Claude Code</label></div>
+             <div class="pick"><input type="checkbox" id="cursor" name="cursor" hidden>
+               <label for="cursor">Cursor</label></div>
+           </form>
+           <p>Chosen: <span id="chosen">none</span></p>
+           <script>
+             clients.addEventListener("change", () => {
+               const on = [...clients.querySelectorAll("input:checked")].map(i => i.name);
+               chosen.textContent = on.join(", ") || "none";
+             });
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

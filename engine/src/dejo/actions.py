@@ -44,6 +44,26 @@ FALLBACK_VIEWPORT_HEIGHT = 720
 _SELECT_OPTIONS_JS = (
     "el => el.tagName === 'SELECT' ? [...el.options].map(o => [o.value, o.label]) : null"
 )
+# Is this checkbox or radio hidden, or covered where it would be clicked, by its own label
+# (or by something wrapping that label)? Then the label is the thing to click.
+_COVERED_BY_OWN_LABEL_JS = """
+el => {
+  const labels = [...(el.labels || [])];
+  const wrap = el.closest("label");
+  if (wrap && !labels.includes(wrap)) labels.push(wrap);
+  if (!labels.length) return false;
+  const style = getComputedStyle(el);
+  if (el.hidden || style.display === "none" || style.visibility === "hidden") return true;
+  el.scrollIntoView({block: "center"});
+  const box = el.getBoundingClientRect();
+  if (!box.width || !box.height) return true;
+  const top = el.ownerDocument.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+  if (!top || top === el || el.contains(top)) return false;
+  return labels.some(label => label === top || label.contains(top) || top.contains(label));
+}
+"""
+_CLICK_OWN_LABEL_JS = "el => (el.labels && el.labels[0] || el.closest('label')).click()"
+
 # Options named when the one asked for is not there: enough to see what kind of list it is.
 OPTIONS_NAMED = 30
 
@@ -415,15 +435,34 @@ def _press(page: Page, t: _T | None, value: str | None, second: _T | None) -> No
 
 
 def _check(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.check()
+    _tick(t, True)
 
 
 def _uncheck(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.uncheck()
+    _tick(t, False)
 
 
 def _set_checked(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.set_checked(_as_bool(value))
+    _tick(t, _as_bool(value))
+
+
+def _tick(t: _T, wanted: bool) -> None:
+    """Tick or untick, through the box's own label when that is what is on show.
+
+    Sites style a checkbox by laying its label over the real box, or by hiding the box and
+    drawing one in the label. Playwright then refuses: "<label> intercepts pointer events"
+    (agenticskills.io), or it waits for the hidden box to be seen. A person clicks the label,
+    and so does this. Anything else in the way is still reported as covering it."""
+    if t.evaluate(_COVERED_BY_OWN_LABEL_JS):
+        if t.is_checked() != wanted:
+            t.evaluate(_CLICK_OWN_LABEL_JS)
+        if t.is_checked() != wanted:
+            raise ActionNeedsMore(
+                "clicking this box's label did not change it. The page may draw its own box "
+                "elsewhere: look at the page and click what shows the tick."
+            )
+        return
+    t.set_checked(wanted)
 
 
 def _select(page: Page, t: _T, value: str | None, second: _T | None) -> None:

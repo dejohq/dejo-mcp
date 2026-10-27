@@ -897,3 +897,26 @@ def test_a_disabled_dropdown_says_so(browser: Browser, store: DejoStore, demo_se
     assert not outcome.ok
     assert "disabled" in outcome.reason
     assert "Timeout" not in outcome.reason
+
+
+# ------------------------------------------------------------------- styled checkboxes
+
+
+def test_a_checkbox_its_own_label_covers_is_ticked_through_the_label(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """agenticskills.io: `check` failed with "something covers it: <label ...>". The cover
+    was the checkbox's own label, which is what a person clicks."""
+    runner = runner_for(browser, store, "pick clients")
+    outcome = run(
+        runner,
+        f'go {demo_server}/clients\ncheck checkbox "Claude Code"\ncheck label "Cursor"\n'
+        'read css "#chosen" as chosen',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"chosen": "claude, cursor"}
+
+    browser.page.reload()
+    replay = Executor(store, browser).run(domain_of(demo_server), task="pick clients")
+    assert replay.ok, replay.reason
+    assert replay.answers == {"chosen": "claude, cursor"}

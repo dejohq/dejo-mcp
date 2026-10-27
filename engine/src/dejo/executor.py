@@ -78,9 +78,10 @@ HTTP_ERROR_FROM = 400
 SETTLE_AFTER_LAST_STEP_MS = 4000
 
 
-# Steps whose element need not be on show to work: a read, and a choice in a <select> a
-# site hides behind its own menu (see `actions._select`).
-_SEEN_OR_NOT = frozenset({READ_ACTION, "select"})
+# Steps whose element need not be on show to work: a read, a choice in a <select> a site
+# hides behind its own menu (see `actions._select`), and a tick in a box a site hides
+# behind its label (see `actions._tick`).
+_SEEN_OR_NOT = frozenset({READ_ACTION, "select", "check", "uncheck", "set_checked"})
 
 # Why a step that clears something away was skipped, for the event and the reply.
 NOTHING_TO_CLEAR = "it only clears something away, that was not on the page this time"
