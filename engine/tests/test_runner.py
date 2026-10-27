@@ -1224,3 +1224,19 @@ def test_a_partial_look_keeps_the_refs_of_the_whole_page_usable(
 
     assert outcome.ok, outcome.text()
     assert outcome.answers == {"panel": "Sent"}
+
+
+def test_every_look_in_a_program_is_shown_in_order(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """agenticskills.io: `look g2` then `look raw from e1591` in one call returned only the
+    raw part."""
+    runner = runner_for(browser, store, "zz")
+    run(runner, f"go {demo_server}/books\nlook")
+    title = ref_of(runner, "See America")
+
+    said = run(runner, f"look g1\nlook raw from {title}").text()
+
+    folded = said.find("g1 4 rows:")
+    raw = said.find('link "See America"')
+    assert 0 <= folded < raw, said

@@ -161,6 +161,8 @@ class Outcome:
     risky_steps: list[str] = field(default_factory=list)
     repaired: Step | None = None
     """The trail step this program fixed in place, as it was saved."""
+    looks: list[str] = field(default_factory=list)
+    """What the looks before the last line showed, in order."""
     after_sending: list[str] = field(default_factory=list)
     """For each `!` line, what the page said while it settled, which may be gone by now; and
     for any line that opened a tab, which tab."""
@@ -202,6 +204,10 @@ class Outcome:
         lines.extend(self.after_sending)
         if self.js_result is not None:
             lines.append(f"js returned: {_capped_line(self.js_result, JS_RESULT_LIMIT)}")
+        if self.looks:
+            # All the looks together stay under the one cap a reply has (see LOOK_CAP_CHARS).
+            room = LOOK_CAP_CHARS - len(self.raw or (self.view.text if self.view else ""))
+            lines.append(_capped("\n".join(self.looks), max(room, 0)))
         if self.raw:
             lines.append(self.raw)
         elif self.view is not None:
@@ -334,8 +340,12 @@ class Runner:
             try:
                 if isinstance(step, Look) and at < len(steps) - 1:
                     # Agents write "look, then read". The page is shown when the program ends
-                    # or stops anyway, so a look in the middle has nothing to add, and refusing
-                    # it cost a whole turn (real-site bench, 21-23 Oct 2026).
+                    # or stops anyway, so a plain look in the middle has nothing to add, and
+                    # refusing it cost a whole turn (real-site bench, 21-23 Oct 2026). A look
+                    # that asks for something (`look g2`, `look raw from e5`) is shown where
+                    # it stands: only the last one used to be.
+                    if step.mode != "page":
+                        outcome.looks.append(self._shown(step))
                     outcome.passed.append(step)
                     continue
                 if isinstance(step, Look):
@@ -650,6 +660,14 @@ class Runner:
             out.raw = shown
         else:
             out.view = shown
+
+    def _shown(self, step: Look) -> str:
+        """What a look in the middle of a program shows, as text."""
+        try:
+            shown = self.look(mode=step.mode, argument=step.argument)
+        except pageview.ViewError as wrong:
+            raise _Stopped(str(wrong)) from None
+        return shown if isinstance(shown, str) else shown.text
 
     # ------------------------------------------------------------------- finding
 
@@ -1282,10 +1300,10 @@ def _short(step: language.Step) -> str:
     return step.text if len(step.text) <= 80 else step.text[:79] + "…"
 
 
-def _capped(text: str) -> str:
-    if len(text) <= LOOK_CAP_CHARS:
+def _capped(text: str, limit: int = LOOK_CAP_CHARS) -> str:
+    if len(text) <= limit:
         return text
-    return text[:LOOK_CAP_CHARS] + "\n+ cut here. Use look raw from <ref> for the rest."
+    return text[:limit] + "\n+ cut here. Use look raw from <ref> for the rest."
 
 
 def _raw_from(raw: str, view: pageview.View, ref: str) -> str:
