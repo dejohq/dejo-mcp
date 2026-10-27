@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import re
 import tempfile
+from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -487,6 +488,7 @@ class Runner:
         written = len(self.session.trace)
         was = self.browser.page.url
         before = self.browser.page_state() if step.action == "evaluate" else ""
+        title = self.browser.page.title() if step.action == "evaluate" else ""
         did = self.session.act_on(
             step.reason or _intent_of(step, element),
             step.action,
@@ -500,6 +502,7 @@ class Runner:
             out.js_result = _as_text(did["result"])
             if self.browser.page_state() != before:
                 self._changed_by_code.append(_short(step))
+            self._put_the_title_back(title, out)
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
             out.after_sending.append(_after_sending(step, did))
@@ -528,6 +531,21 @@ class Runner:
                 f"the page answered HTTP {status} instead of the page",
                 "check the address; nothing on an error page is worth learning",
             )
+
+    def _put_the_title_back(self, title: str, out: Outcome) -> None:
+        """Undo a `js` line's write to the page's title.
+
+        Before `js` results were shown, agents wrote them into document.title to see them,
+        and every later reply named the page by that ("read from pre on 'B:Free=flex-1…'",
+        launchit.site). What a `js` line returns is shown now, so the title is the page's."""
+        if self.browser.page.title() == title:
+            return
+        with suppress(PlaywrightError):
+            self.browser.page.evaluate("(title) => { document.title = title; }", title)
+        out.after_sending.append(
+            "the js line changed the page's title; its own title was put back. What js "
+            "returns is shown in the reply, so nothing needs writing to the title"
+        )
 
     def _wait_to_appear(self, target: language.Target) -> None:
         """Wait up to the usual timeout for what a `wait` line names, before it is looked up.

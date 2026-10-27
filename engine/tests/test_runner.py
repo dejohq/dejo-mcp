@@ -1365,3 +1365,19 @@ def test_a_nameless_button_is_saved_by_the_words_beside_it(
     replay = Executor(store, browser).run(domain_of(demo_server), task="drop a category")
     assert replay.ok, replay.reason
     assert "AI agents" not in replay.answers["left"]
+
+
+def test_a_title_a_js_line_wrote_does_not_name_the_page_after(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: a `js` line wrote its result into document.title, the old way to see
+    it, and later replies named the page by it ("read from pre on 'B:Free=flex-1…'")."""
+    runner = runner_for(browser, store, "the headline")
+    run(runner, f"go {demo_server}/news")
+    wrote = run(runner, "js \"() => { document.title = 'B:Free=flex-1'; return 5; }\"")
+    assert "js returned: 5" in wrote.text()
+    assert "title" in wrote.text() and "put back" in wrote.text()
+
+    outcome = run(runner, 'read css "#headline" as headline')
+
+    assert 'on "News · Acme Billing"' in outcome.text(), outcome.text()
