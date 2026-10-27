@@ -615,8 +615,12 @@ def _words(branch: _Branch) -> str:
         # no content and only a name is a `title` on an empty box: Wikipedia's citation
         # metadata (`ctx_ver=Z39.88-2004&rft...`, hundreds of chars each) reads like this.
         return ""
-    if not node.trailing and node.name:
+    if node.name and (not node.trailing or node.role in _TYPED_ROLES):
+        # What a field holds is never words of the page: a row holding a password box would
+        # otherwise carry the password in its words.
         return node.name
+    if node.role in _TYPED_ROLES:
+        return ""
     parts = [node.trailing] if node.trailing else []
     parts += [_words(kid) for kid in branch.children]
     return " ".join(part for part in parts if part)

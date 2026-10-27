@@ -1,7 +1,7 @@
 page "Search Results for 'yaml' - crates.io: Rust Package Registry" https://crates.io/search?q=yaml
-best for "open first crate search results go next page": e359 link "next page" · e24 h1 "Search Results for 'yaml'" · e27: Displaying 1-10 of 10292 total results · e371 link "The crates.io team" · e402 link "GitHub: rust-lang/crates.io" · e406 link "Zulip: #t-crates-io" · e9 textbox "Search" · e10 button "Search" · e131: Temp copy for serde_yaml_bw until version 2.5.3 is on crates… · e342 link "1" · e344 link "2" · e346 link "3" · e348 link "4" · e350 link "5" · e352 link "6"
+best for "open first crate search results go next page": e359 link "next page" · e24 h1 "Search Results for 'yaml'" · e27: Displaying 1-10 of 10292 total results · e371 link "The crates.io team" · e402 link "GitHub: rust-lang/crates.io" · e406 link "Zulip: #t-crates-io" · e9 textbox "Search" [filled] · e10 button "Search" · e131: Temp copy for serde_yaml_bw until version 2.5.3 is on crates… · e342 link "1" · e344 link "2" · e346 link "3" · e348 link "4" · e350 link "5" · e352 link "6"
 e5 link
-e9 textbox "Search"
+e9 textbox "Search" [filled]
 e10 button "Search"
 e16 button "Change color scheme. Current: system"
 e19 button "Log in with GitHub"

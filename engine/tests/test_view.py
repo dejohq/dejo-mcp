@@ -444,3 +444,47 @@ def test_no_best_block_when_everything_fits() -> None:
 @pytest.mark.parametrize("page", list(PAGES))
 def test_the_same_page_reads_the_same_every_time(page: str) -> None:
     assert look(page).text == look(page).text
+
+
+# ---------------------------------------------------------------------- filled fields
+
+# What Playwright prints for fields that hold text. A field with a placeholder puts its value
+# on a `text:` line of its own, under the placeholder, not after its name.
+FILLED_FIELDS = """\
+- generic [ref=e1]:
+  - textbox "Website" [ref=e2]: https://dejo.run
+  - textbox "Email address" [ref=e3]:
+    - /placeholder: you@example.com
+    - text: rohit@example.com
+  - textbox "Tagline" [ref=e4]:
+    - /placeholder: One line about it
+  - row [ref=e5]:
+    - cell "Password" [ref=e7]
+    - cell [ref=e8]:
+      - textbox "Password" [ref=e6]:
+        - /placeholder: Your password
+        - text: hunter2
+"""
+
+
+def test_a_field_with_a_placeholder_shows_it_is_filled() -> None:
+    """mcpmarket.com, startupfa.me, dang.ai: the email box next to a [filled] URL box showed
+    nothing, and an agent took the field for empty and filled it again."""
+    shown = view.render(FILLED_FIELDS, url="https://example.com/", title="Submit").text
+
+    assert 'e2 "Website" [filled]' in shown
+    assert 'e3 "Email address" [filled]' in shown
+    assert 'e4 "Tagline"\n' in shown, "an empty field is not filled"
+    assert 'e6 textbox "Password" [filled]' in shown
+    for typed in ("rohit@example.com", "hunter2", "dejo.run"):
+        assert typed not in shown, f"{typed} was printed"
+
+
+def test_what_a_field_holds_never_joins_the_words_around_it() -> None:
+    """A row with no words of its own stands for the words inside it, and is printed with
+    them in the "best for" block, which shows when the budget cut something."""
+    page = view.render(
+        FILLED_FIELDS, url="https://example.com/", title="Submit", focus="password", budget=40
+    )
+    assert "best for" in page.text
+    assert "hunter2" not in page.text

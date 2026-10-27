@@ -362,6 +362,14 @@ def lines(snapshot: str) -> list[Node]:
         attrs = _attributes(match.group("attrs") or "")
         ref = attrs.get("ref", "")
         role = match.group("role")
+        owner = open_[-1] if open_ else None
+        if role == "text" and not ref and owner is not None and owner.role in TYPED_ROLES:
+            # A field with a placeholder holds its value on a line of its own, under the
+            # placeholder: `textbox "Email" [ref=e4]:` then `- text: me@x.com`. Read as the
+            # field's own text, the way a field without one prints it, so it is marked
+            # filled and its value is never printed (mcpmarket.com, startupfa.me, dang.ai).
+            owner.trailing = owner.trailing or _plain((match.group("text") or "").strip())
+            continue
         frame_ref, frame_index = (frames[-1][1], frames[-1][2]) if frames else ("", 0)
         node = Node(
             aria_ref=ref,
