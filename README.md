@@ -351,6 +351,11 @@ window, so `dejo login` cannot work over plain SSH or in a container. Sign in on
 a desktop and copy `~/.dejo/browser-profile` across, or forward a display with `ssh -X`.
 Normal runs are headless and unaffected.
 
+**"The browser profile ... is in use by another Dejo session."** A profile can be open in one
+browser at a time, and another Dejo run (another agent, another terminal) has it. The message
+names that session's process. Close it, or work in another profile (`dejo_profile` with a new
+name, or `dejo --profile <name>`).
+
 **"Dejo could not open its browser profile."** Another Dejo run or sign-in window still has
 it open, or the profile is in a state no browser accepts. Close any other run first. If that
 was not it, deleting `~/.dejo/browser-profile` fixes it, at the cost of signing you out.
