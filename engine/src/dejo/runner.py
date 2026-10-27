@@ -161,6 +161,8 @@ class Outcome:
     risky_steps: list[str] = field(default_factory=list)
     repaired: Step | None = None
     """The trail step this program fixed in place, as it was saved."""
+    unsaved: str = ""
+    """Why steps that would have made a trail were kept only as a draft."""
     looks: list[str] = field(default_factory=list)
     """What the looks before the last line showed, in order."""
     after_sending: list[str] = field(default_factory=list)
@@ -200,6 +202,8 @@ class Outcome:
                 f"done: {len(self.passed)} lines. Nothing saved yet ({self.kept_in_draft}"
                 " steps in the draft)."
             )
+            if self.unsaved:
+                lines.append(self.unsaved)
         lines.extend(self._answer_lines())
         lines.extend(self.after_sending)
         if self.js_result is not None:
@@ -287,6 +291,8 @@ class Runner:
         gives its check to."""
         self._broken: _Broken | None = None
         """Set while a replay that broke waits for its fix. See `fix_from`."""
+        self._changed_by_code: list[str] = []
+        """The `js` lines that changed the page since the trail began. See `_code_in_the_way`."""
 
     # ------------------------------------------------------------------- looking
 
@@ -372,7 +378,10 @@ class Runner:
         if fixing is not None and outcome.ok:
             self._repair(fixing, outcome)
         elif outcome.ok and (read_something or downloaded or done) and self._has_steps():
-            self._save(outcome)
+            if self._changed_by_code:
+                self._code_in_the_way(outcome)
+            else:
+                self._save(outcome)
         else:
             outcome.kept_in_draft = self._write_draft()
             if outcome.ok and outcome.view is None and not outcome.raw:
@@ -467,6 +476,7 @@ class Runner:
             self._refuse_unmarked_risk(step, element)
         written = len(self.session.trace)
         was = self.browser.page.url
+        before = self.browser.page_state() if step.action == "evaluate" else ""
         did = self.session.act_on(
             step.reason or _intent_of(step, element),
             step.action,
@@ -478,6 +488,8 @@ class Runner:
         self._last_entry = self.session.trace[-1] if len(self.session.trace) > written else None
         if step.action == "evaluate":
             out.js_result = _as_text(did["result"])
+            if self.browser.page_state() != before:
+                self._changed_by_code.append(_short(step))
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
             out.after_sending.append(_after_sending(step, did))
@@ -939,6 +951,7 @@ class Runner:
 
     def _save(self, out: Outcome) -> None:
         self._broken = None
+        self._changed_by_code = []
         steps, dropped = self._steps()
         playbook = Playbook(domain=self.domain, task=self.task, steps=steps)
         if self.store is not None:
@@ -959,6 +972,25 @@ class Runner:
                 "same name: it replaces this one."
             )
 
+    def _code_in_the_way(self, out: Outcome) -> None:
+        """Keep the steps as a draft and say why they are not a trail.
+
+        A `js` line is never part of a trail: code cannot be checked or repaired when the
+        site changes. When one changed the page, a trail saved without it would replay up to
+        where that change was needed and stop there (launchit.site: Python was set only by
+        `js`, and the saved trail would have stopped at a disabled Continue)."""
+        out.kept_in_draft = self._write_draft()
+        lines = " · ".join(self._changed_by_code)
+        out.unsaved = (
+            f"not saved: the page was changed by code ({lines}), and a trail cannot replay "
+            "code, so every replay would stop where that change was needed."
+        )
+        out.next_step = (
+            "do that change with steps Dejo can replay (fill, select, check, click), starting "
+            "with restart if the order matters. If only code can do it, tell the user this "
+            "task cannot be saved, and report the answer above"
+        )
+
     def _write_draft(self) -> int:
         if self.store is None or not self.domain or not self._has_steps():
             return 0
@@ -970,6 +1002,7 @@ class Runner:
 
     def _start_over(self) -> None:
         self._kept = []
+        self._changed_by_code = []
         if self.store is not None and self.domain:
             self.store.drop_draft(self.domain, self.task)
 

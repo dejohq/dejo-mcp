@@ -284,6 +284,17 @@ el => {
 }
 """
 
+# See `Browser.page_state`.
+_PAGE_STATE_JS = """
+() => {
+  const fields = [...document.querySelectorAll("input, select, textarea")].map(
+    (field) => (["checkbox", "radio"].includes(field.type) ? field.checked : field.value)
+  );
+  const words = document.body ? document.body.innerText.length : 0;
+  return `${document.querySelectorAll("*").length}:${words}:${JSON.stringify(fields)}`;
+}
+"""
+
 # How much visible page text one look() may return. Enough to read a heading, an amount
 # and an error message; not so much that a caller pays for the whole page every time.
 MAX_TEXT_CHARS = 1200
@@ -1946,6 +1957,14 @@ class Browser:
             if name:
                 named[aria_ref] = name
         return named
+
+    def page_state(self) -> str:
+        """What the page holds, in short: how many elements, how many words, and what every
+        field holds. Two equal answers mean nothing on the page was changed in between."""
+        try:
+            return str(self.page.evaluate(_PAGE_STATE_JS))
+        except PlaywrightError:
+            return ""
 
     def watch_for_messages(self) -> None:
         """Start keeping what the page says for a moment (see MESSAGE_PLACES), and every

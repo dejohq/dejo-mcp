@@ -1305,3 +1305,40 @@ def test_select_says_which_options_a_combobox_offered(
     )
     assert not outcome.ok
     assert '"JavaScript", "TypeScript"' in outcome.reason
+
+
+# ------------------------------------------------------------------- js and the trail
+
+SETS_CATEGORY = (
+    "js \"() => { const box = document.querySelector('#category'); box.value = 'ai'; "
+    "box.dispatchEvent(new Event('change')); }\""
+)
+
+
+def test_a_trail_that_needed_a_js_change_is_not_saved_without_saying_why(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: Python was set only by a `js` line, the saved trail had no such step,
+    and a replay would have stopped at a disabled Continue."""
+    runner = runner_for(browser, store, "list a tool")
+    run(runner, f"go {demo_server}/directory")
+    run(runner, SETS_CATEGORY)
+
+    outcome = run(runner, 'read css "#picked" as category')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.saved is None
+    assert store.load_playbook(domain_of(demo_server), "list a tool") is None
+    assert "not saved" in outcome.text() and "js" in outcome.text()
+
+
+def test_a_js_line_that_only_reads_does_not_stop_the_save(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    runner = runner_for(browser, store, "the headline")
+    run(runner, f"go {demo_server}/news")
+    run(runner, 'js "() => document.title"')
+
+    outcome = run(runner, 'read css "#headline" as headline')
+
+    assert outcome.saved is not None, outcome.text()
