@@ -1206,3 +1206,21 @@ def test_an_open_modal_dialog_is_shown_first(
     assert lines[1].startswith("a dialog is open over the page"), shown.text[:300]
     assert re.match(r'e\d+ dialog "Go premium"', lines[2])
     assert 'button "No thanks"' in "\n".join(lines[:6])
+
+
+def test_a_partial_look_keeps_the_refs_of_the_whole_page_usable(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: after `look from e826`, e114 from the full view, still on the page, was
+    refused as "not in the latest view"."""
+    runner = runner_for(browser, store, "zz")
+    run(runner, f"go {demo_server}/launch\nlook")
+    send = ref_of(runner, "Send")
+    later = ref_of(runner, "Delete launch")
+    partial = run(runner, f"look from {later}").view
+    assert partial is not None and f"{send} " not in partial.text
+
+    outcome = run(runner, f'click! {send}\nread css "#panel" as panel')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"panel": "Sent"}
