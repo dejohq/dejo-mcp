@@ -708,7 +708,7 @@ class Runner:
                 f"{target.value} is from the page before an earlier line moved to a new page",
                 "use the refs below, or a role, text or css target",
             )
-        shown = self._view.targets.get(target.value) or self._view.known.get(target.value)
+        shown = self._view.find(target.value)
         if shown is None:
             raise _Stopped(f"there is no {target.value} on this page", "use a ref below")
         element = self._controls.get(shown.aria_ref) or Element(
@@ -1312,7 +1312,7 @@ def _raw_from(raw: str, view: pageview.View, ref: str) -> str:
 
     It used to run to the end of the page: from a form's first field on mcpserver.dev that
     was the whole footer, about 200 lines, when only the form was wanted."""
-    shown = view.targets.get(ref) or view.known.get(ref)
+    shown = view.find(ref)
     if shown is None:
         raise pageview.ViewError(f"there is no {ref} on this page")
     lines = raw.splitlines()

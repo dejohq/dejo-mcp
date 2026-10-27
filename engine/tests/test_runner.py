@@ -1258,3 +1258,20 @@ def test_an_invisible_captcha_badge_is_not_a_human_check(
 def test_a_captcha_a_person_must_tick_still_counts(browser: Browser, demo_server: str) -> None:
     browser.goto(f"{demo_server}/verify")
     assert browser.captcha_on_page() is not None
+
+
+def test_a_ref_as_look_raw_prints_it_can_be_used(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: `look raw` printed f155e826, and `click f155e826` was refused; only
+    e826 worked. After a page has moved, Playwright puts its document number on every ref."""
+    runner = runner_for(browser, store, "zz")
+    run(runner, f'go {demo_server}/books\nclick link "See America"\nback')
+    raw = run(runner, "look raw").raw
+    found = re.search(r'link "Vagabonding" \[ref=(f\d+e\d+)\]', raw)
+    assert found is not None, raw[:400]
+
+    outcome = run(runner, f'click {found.group(1)}\nread css "#title" as title')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"title": "Vagabonding"}

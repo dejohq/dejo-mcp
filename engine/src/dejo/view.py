@@ -269,6 +269,15 @@ class View:
     the refs `look raw` shows. A ref the page has is a ref an agent may use (agenticskills.io:
     a folded row's ref was refused while the page plainly had it)."""
 
+    def find(self, ref: str) -> Target | None:
+        """What a ref points at: one this view printed, any of the page's, or Playwright's
+        own spelling of one. `look raw` prints Playwright's (`f155e826`, once the page has
+        moved), and launchit.site refused it while `e826` worked."""
+        found = self.targets.get(ref) or self.known.get(ref)
+        if found is not None:
+            return found
+        return next((target for target in self.known.values() if target.aria_ref == ref), None)
+
 
 @dataclass
 class _Branch:
