@@ -298,9 +298,17 @@ RISKY_WORDS = (
 # "Publish" tab was refused as risky, and pressing it only showed the Publish panel.
 SWITCHES_VIEW = frozenset({"tab", "option"})
 
+# Taking a chip out of a form that has not been sent deletes nothing: launchit.site's
+# "Remove javascript" tag needed its own `click!` call, one per chip. Only "remove", and
+# only on a control that does not send the form and sits with its fields: within this many
+# levels up of a field, which is how far a tag input's chips sit from its text box. A
+# table row's "Remove" has no field that close, and stays risky.
+REMOVES_FROM_FORM = "remove"
+FIELD_REACH = 3
+
 # What one element would do if pressed: its words, and whether it submits a form and how.
 _RISK_JS = """
-(el) => {
+(el, reach) => {
   const words = [el.innerText, el.value, el.getAttribute("aria-label"), el.title]
     .filter(Boolean).join(" ").toLowerCase();
   const form = el.form || el.closest("form");
@@ -317,8 +325,16 @@ _RISK_JS = """
   // Rails and Turbo send a link as a DELETE or a POST when it says so.
   const linkMethod = (el.getAttribute("data-method") || el.getAttribute("data-turbo-method")
     || "get").toLowerCase();
+  // A form being filled in, as a chip's "x" sees it: inside a <form>, or a few levels
+  // below a box that also holds a field. Many React forms have no <form> at all.
+  let near = el.parentElement;
+  let inFields = !!form;
+  for (let level = 0; !inFields && near && level < reach; level++) {
+    inFields = !!near.querySelector("input:not([type=hidden]), textarea, select");
+    near = near.parentElement;
+  }
   return {
-    words, submits, method, signsIn, role, linkMethod,
+    words, submits, method, signsIn, role, linkMethod, inFields,
     field: !!form && (tag === "INPUT" || tag === "TEXTAREA"),
   };
 }
@@ -1276,7 +1292,7 @@ class Browser:
         POSTs. Calling it risky would stop every learning run at the login and cost a turn;
         an order, a message or a delete has no password field in its form."""
         try:
-            seen = target.evaluate(_RISK_JS)
+            seen = target.evaluate(_RISK_JS, FIELD_REACH)
         except PlaywrightError:
             return None
         if seen["submits"] or (pressing_enter and seen["field"]):
@@ -1294,6 +1310,8 @@ class Browser:
         words = f" {' '.join(seen['words'].split())} "
         for risky in RISKY_WORDS:
             if f" {risky} " in words or words.strip() == risky:
+                if risky == REMOVES_FROM_FORM and seen["inFields"]:
+                    return None
                 return f'is "{risky}"'
         return None
 

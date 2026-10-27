@@ -850,3 +850,18 @@ def test_a_tab_named_publish_only_switches_the_view(
     """lobehub.com/mcp: `click tab "Publish"` was refused as risky. A tab shows a panel."""
     assert _refused(browser, store, demo_server, 'click tab "Publish"') == ""
     assert browser.page.locator("#panel").inner_text() == "Publish view"
+
+
+def test_removing_a_tag_chip_from_an_unsent_form_is_not_risky(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: each "Remove javascript" chip needed its own `click!` call."""
+    assert _refused(browser, store, demo_server, 'click button "Remove javascript"') == ""
+    assert browser.page.locator("#chip-js").count() == 0
+
+
+def test_removing_a_row_outside_any_form_is_still_risky(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    said = _refused(browser, store, demo_server, 'click button "Remove"')
+    assert 'is "remove"' in said
