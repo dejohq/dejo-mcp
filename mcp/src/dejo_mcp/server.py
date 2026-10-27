@@ -612,6 +612,11 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
     ]
     if task != ran:
         lines.append(f'you asked for "{task}"; this is the trail "{ran}", the same job.')
+    if result.skipped:
+        lines.append(
+            f"skipped {', '.join(result.skipped)}: it only clears something away (like a "
+            "cookie banner), and that was not on the page this time."
+        )
     lines.extend(f"{name} = {value}" for name, value in result.answers.items())
     lines.extend(f"saved file: {path}" for path in result.saved_files)
     if playbook is not None:

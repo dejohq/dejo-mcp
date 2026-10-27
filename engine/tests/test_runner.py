@@ -13,6 +13,7 @@ from tests.demo_site.app import ORDERS
 from dejo import program
 from dejo.browser import Browser, domain_of
 from dejo.executor import Executor
+from dejo.models import Locator
 from dejo.operations import Session, TraceEntry
 from dejo.runner import Outcome, Runner, drop_detours
 from dejo.snapshot import Element
@@ -762,3 +763,60 @@ def test_a_field_typed_again_after_moving_on_is_kept() -> None:
     ]
     kept, _ = drop_detours(trace)
     assert len(kept) == 3
+
+
+# ------------------------------------------------------------------- a banner seen once
+
+
+def _learn_past_the_banner(browser: Browser, store: DejoStore, demo_server: str) -> None:
+    outcome = run(
+        runner_for(browser, store, "the headline"),
+        f'go {demo_server}/news\nclick button "Accept cookies"\nread css "#headline" as headline',
+    )
+    assert outcome.ok, outcome.text()
+
+
+def test_a_banner_shown_again_is_cleared_again(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """The click removes its own button, so "the button is still there" could never hold."""
+    _learn_past_the_banner(browser, store, demo_server)
+    browser._context.clear_cookies()  # a new visitor: the banner is back
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the headline")
+
+    assert replay.ok, replay.reason
+    assert replay.skipped == []
+    assert replay.answers == {"headline": "Rates hold for September"}
+
+
+def test_a_banner_not_shown_is_skipped_and_not_called_drift(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Bench T07: the banner was accepted once, so every later replay broke at its click."""
+    _learn_past_the_banner(browser, store, demo_server)
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the headline")
+
+    assert replay.ok, replay.reason
+    assert replay.skipped == ['step 2 (click button "Accept cookies")']
+    assert replay.answers == {"headline": "Rates hold for September"}
+    saved = store.load_playbook(domain_of(demo_server), "the headline")
+    assert saved is not None
+    assert all(locator.misses == 0 for locator in saved.steps[1].locators)
+
+
+def test_a_missing_click_the_next_step_needs_still_breaks(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Skipping is only for a step the trail can do without."""
+    _learn_past_the_banner(browser, store, demo_server)
+    trail = store.load_playbook(domain_of(demo_server), "the headline")
+    assert trail is not None
+    trail.steps[2].locators = [Locator("css", "#not-there")]
+    store.save_playbook(trail)
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the headline")
+
+    assert not replay.ok
+    assert replay.repair is not None and replay.repair.step_index == 2

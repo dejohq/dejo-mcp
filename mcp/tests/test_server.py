@@ -460,3 +460,23 @@ def test_a_sent_form_is_shown_after_the_site_answers(mcp_server, demo_server):
     )
     assert "Note sent. Thank you!" in said, said
     assert "Sending..." not in said
+
+
+def test_a_cookie_banner_not_shown_again_does_not_break_the_replay(mcp_server, demo_server):
+    """Bench T07: the banner was accepted while learning, so the very next replay broke at
+    the click that cleared it."""
+    task = "read the headline"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/news")
+    call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click button "Accept cookies"\nread css "#headline" as headline',
+    )
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/news")
+
+    assert said.startswith('done: "read the headline"'), said
+    assert "headline = Rates hold for September" in said
+    assert 'skipped step 2 (click button "Accept cookies")' in said

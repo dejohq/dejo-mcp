@@ -70,6 +70,8 @@ def render(event: Event) -> None:
             f"  {TICK} step {data['index']}  {data['intent']}"
             f"   [{data['matched_by']}]  {data['duration_ms']}ms"
         )
+    elif kind == "step_skipped":
+        print(f"  {DOT} step {data['index']}  {data['intent']}  — skipped: {data['reason']}")
     elif kind == "drift_detected":
         print(f"  {DOT}   drift: {data['locator']} no longer matches")
     elif kind == "step_failed":

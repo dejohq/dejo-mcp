@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from urllib.parse import parse_qsl, urlencode, urlparse
 
+from .actions import PRESSES
 from .models import Locator, Playbook, Postcondition, Step, href_path
 from .operations import READ_ACTION, TraceEntry
 
@@ -37,6 +38,7 @@ def distill(trace: list[TraceEntry], *, domain: str, task: str) -> Playbook:
             dialog_message=(entry.dialog or {}).get("message"),
             dialog_choice=(entry.dialog or {}).get("choice"),
             risky=entry.risky,
+            clears_away=clears_away(entry),
         )
         for position, entry in enumerate(trace, start=1)
     ]
@@ -79,6 +81,11 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
     if entry.text_gained:
         return Postcondition("text_present", entry.text_gained)
 
+    if entry.left == "removed" and entry.element is not None:
+        # The press took its own element away, so "it is still there" would fail on every
+        # replay that pressed it. That it is gone is the proof the press landed.
+        return Postcondition("element_gone", entry.element.css)
+
     if entry.element is not None:
         return Postcondition("element_present", entry.element.css)
 
@@ -106,6 +113,23 @@ def _landing(entry: TraceEntry) -> str:
         if was.get(key) != value
     ]
     return f"{landed}?{urlencode(changed)}" if changed else landed
+
+
+def clears_away(entry: TraceEntry) -> bool:
+    """Did this press only take its own element off the page? See `Step.clears_away`.
+
+    Never for a step the agent marked risky or gave its own check: both say the step
+    matters, and a step that matters is never skipped."""
+    return (
+        entry.action in PRESSES
+        and entry.left != ""
+        and not entry.navigated
+        and not entry.text_gained
+        and not entry.download
+        and entry.dialog is None
+        and entry.expect is None
+        and not entry.risky
+    )
 
 
 def locators_for(entry: TraceEntry) -> list[Locator]:

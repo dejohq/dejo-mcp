@@ -224,6 +224,24 @@ async def contact_send() -> Response:
     return Response(status_code=204)
 
 
+@app.get("/news", response_class=HTMLResponse)
+def news(request: Request) -> HTMLResponse:
+    """A cookie banner shown until it is accepted once, as on most real sites: the click that
+    clears it is needed on the first visit and finds nothing on every visit after."""
+    banner = (
+        ""
+        if request.cookies.get("cookies") == "ok"
+        else """<div id="consent"><p>We use cookies.</p>
+             <button onclick="document.cookie = 'cookies=ok; path=/'; consent.remove()">
+               Accept cookies</button></div>"""
+    )
+    return page(
+        "News",
+        f'{banner}<h1>News</h1><p id="headline">Rates hold for September</p>',
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

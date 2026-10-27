@@ -106,6 +106,11 @@ class TraceEntry:
     `distill` would infer, and it was proven true when the step ran."""
     risky: bool = False
     """Marked with `!`: the agent says this step buys, pays, sends, deletes or submits."""
+    left: str = ""
+    """What became of the element this step pressed, when the page stayed where it was:
+    "removed" from the page, "hidden" on it, or "" when it is still on show. A cookie
+    banner's button leaves this way, and its check has to say so: "the button is still
+    there" failed on every replay that pressed it."""
     at: str = field(default_factory=utc_now)
 
     @property
@@ -240,6 +245,7 @@ class Session:
         secret = secret_name(element) if action in _TEXT_ENTRY else None
 
         text_after = self.browser.text()
+        left = self._what_became_of(element, action, url_before)
 
         # Catch stragglers LAST, immediately before the entry is written. The download
         # event can arrive after the click returns, and reading the page takes long enough
@@ -261,6 +267,7 @@ class Session:
             expect=expect,
             risky=risky,
             locators=lasting,
+            left=left,
         )
         # An action that changes nothing is not a step. Replaying `highlight` would draw a
         # box for nobody and then have its postcondition checked anyway.
@@ -286,6 +293,22 @@ class Session:
                 else None
             ),
         }
+
+    def _what_became_of(self, element: Element | None, action: Action, url_before: str) -> str:
+        """Did a press take its own element off the page? See `TraceEntry.left`."""
+        if action not in actions.PRESSES or element is None or not element.css:
+            return ""
+        if self.browser.page.url != url_before:
+            return ""
+        try:
+            matched = self.browser.matches(Locator("css", element.css, frame=element.frame))
+            if matched is None:
+                return ""
+            if matched.count() == 0:
+                return "removed"
+            return "" if matched.first.is_visible() else "hidden"
+        except PlaywrightError:
+            return ""
 
     def _spec(self, action: Action) -> actions.ActionSpec:
         try:

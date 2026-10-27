@@ -35,6 +35,7 @@ from playwright.sync_api import Error as PlaywrightError
 
 from . import program as language
 from . import view as pageview
+from .actions import PRESSES
 from .browser import NoSuchElement, domain_of
 from .distill import distill, locators_for, postcondition_for
 from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, href_path, utc_now
@@ -78,10 +79,6 @@ RISKY_MEMORY = timedelta(minutes=15)
 # attribute and value together (see `models.Locator`), so it is handled where it is built.
 _LOCATOR_KIND = {"text": "text", "label": "label", "placeholder": "placeholder", "alt": "alt"}
 _LOCATOR_KIND |= {"title": "title", "css": "css"}
-
-# Actions that press something, so they can buy, send or delete. The rest only move,
-# type or look.
-PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event"})
 
 # Locator kinds made of an element's own words. Only these can contain the value being
 # read; a css path's numbers are positions, not values.

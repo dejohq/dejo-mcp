@@ -348,6 +348,12 @@ class Step:
     Replay still runs it, since the user asked for the task, but every reply names it so
     nobody is surprised, and nothing ever runs it twice on its own after a later step fails."""
 
+    clears_away: bool = False
+    """When learned, this press only took its own element off the page: the address and the
+    words stayed as they were. A cookie banner's "Accept" is the usual one. On a visit where
+    the banner is not shown at all there is nothing to clear, so a replay that finds nothing
+    for this step skips it, as long as the next step can go ahead without it (bench T07)."""
+
     hits: int = 0
     misses: int = 0
     """This step's own record, used only when it has no locators to speak for it.
@@ -435,6 +441,7 @@ class Step:
             "dialog_message": self.dialog_message,
             "dialog_choice": self.dialog_choice,
             "risky": self.risky,
+            "clears_away": self.clears_away,
             "health": round(self.health, 3),
         }
 
@@ -456,6 +463,7 @@ class Step:
             dialog_message=raw.get("dialog_message"),
             dialog_choice=raw.get("dialog_choice"),
             risky=raw.get("risky", False),
+            clears_away=raw.get("clears_away", False),
         )
 
 

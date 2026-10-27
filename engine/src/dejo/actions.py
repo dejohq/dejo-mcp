@@ -47,6 +47,10 @@ _SELECT_OPTIONS_JS = (
 # Options named when the one asked for is not there: enough to see what kind of list it is.
 OPTIONS_NAMED = 30
 
+# Actions that press something, so they can buy, send or delete. The rest only move, type
+# or look.
+PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event"})
+
 # Resolves once the browser has drawn twice, which is when a scroll has been committed.
 _TWO_FRAMES = "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
 
