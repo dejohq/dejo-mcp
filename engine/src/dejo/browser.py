@@ -294,6 +294,10 @@ RISKY_WORDS = (
     "donate",
 )
 
+# Roles that only change what the page shows, whatever they are called: lobehub.com's
+# "Publish" tab was refused as risky, and pressing it only showed the Publish panel.
+SWITCHES_VIEW = frozenset({"tab", "option"})
+
 # What one element would do if pressed: its words, and whether it submits a form and how.
 _RISK_JS = """
 (el) => {
@@ -1284,6 +1288,8 @@ class Browser:
         if seen["role"] == "link" and seen["linkMethod"] == "get":
             # A link only opens a page. mcpmarket.com's footer link to /submit was refused as
             # risky; the submit of a POST form is a button, and the rule above has it.
+            return None
+        if seen["role"] in SWITCHES_VIEW:
             return None
         words = f" {' '.join(seen['words'].split())} "
         for risky in RISKY_WORDS:

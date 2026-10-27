@@ -842,3 +842,11 @@ def test_a_link_that_deletes_and_a_button_that_sends_are_still_risky(
     deletes = _refused(browser, store, demo_server, 'click link "Delete launch"')
     assert 'is "delete"' in deletes
     assert 'is "send"' in _refused(browser, store, demo_server, 'click button "Send"')
+
+
+def test_a_tab_named_publish_only_switches_the_view(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """lobehub.com/mcp: `click tab "Publish"` was refused as risky. A tab shows a panel."""
+    assert _refused(browser, store, demo_server, 'click tab "Publish"') == ""
+    assert browser.page.locator("#panel").inner_text() == "Publish view"
