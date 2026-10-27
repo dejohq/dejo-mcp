@@ -78,6 +78,10 @@ HTTP_ERROR_FROM = 400
 SETTLE_AFTER_LAST_STEP_MS = 4000
 
 
+# Steps whose element need not be on show to work: a read, and a choice in a <select> a
+# site hides behind its own menu (see `actions._select`).
+_SEEN_OR_NOT = frozenset({READ_ACTION, "select"})
+
 # Why a step that clears something away was skipped, for the event and the reply.
 NOTHING_TO_CLEAR = "it only clears something away, that was not on the page this time"
 
@@ -988,8 +992,9 @@ class Executor:
             outcome.tried.append(label)
 
             # A read only needs the element to BE there. Insisting it be visible is what
-            # made a hidden heading unreplayable on a page it had been recorded from.
-            target = self.browser.resolve(locator, visible=step.action != READ_ACTION)
+            # made a hidden heading unreplayable on a page it had been recorded from. The
+            # same goes for a hidden <select>.
+            target = self.browser.resolve(locator, visible=step.action not in _SEEN_OR_NOT)
             if target is None:
                 missed.append((locator, label))
                 continue

@@ -865,3 +865,35 @@ def test_removing_a_row_outside_any_form_is_still_risky(
 ) -> None:
     said = _refused(browser, store, demo_server, 'click button "Remove"')
     assert 'is "remove"' in said
+
+
+# ------------------------------------------------------------------- dropdowns
+
+
+def test_a_hidden_dropdown_behind_the_sites_own_menu_is_chosen_from(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """fewservers.com: `select` on the Category dropdown timed out, by its words and by its
+    label, while a `js` line that set the value worked. The real <select> was hidden behind
+    the site's own menu, and Playwright waited for it to be seen."""
+    runner = runner_for(browser, store, "list a tool")
+    outcome = run(
+        runner,
+        f'go {demo_server}/directory\nselect label "Category" "AI agents"\n'
+        'read css "#picked" as category',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"category": "AI agents"}
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="list a tool")
+    assert replay.ok, replay.reason
+
+
+def test_a_disabled_dropdown_says_so(browser: Browser, store: DejoStore, demo_server: str) -> None:
+    outcome = run(
+        runner_for(browser, store, "pick a region"),
+        f'go {demo_server}/directory\nselect css "#region" "Asia"',
+    )
+    assert not outcome.ok
+    assert "disabled" in outcome.reason
+    assert "Timeout" not in outcome.reason

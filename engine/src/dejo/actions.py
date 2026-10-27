@@ -439,7 +439,19 @@ def _select(page: Page, t: _T, value: str | None, second: _T | None) -> None:
             "custom dropdown built out of a button and a list — click the button, then "
             "look at the page again and click the option you want."
         )
-    t.select_option(**_select_options(value or "", options))
+    if not t.is_enabled():
+        # Playwright waits its whole timeout for a disabled dropdown to become usable, and
+        # then says only "Timeout 15000ms exceeded".
+        raise ActionNeedsMore(
+            "this dropdown is disabled, so nothing can be chosen in it yet. Something else on "
+            "the page usually has to be done first: look at the page for what."
+        )
+    chosen = _select_options(value or "", options)
+    # Choices.js, nice-select and many sites hide the real <select> and draw a menu of their
+    # own that listens to it. Playwright waits for a hidden one to be seen, which never
+    # happens (fewservers.com timed out by option and by label). Choosing in it is what the
+    # site's own menu does, and it fires the same change the menu listens for.
+    t.select_option(**chosen, force=not t.is_visible())
 
 
 def _upload(page: Page, t: _T, value: str | None, second: _T | None) -> None:

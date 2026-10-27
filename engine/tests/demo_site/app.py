@@ -283,6 +283,26 @@ def submit_info(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/directory", response_class=HTMLResponse)
+def directory(request: Request) -> HTMLResponse:
+    """A dropdown made pretty the way Choices.js and nice-select do it: the real `<select>` is
+    hidden and a menu of the site's own shows the choice, by listening to its changes."""
+    return page(
+        "List a tool",
+        """<h1>List a tool</h1>
+           <label for="category">Category</label>
+           <select id="category" hidden
+                   onchange="picked.textContent = this.selectedOptions[0].label">
+             <option value="">Choose a category</option>
+             <option value="dev">Developer tools</option>
+             <option value="ai">AI agents</option>
+           </select>
+           <div class="menu">Category: <span id="picked">none</span></div>
+           <select id="region" disabled><option>Europe</option><option>Asia</option></select>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""
