@@ -1275,3 +1275,33 @@ def test_a_ref_as_look_raw_prints_it_can_be_used(
 
     assert outcome.ok, outcome.text()
     assert outcome.answers == {"title": "Vagabonding"}
+
+
+def test_select_types_into_a_combobox_and_picks_the_option(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: `select` on a react-select box gave up with "not a real <select>...
+    click the button". It is a text box with role=combobox: type, then pick the option."""
+    runner = runner_for(browser, store, "set the language")
+    outcome = run(
+        runner,
+        f'go {demo_server}/stack\nselect combobox "Language" "Python"\n'
+        'read css "#chosen-lang" as chosen',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"chosen": "Python"}
+
+    browser.page.reload()
+    replay = Executor(store, browser).run(domain_of(demo_server), task="set the language")
+    assert replay.ok, replay.reason
+
+
+def test_select_says_which_options_a_combobox_offered(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = run(
+        runner_for(browser, store, "zz"),
+        f'go {demo_server}/stack\nselect combobox "Language" "Script"',
+    )
+    assert not outcome.ok
+    assert '"JavaScript", "TypeScript"' in outcome.reason

@@ -577,6 +577,42 @@ def down() -> HTMLResponse:
     return HTMLResponse("<h1>Connection timed out</h1><p>Error code 522</p>", status_code=522)
 
 
+@app.get("/stack", response_class=HTMLResponse)
+def stack(request: Request) -> HTMLResponse:
+    """A type-ahead dropdown built the way react-select builds one: a text box that says it
+    is a combobox, and a list of options drawn only while something is typed in it."""
+    return page(
+        "Stack",
+        """<h1>Your stack</h1>
+           <label for="lang">Language</label>
+           <input id="lang" role="combobox" aria-expanded="false" aria-controls="langs"
+                  autocomplete="off">
+           <div id="langs" role="listbox"></div>
+           <p>Chosen: <span id="chosen-lang">none</span></p>
+           <script>
+             const names = ["JavaScript", "Python", "TypeScript"];
+             const box = document.getElementById("lang");
+             box.addEventListener("input", () => {
+               const typed = box.value.toLowerCase();
+               langs.innerHTML = "";
+               for (const name of names.filter((n) => typed && n.toLowerCase().includes(typed))) {
+                 const option = document.createElement("div");
+                 option.setAttribute("role", "option");
+                 option.textContent = name;
+                 option.onclick = () => {
+                   document.getElementById("chosen-lang").textContent = name;
+                   box.value = "";
+                   langs.innerHTML = "";
+                 };
+                 langs.append(option);
+               }
+               box.setAttribute("aria-expanded", String(langs.children.length > 0));
+             });
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""

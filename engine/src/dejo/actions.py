@@ -69,6 +69,47 @@ _CLICK_OWN_LABEL_JS = "el => (el.labels && el.labels[0] || el.closest('label')).
 NEW_LINE = "\\n"
 _HOLDS_LINES_JS = "el => el.tagName === 'TEXTAREA' || el.isContentEditable"
 
+# How a dropdown that is not a <select> is chosen in: "typed" into (react-select's text
+# box with role=combobox), "opens" when clicked (a button with role=combobox or a listbox
+# popup), or null for anything else. How long its option gets to be drawn.
+_COMBOBOX_JS = """
+el => {
+  const typed = el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable;
+  const combo = (el.getAttribute("role") || "").toLowerCase() === "combobox"
+    || el.getAttribute("aria-haspopup") === "listbox" || !!el.closest("[role=combobox]");
+  return combo ? (typed ? "typed" : "opens") : null;
+}
+"""
+OPTION_WAIT_MS = 3000
+# The options a combobox shows: in the list it says it controls, else anywhere in its own
+# document (react-select draws its menu beside the box, others in a portal at the end).
+_OPTIONS_OF = """
+const optionsOf = (el) => {
+  const doc = el.ownerDocument;
+  const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
+  const list = (id && doc.getElementById(id)) || doc;
+  return [...list.querySelectorAll("[role=option]")].filter((o) => o.getClientRects().length);
+};
+const said = (o) => (o.getAttribute("aria-label") || o.textContent || "").trim();
+"""
+# The option whose words are exactly `value`, once it is drawn, or null after `ms`.
+_OPTION_JS = (
+    "(el, [value, ms]) => {"
+    + _OPTIONS_OF
+    + """
+  return new Promise((done) => {
+    const began = Date.now();
+    const look = () => {
+      const hit = optionsOf(el).find((o) => said(o) === value);
+      if (hit || Date.now() - began > ms) return done(hit || null);
+      setTimeout(look, 50);
+    };
+    look();
+  });
+}"""
+)
+_OPTIONS_SHOWN_JS = "(el) => {" + _OPTIONS_OF + "return optionsOf(el).map(said).filter(Boolean); }"
+
 # Options named when the one asked for is not there: enough to see what kind of list it is.
 OPTIONS_NAMED = 30
 
@@ -490,13 +531,8 @@ def _select(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     # the agent nothing about what it could have picked.
     options = t.evaluate(_SELECT_OPTIONS_JS)
     if options is None:
-        # `select` only works on a real <select>. Half the dropdowns on the modern web are
-        # a button and a list of divs — Radix, Headless UI, anything built on them.
-        raise ActionNeedsMore(
-            "this is not a real <select>, so there is nothing to choose from. It is a "
-            "custom dropdown built out of a button and a list — click the button, then "
-            "look at the page again and click the option you want."
-        )
+        _pick_from_a_combobox(t, value or "")
+        return
     if not t.is_enabled():
         # Playwright waits its whole timeout for a disabled dropdown to become usable, and
         # then says only "Timeout 15000ms exceeded".
@@ -510,6 +546,31 @@ def _select(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     # happens (fewservers.com timed out by option and by label). Choosing in it is what the
     # site's own menu does, and it fires the same change the menu listens for.
     t.select_option(**chosen, force=not t.is_visible())
+
+
+def _pick_from_a_combobox(t: _T, value: str) -> None:
+    """Choose in a dropdown that is not a <select>: type into it (react-select's text box)
+    or open it (a Radix or Headless UI button), then click the option with these words.
+
+    Half the dropdowns on the modern web are built this way, and `select` used to give up on
+    all of them with "click the button" (launchit.site)."""
+    how = t.evaluate(_COMBOBOX_JS)
+    if how is None:
+        raise ActionNeedsMore(
+            "this is not a dropdown Dejo can choose in: neither a <select> nor a combobox. "
+            "Click it, then look at the page again and click the option you want."
+        )
+    t.click()
+    if how == "typed":
+        t.fill("")
+        t.press_sequentially(value)
+    # Found from the box itself, never by searching the page, so a box in a frame finds the
+    # options in its own frame.
+    found = t.evaluate_handle(_OPTION_JS, [value, OPTION_WAIT_MS]).as_element()
+    if found is None:
+        shown = t.evaluate(_OPTIONS_SHOWN_JS)
+        raise ActionNeedsMore(_no_such_option([value], shown))
+    found.click()
 
 
 def _upload(page: Page, t: _T, value: str | None, second: _T | None) -> None:
