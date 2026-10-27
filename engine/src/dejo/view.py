@@ -406,11 +406,18 @@ class _Page:
         return [item, *drafts]
 
     def _dropped(self, branch: _Branch) -> bool:
-        """A picture nobody can click, or a second, nameless link to a card's own target."""
+        """A picture nobody can click, or a second, nameless link to a card's own target
+        with no words of its own (the cover picture's link).
+
+        A link that wraps a whole card has no name either: Playwright names no link from a
+        heading inside it. Dropped for its "Edit" twin, it took the card's words with it,
+        and tinylaunch.com's "Dejo · Waiting for approval" was only in `look raw`."""
         node = branch.node
         if node.role == "img" and not _is_control(node):
             return True
-        return node.role == "link" and not node.name and self._has_named_twin(branch)
+        if node.role != "link" or node.name or _words_besides_pictures(branch):
+            return False
+        return self._has_named_twin(branch)
 
     def _has_named_twin(self, branch: _Branch) -> bool:
         """Is there a named link to the same place in the same card?
@@ -688,6 +695,17 @@ def _inline_only(branch: _Branch) -> bool:
     """Is every element in this subtree a piece of a sentence? A `generic` can be a `<span>`
     or a `<div>` full of paragraphs; only the first may melt into its parent's line."""
     return all(not b.node.ref or b.node.role in _INLINE_ROLES for b in _walk(branch))
+
+
+def _words_besides_pictures(branch: _Branch) -> str:
+    """The words in a subtree, leaving out what pictures say (a cover's alt text)."""
+    node = branch.node
+    if node.role == "img":
+        return ""
+    if node.name and not node.trailing:
+        return node.name
+    parts = [node.trailing, *(_words_besides_pictures(kid) for kid in branch.children)]
+    return _clean(" ".join(part for part in parts if part))
 
 
 def _words(branch: _Branch) -> str:

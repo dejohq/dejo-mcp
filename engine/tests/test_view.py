@@ -537,3 +537,23 @@ def test_a_short_run_of_look_alikes_still_folds() -> None:
     shown = view.render(f"- generic [ref=e1]:\n{stars}", url="https://example.com/", title="x")
     assert "5 buttons" in shown.text
     assert "more times" not in shown.text
+
+
+def test_a_card_that_is_one_link_keeps_its_words() -> None:
+    """tinylaunch.com: "Dejo · Waiting for approval" was only in `look raw`. The card was a
+    link around a heading and a paragraph, which Playwright names nothing, and it was dropped
+    as a second link to the same place as the card's "Edit"."""
+    raw = (
+        "- main [ref=e10]:\n"
+        '  - heading "Dashboard" [level=1] [ref=e11]\n'
+        "  - generic [ref=e12]:\n"
+        "    - link [ref=e13] [cursor=pointer]:\n"
+        "      - /url: /dashboard/launch/1\n"
+        "      - generic [ref=e14]:\n"
+        '        - heading "Dejo" [level=3] [ref=e15]\n'
+        "        - paragraph [ref=e16]: Waiting for approval\n"
+        '    - link "Edit" [ref=e17] [cursor=pointer]:\n'
+        "      - /url: /dashboard/launch/1\n"
+    )
+    shown = view.render(raw, url="https://www.tinylaunch.com/dashboard", title="Dashboard")
+    assert 'e13 link "Dejo Waiting for approval"' in shown.text, shown.text
