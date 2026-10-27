@@ -40,6 +40,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from . import snapshot as aria
 from .home import HOME, PROFILE_OWNER
+from .locks import ProfileHeld, ProfileLock
 from .models import Locator
 from .snapshot import Element, Snapshot
 from .waits import DEFAULT_WAIT_MS, LOCATOR_WAIT_MS, QUIET_WAIT_MS
@@ -553,6 +554,16 @@ def _stuck_profile_advice(profile: Path, url: str) -> str:
     )
 
 
+def _profile_in_use_advice(profile: Path, holder: str) -> str:
+    """Say which session has the profile, and the two ways on from here."""
+    return (
+        f"The browser profile at {profile} is in use by {holder}. A profile can be open in "
+        "one browser at a time, so this session cannot use it until that one closes. Close "
+        "that session (or its sign-in window), or work in another profile: dejo_profile with "
+        "a new name, or `dejo --profile <name>`. Nothing is wrong with the profile."
+    )
+
+
 def _browser_name(channel: str | None) -> str:
     """What to call a browser in a message meant for a person."""
     return "Chrome" if channel == REAL_CHROME else "the bundled Chromium"
@@ -662,6 +673,7 @@ class Browser:
         self._overlays: list[str] = []
         self._armed: dict[Page, set[str]] = {}
         self._cookies_kept_at = 0.0
+        self._hold: ProfileLock | None = None
 
     # ------------------------------------------------------------- lifecycle
 
@@ -680,6 +692,7 @@ class Browser:
         try:
             return self._open()
         except BaseException:
+            self._let_go_of_profile()
             self._playwright.stop()
             self._playwright = None
             raise
@@ -688,6 +701,7 @@ class Browser:
         """Everything after the driver is up. Never called except through `start`."""
         if self._profile is not None:
             self._profile.mkdir(parents=True, exist_ok=True)
+            self._hold_profile()
             self._context = self._open_profile()
             self._browser = None
             pages = self._context.pages
@@ -743,6 +757,23 @@ class Browser:
                 raise
             self._channel = None
             return self._playwright.chromium.launch(**self._launch_options())
+
+    def _hold_profile(self) -> None:
+        """Take the profile for this session before any browser is asked to open it.
+
+        Another Dejo session holding it is the commonest reason Chrome refuses a profile, and
+        trying the other browser then only hid it behind "Chrome would not open" (see
+        locks.py). Asked first, it can be said plainly, with the session named."""
+        assert self._profile is not None
+        try:
+            self._hold = ProfileLock(self._profile).acquire()
+        except ProfileHeld as held:
+            raise ProfileUnavailable(_profile_in_use_advice(self._profile, str(held))) from None
+
+    def _let_go_of_profile(self) -> None:
+        if self._hold is not None:
+            self._hold.release()
+            self._hold = None
 
     def _open_profile(self) -> Any:
         """Open the saved profile, preferring the browser that made it.
@@ -1054,6 +1085,7 @@ class Browser:
                 closer.close()
         if self._playwright is not None:
             self._playwright.stop()
+        self._let_go_of_profile()
         self._playwright = self._browser = self._context = self._page = None
         self.tabs = []
         self._watched = []

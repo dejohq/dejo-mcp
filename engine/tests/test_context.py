@@ -446,6 +446,67 @@ class TestAProfileBelongsToOneBrowser:
         assert "delet" not in said.lower(), "never send somebody to delete a profile that is fine"
 
 
+class TestAProfileInUseNamesItsSession:
+    """Seen 24 Oct: a second Dejo session asked for a profile the first one held. Chrome
+    refused, Chromium was tried, and the reply said only "Chrome would not open Dejo's browser
+    profile", with nothing about the session that could be closed."""
+
+    @staticmethod
+    @pytest.fixture
+    def held(tmp_path) -> Iterator[tuple[object, int]]:
+        """The profile, held by another Dejo session running in a process of its own."""
+        import subprocess
+
+        profile = tmp_path / "profile"
+        profile.mkdir()
+        holds = (
+            "import sys; from pathlib import Path; from dejo.locks import ProfileLock; "
+            f"ProfileLock(Path({str(profile)!r})).acquire(); print('held', flush=True); "
+            "sys.stdin.read()"
+        )
+        other = subprocess.Popen(
+            [sys.executable, "-c", holds],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            text=True,
+            env={**os.environ, "DEJO_AGENT": "codex"},
+        )
+        try:
+            assert other.stdout is not None and other.stdout.readline().strip() == "held"
+            yield profile, other.pid
+        finally:
+            other.kill()
+            other.wait(timeout=10)
+
+    def test_the_other_session_is_named_and_no_browser_is_tried(self, held) -> None:
+        from dejo.browser import ProfileUnavailable
+
+        profile, pid = held
+        tried: list[str | None] = []
+
+        class Records:
+            def launch_persistent_context(self, *args, **kwargs):
+                tried.append(kwargs.get("channel"))
+                return "opened"
+
+        running = TestAProfileBelongsToOneBrowser._stub(profile.parent, Records())
+        with pytest.raises(ProfileUnavailable) as raised:
+            running._open()
+
+        said = str(raised.value)
+        assert f"process {pid}" in said
+        assert "agent codex" in said
+        assert "dejo_profile with a new name" in said
+        assert tried == [], "a profile another session holds is never handed to a browser"
+
+    def test_a_closed_session_lets_go_of_the_profile(self, tmp_path) -> None:
+        profile = tmp_path / "profile"
+        with Browser(headless=True, profile=profile, downloads=tmp_path / "d"):
+            pass
+        with Browser(headless=True, profile=profile, downloads=tmp_path / "d") as again:
+            assert again.page is not None
+
+
 class TestAFailedStartLeavesNothingBehind:
     """The bug that turned one CI failure into six.
 

@@ -30,6 +30,10 @@ OLD_SETTING_PREFIX = "CAIRN_"
 PROFILE_OWNER = ".dejo-browser"
 OLD_PROFILE_OWNER = ".cairn-browser"
 
+# Written inside a browser profile while a Dejo session has it open, saying which session
+# (see locks.py). The operating system lets go of it when that session ends, however it ends.
+PROFILE_IN_USE = ".dejo-in-use"
+
 
 class OldHomeNotMoved(RuntimeError):
     """`~/.cairn` exists and could not be moved to `~/.dejo`.
