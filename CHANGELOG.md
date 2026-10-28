@@ -4,6 +4,13 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **A new task is never given a trail that does something else.** A request was matched to a
+  site's only trail when the two names shared any one word, so on launchit.site a brand-new
+  "submit" task, whose name shared the product's name with the saved sign-in trail, replayed
+  the sign-in and stopped on its page instead of answering "new task". Now two names that
+  say they do different things (sign in, add or submit, delete or cancel, buy, send, edit,
+  or only look something up) are never the same job, and the reply says which trail ran
+  whenever it was found by other words and could not start.
 - **`select` on a combobox that draws no options says what it drew instead.** A box whose
   suggestions are plain buttons (launchit.site's "Built with" shows `JavaScript +`) got
   "Its options are ." with nothing after it. The reply now says it typed the words and no

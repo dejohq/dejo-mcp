@@ -592,9 +592,17 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
             "the user to sign in in the window, then dejo_login done=true, then dejo_run again."
         )
     if result.wrong_place:
+        # A trail found by other words is said by name: "the work is done" read as an answer
+        # about the task that was asked, not the trail that ran.
+        picked = (
+            f' this was the trail "{ran}", picked for "{task}". If that is not the job, send '
+            "steps: they are learned as a new task in your words."
+            if ran != task
+            else ""
+        )
         return Reply(
             f"stopped: {result.reason} Nothing is broken; the trail starts from a page you "
-            "are not on. If it is a sign-in and you are signed in, the work is done."
+            f"are not on. If it is a sign-in and you are signed in, the work is done.{picked}"
         )
     if result.aimed_at:
         was, now = result.aimed_at
