@@ -1344,6 +1344,24 @@ def test_select_says_what_appeared_when_a_combobox_offers_no_options(
     assert "Its options are" not in outcome.reason
 
 
+def test_select_names_a_matching_button_already_beside_a_combobox(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """28 Oct, launchit.site: `select combobox "" "JavaScript"` said "no options appeared,
+    nor anything else to click" while `button "JavaScript +"` sat next to the box. It was
+    on show before the box was typed into, so it was not counted as something that
+    appeared."""
+    outcome = run(
+        runner_for(browser, store, "zz"),
+        f'go {demo_server}/tech\nselect combobox "" "JavaScript"',
+    )
+    assert not outcome.ok
+    assert "nor anything else to click" not in outcome.reason, outcome.reason
+    assert 'next to the box: button "JavaScript +"' in outcome.reason, outcome.reason
+    assert "Python" not in outcome.reason
+    assert "JavaScript books" not in outcome.reason, "a link far from the box is not a choice"
+
+
 # ------------------------------------------------------------------- js and the trail
 
 SETS_CATEGORY = (

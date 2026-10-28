@@ -510,3 +510,16 @@ def test_a_combobox_that_drew_nothing_says_so_with_no_empty_list() -> None:
     said = actions._no_options_appeared("Go", "opens", [])
     assert said.startswith("opened it, and no options appeared, nor anything else to click")
     assert "options are" not in said
+
+
+def test_a_combobox_names_what_appeared_and_what_was_already_beside_it() -> None:
+    """launchit.site: `button "JavaScript +"` sat next to the box before it was typed into."""
+    said = actions._no_options_appeared(
+        "JavaScript", "typed", ['button "TypeScript +"'], ['button "JavaScript +"']
+    )
+    assert 'What appeared instead: button "TypeScript +".' in said
+    assert (
+        'Already shown with the words "JavaScript" next to the box: button "JavaScript +".' in said
+    )
+    assert 'fill the box with "JavaScript"' in said
+    assert "nor anything else" not in said

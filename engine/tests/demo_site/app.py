@@ -730,6 +730,28 @@ def stack(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/tech", response_class=HTMLResponse)
+def tech(request: Request) -> HTMLResponse:
+    """A combobox the way launchit.site drew one on 28 Oct: no name of its own, no options
+    when typed into, and its choices are buttons already shown beside it ("JavaScript +").
+    A link far from the box says "JavaScript" too, and is not one of its choices."""
+    return page(
+        "Tech stack",
+        """<h1>Tech stack</h1>
+           <div class="field">
+             <div><input role="combobox" aria-expanded="false" autocomplete="off"></div>
+             <div>
+               <button type="button" onclick="picked.textContent = 'JavaScript'">
+                 JavaScript +</button>
+               <button type="button" onclick="picked.textContent = 'Python'">Python +</button>
+             </div>
+           </div>
+           <p>Picked: <span id="picked">none</span></p>
+           <p><a href="/books">JavaScript books</a></p>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/chips", response_class=HTMLResponse)
 def chips(request: Request) -> HTMLResponse:
     """Category chips whose remove buttons are only a drawn cross, with no name at all, the
