@@ -347,6 +347,30 @@ def test_a_filled_field_never_shows_what_is_in_it() -> None:
     assert 'e6 combobox "Choose a month"' in text, "a widget's own label is not typed text"
 
 
+def test_a_native_select_lists_its_options_and_the_chosen_one() -> None:
+    """Playwright gives a `<select>`'s options no ref, so they were never printed: an agent
+    could not pick a category on mcpservers.org/submit it could not see."""
+    raw = (  # Chromium's ai snapshot of two real <select>s and a custom combobox
+        '- combobox "Category" [ref=e3]:\n'
+        '  - option "Choose one"\n'
+        '  - option "Development"\n'
+        '  - option "Productivity" [selected]\n'
+        '  - option "Other"\n'
+        '- heading "Where" [level=2] [ref=e4]\n'
+        '- combobox "Country" [ref=e5]:\n'
+        + "".join(f'  - option "Country number {n}"\n' for n in range(1, 250))
+    )
+    whole = view.render(raw, url="https://x.test/", title="t").text.split("\n")
+    assert (
+        'e3 combobox "Category" [chosen "Productivity"]:'
+        " options Choose one · Development · Productivity · Other"
+    ) in whole
+    country = next(line for line in whole if line.startswith('e5 combobox "Country"'))
+    assert country.endswith(" · +244 more") and len(country) <= 150
+    cut = view.render(raw, url="https://x.test/", title="t", focus="number 200", budget=10)
+    assert "e5" in cut.text.split("\n")[1], "the options count when ranking by the task"
+
+
 def test_a_picture_is_dropped_unless_it_can_be_clicked() -> None:
     assert " img " not in look("books_travel").text
     assert '\ne5 img "Fork me on GitHub"\n' in look("internet_iframe").text
@@ -420,3 +444,146 @@ def test_no_best_block_when_everything_fits() -> None:
 @pytest.mark.parametrize("page", list(PAGES))
 def test_the_same_page_reads_the_same_every_time(page: str) -> None:
     assert look(page).text == look(page).text
+
+
+# ---------------------------------------------------------------------- filled fields
+
+# What Playwright prints for fields that hold text. A field with a placeholder puts its value
+# on a `text:` line of its own, under the placeholder, not after its name.
+FILLED_FIELDS = """\
+- generic [ref=e1]:
+  - textbox "Website" [ref=e2]: https://dejo.run
+  - textbox "Email address" [ref=e3]:
+    - /placeholder: you@example.com
+    - text: rohit@example.com
+  - textbox "Tagline" [ref=e4]:
+    - /placeholder: One line about it
+  - row [ref=e5]:
+    - cell "Password" [ref=e7]
+    - cell [ref=e8]:
+      - textbox "Password" [ref=e6]:
+        - /placeholder: Your password
+        - text: hunter2
+"""
+
+
+def test_a_field_with_a_placeholder_shows_it_is_filled() -> None:
+    """mcpmarket.com, startupfa.me, dang.ai: the email box next to a [filled] URL box showed
+    nothing, and an agent took the field for empty and filled it again."""
+    shown = view.render(FILLED_FIELDS, url="https://example.com/", title="Submit").text
+
+    assert 'e2 "Website" [filled]' in shown
+    assert 'e3 "Email address" [filled]' in shown
+    assert 'e4 "Tagline"\n' in shown, "an empty field is not filled"
+    assert 'e6 textbox "Password" [filled]' in shown
+    for typed in ("rohit@example.com", "hunter2", "dejo.run"):
+        assert typed not in shown, f"{typed} was printed"
+
+
+def test_what_a_field_holds_never_joins_the_words_around_it() -> None:
+    """A row with no words of its own stands for the words inside it, and is printed with
+    them in the "best for" block, which shows when the budget cut something."""
+    page = view.render(
+        FILLED_FIELDS, url="https://example.com/", title="Submit", focus="password", budget=40
+    )
+    assert "best for" in page.text
+    assert "hunter2" not in page.text
+
+
+def test_a_disabled_button_with_no_ref_is_still_shown() -> None:
+    """mcpserver.dev: after `click! Submit` the view showed no Submit at all. The button was
+    disabled with pointer-events off (how shadcn buttons are styled), so Playwright gave it
+    no ref, and the agent could not tell "busy" from "gone"."""
+    raw = (
+        "- dialog [ref=e1]:\n"
+        '  - textbox "Name" [ref=e2]: Dejo\n'
+        '  - button "Cancel" [ref=e3]\n'
+        '  - button "Submit" [disabled]\n'
+        '  - button "Saving" [cursor=pointer]\n'
+    )
+    shown = view.render(raw, url="https://example.com/", title="Submit")
+
+    assert '\nbutton "Submit" [disabled]' in shown.text
+    assert "" not in shown.targets, "a line with no ref offers nothing to act on"
+
+
+def _carousel(copies: int) -> str:
+    cards = ""
+    ref = 10
+    for _ in range(copies):
+        for who in ("Ana", "Bo", "Cy"):
+            cards += (
+                f"  - listitem [ref=e{ref}]:\n"
+                f'    - heading "{who} says" [level=3] [ref=e{ref + 1}]\n'
+                f'    - paragraph [ref=e{ref + 2}]: "Dejo saved me hours, {who} writes."\n'
+                f'    - link "Read {who}" [ref=e{ref + 3}]:\n'
+                f"      - /url: /reviews/{who}\n"
+            )
+            ref += 4
+    return f"- list [ref=e1]:\n{cards}"
+
+
+def test_a_block_cloned_many_times_is_printed_once() -> None:
+    """tinylaunch.com: a testimonial carousel cloned about 20 times filled the view."""
+    shown = view.render(_carousel(6), url="https://example.com/", title="Launch")
+
+    assert shown.text.count("Dejo saved me hours, Ana writes.") == 1, shown.text
+    assert "the 9 lines above appear 5 more times, word for word" in shown.text
+    assert "e74" in shown.known, "the clones' refs still work"
+
+
+def test_a_short_run_of_look_alikes_still_folds() -> None:
+    stars = "".join(f'  - button "★" [ref=e{n}]\n' for n in range(2, 7))
+    shown = view.render(f"- generic [ref=e1]:\n{stars}", url="https://example.com/", title="x")
+    assert "5 buttons" in shown.text
+    assert "more times" not in shown.text
+
+
+def test_a_card_that_is_one_link_keeps_its_words() -> None:
+    """tinylaunch.com: "Dejo · Waiting for approval" was only in `look raw`. The card was a
+    link around a heading and a paragraph, which Playwright names nothing, and it was dropped
+    as a second link to the same place as the card's "Edit"."""
+    raw = (
+        "- main [ref=e10]:\n"
+        '  - heading "Dashboard" [level=1] [ref=e11]\n'
+        "  - generic [ref=e12]:\n"
+        "    - link [ref=e13] [cursor=pointer]:\n"
+        "      - /url: /dashboard/launch/1\n"
+        "      - generic [ref=e14]:\n"
+        '        - heading "Dejo" [level=3] [ref=e15]\n'
+        "        - paragraph [ref=e16]: Waiting for approval\n"
+        '    - link "Edit" [ref=e17] [cursor=pointer]:\n'
+        "      - /url: /dashboard/launch/1\n"
+    )
+    shown = view.render(raw, url="https://www.tinylaunch.com/dashboard", title="Dashboard")
+    assert 'e13 link "Dejo Waiting for approval"' in shown.text, shown.text
+
+
+SIGN_IN_MAIL = (
+    "- main [ref=e1]:\n"
+    '  - heading "Your Dang.ai sign-in code" [level=1] [ref=e2]\n'
+    "  - paragraph [ref=e3]: Your sign-in code is 482913. It expires in 10 minutes.\n"
+    "  - paragraph [ref=e4]: 739201 is your verification code\n"
+    '  - link "https://dang.ai/auth/verify?token=8f3a9c2e7b1d4f6a0e5c9d8b&email=me" [ref=e5]:\n'
+    "    - /url: https://dang.ai/auth/verify?token=8f3a9c2e7b1d4f6a0e5c9d8b&email=me\n"
+    "  - paragraph [ref=e6]: Order 123456 shipped on 2026-10-25. See https://shop.example/track?page=2\n"
+)
+
+
+def test_one_time_codes_and_sign_in_links_are_not_printed() -> None:
+    """Gmail, a Dang.ai sign-in mail: the view printed the code and the magic link's token."""
+    shown = view.render(SIGN_IN_MAIL, url="https://mail.google.com/", title="Inbox").text
+
+    for secret in ("482913", "739201", "8f3a9c2e7b1d4f6a0e5c9d8b"):
+        assert secret not in shown, f"{secret} was printed"
+    assert "e3: Your sign-in code is [hidden code]" in shown
+    assert "Order 123456 shipped on 2026-10-25" in shown, "a number that is not a code stays"
+    assert "track?page=2" in shown
+    assert "read the element" in shown
+    assert "Zip code 10001" in view.hide_one_time_secrets("Zip code 10001")
+
+
+def test_look_raw_hides_them_too() -> None:
+    masked = view.hide_one_time_secrets(SIGN_IN_MAIL)
+    assert "482913" not in masked and "8f3a9c2e7b1d4f6a0e5c9d8b" not in masked
+    assert "&email=me" in masked

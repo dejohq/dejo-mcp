@@ -26,7 +26,12 @@ Three things here matter more than the rest:
 from __future__ import annotations
 
 import json
+import os
+import re
 import secrets
+import subprocess
+import sys
+import time
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -38,7 +43,8 @@ from playwright.sync_api import Page, sync_playwright
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from . import snapshot as aria
-from .home import HOME, PROFILE_OWNER
+from .home import HOME, PROFILE_OWNER, setting
+from .locks import ProfileHeld, ProfileLock
 from .models import Locator
 from .snapshot import Element, Snapshot
 from .waits import DEFAULT_WAIT_MS, LOCATOR_WAIT_MS, QUIET_WAIT_MS
@@ -87,6 +93,20 @@ CAPTCHA_MARKERS = (
     ".cf-turnstile",
     "#challenge-running",
 )
+# A captcha widget that asks nothing of anyone: reCAPTCHA's invisible badge, which says so
+# in its address and sits pinned half off the corner of the window. pulsemcp.com's search
+# results had loaded under one, and Dejo stopped on "a captcha is in the way". A widget a
+# person has to use is at least this big each way, and mostly inside the window's width.
+CAPTCHA_MIN_PX = 20
+_ASKS_A_PERSON_JS = """
+(el, smallest) => {
+  if ((el.getAttribute("src") || "").includes("size=invisible")) return false;
+  const box = el.getBoundingClientRect();
+  if (box.width < smallest || box.height < smallest) return false;
+  const inside = Math.min(box.right, window.innerWidth) - Math.max(box.left, 0);
+  return inside >= box.width / 2;
+}
+"""
 # Cloudflare's full-page check carries none of the widgets above where a page can see them:
 # it says who it is in its title and its heading. Seen on three real sites on 22 Oct 2026
 # ("Just a moment..." / "Performing security verification"), shown to the agent as if it
@@ -96,6 +116,8 @@ CHALLENGE_HEADINGS = (
     "performing security verification",
     "verify you are human",
     "checking your browser before",
+    # Reddit's own check (reddit.com/user/..., 25 Oct 2026), shown as a normal page.
+    "prove your humanity",
 )
 
 # Stops the browser advertising that a program is driving it. Without these,
@@ -128,6 +150,8 @@ MAIN_TAB = "main"
 # and Windows and not enough there, which means it was never long enough anywhere, only
 # lucky.
 TAB_GRACE_MS = 3000
+# How long a tab a step opened gets to load before the reply names it.
+TAB_LOAD_MS = 3000
 TAB_POLL_MS = 50
 
 # A single-page app navigates by changing the URL itself, after its click handler has
@@ -136,6 +160,142 @@ TAB_POLL_MS = 50
 # address to catch up, and return the moment it does.
 SPA_NAV_GRACE_MS = 700
 SPA_NAV_POLL_MS = 25
+
+# After a step that sends something (`click!`), or moves to another address, the page has
+# to finish its work before the reply is written. A form that posts in the background
+# disables its fields, waits for the server, then shows "Submission Successful!"; replying
+# in between showed a half-sent form (mcpservers.org, 23 Oct). A single-page app changes
+# its address at once and draws the page when its data comes back; replying in between
+# showed only the footer (lobehub.com). Done means: no request of the page's own work in
+# flight and nothing redrawn for STILL_FOR_MS. Capped, because a page that polls is never
+# done.
+STILL_WAIT_MS = 10_000
+STILL_FOR_MS = 500
+STILL_POLL_MS = 100
+# Requests that are the page doing its work. Images, fonts and beacons keep arriving on a
+# busy page and say nothing about whether the form was answered.
+WORK_REQUESTS = frozenset({"document", "fetch", "xhr"})
+# Changes whenever the page redraws something that matters: elements added or removed, or
+# its words.
+_PAGE_SHAPE = (
+    "() => document.querySelectorAll('*').length + ':' "
+    "+ (document.body ? document.body.innerText.length : 0)"
+)
+
+# What a page says for a moment after something is sent: a toast, a status line, an alert.
+# mcpserverhub.net showed "Loading...", then a success toast, then emptied its form, and by
+# the time the page was still the toast was gone: the reply showed a blank form. So while a
+# `!` step settles, the page keeps the words of every such element that appears.
+MESSAGE_PLACES = (
+    "[role=status], [role=alert], [aria-live], [class*=toast i], [class*=snackbar i], "
+    "[class*=notification i], [data-sonner-toast]"
+)
+# How many messages, and how much of each, one step reports: a toast is a sentence, and a
+# page that announces a clock every second must not fill the reply.
+MESSAGES_KEPT = 5
+MESSAGE_CHARS = 200
+_WATCH_MESSAGES_JS = """
+([places, kept, chars]) => {
+  window.__dejoSaid = [];
+  if (window.__dejoWatching) return;
+  window.__dejoWatching = true;
+  const keep = (node) => {
+    const el = node.nodeType === 1 ? node : node.parentElement;
+    if (!el || !el.closest) return;
+    const box = el.closest(places) || el.querySelector(places);
+    if (!box) return;
+    const said = (box.innerText || box.textContent || "").replace(/\\s+/g, " ").trim()
+      .slice(0, chars);
+    if (!said) return;
+    // Words typed in one piece at a time arrive as "Than", then "Thanks!": keep the whole.
+    const all = window.__dejoSaid.filter((earlier) => !said.includes(earlier));
+    if (!all.some((later) => later.includes(said)) && all.length < kept) all.push(said);
+    window.__dejoSaid = all;
+  };
+  new MutationObserver((changes) => {
+    for (const change of changes) {
+      keep(change.target);
+      change.addedNodes.forEach(keep);
+    }
+  }).observe(document.documentElement, {childList: true, subtree: true, characterData: true});
+}
+"""
+_MESSAGES_SAID_JS = "() => window.__dejoSaid || []"
+
+# What a control with no name is, read from the page: the words it shows, or that its icon
+# carries (an svg's title, an image's alt, a label inside), else a known name among its
+# classes, ids and links, else Google's logo by its colours. At most ICONS_NAMED controls
+# per look, and at most ICON_NAME_CHARS of what one says.
+ICONS_NAMED = 30
+ICON_NAME_CHARS = 40
+ICON_WORDS = (
+    "google", "github", "gitlab", "apple", "microsoft", "facebook", "linkedin", "discord",
+    "slack", "twitter", "youtube", "instagram", "close", "menu", "search", "settings",
+    "share", "copy", "edit", "delete", "trash", "download", "upload", "plus", "minus",
+    "heart", "star", "bell", "user", "cart", "home", "play", "pause", "more",
+)  # fmt: skip
+GOOGLE_COLOURS = ("#4285f4", "#ea4335", "#fbbc05")
+_ICON_JS = """
+el => {
+  const said = [];
+  for (const node of el.querySelectorAll("svg title, img[alt], [aria-label], [title]")) {
+    said.push(node.tagName.toLowerCase() === "title" ? node.textContent
+      : node.getAttribute("alt") || node.getAttribute("aria-label") || node.getAttribute("title"));
+  }
+  const marks = [];
+  for (const node of [el, ...el.querySelectorAll("*")]) {
+    const kind = node.className;
+    marks.push(node.id, typeof kind === "string" ? kind : kind && kind.baseVal,
+      node.getAttribute("data-icon"), node.getAttribute("data-testid"),
+      node.getAttribute("href"), node.getAttribute("xlink:href"), node.getAttribute("fill"));
+  }
+  return {
+    shows: el.innerText || "",
+    said: said.filter(Boolean).join(" "),
+    marks: marks.filter(Boolean).join(" "),
+  };
+}
+"""
+
+_IS_MODAL_JS = "el => el.getAttribute('aria-modal') === 'true' || el.matches(':modal')"
+
+# How long the held-back check may look for its element: it is there, or the press itself
+# says so.
+HELD_BACK_WAIT_MS = 2000
+
+# The fields a browser would not send a form with, when `el` is how it is sent: its submit
+# button, or a field Enter was pressed in. Each as [its name, the browser's own message].
+# Read with `validity`, which asks without firing the page's own "invalid" handlers.
+_HELD_BACK_JS = """
+el => {
+  const form = el.form || el.closest("form");
+  if (!form || form.noValidate || el.formNoValidate) return [];
+  const type = (el.getAttribute("type") || "").toLowerCase();
+  const sends = (el.tagName === "BUTTON" && (type === "" || type === "submit"))
+    || (el.tagName === "INPUT" && ["submit", "image"].includes(type))
+    || el.tagName === "INPUT" || el.tagName === "TEXTAREA";
+  if (!sends) return [];
+  const nameOf = (field) => {
+    const label = field.labels && field.labels[0];
+    return ((label && label.innerText) || field.getAttribute("aria-label")
+      || field.placeholder || field.name || field.type || "a field").trim();
+  };
+  return [...form.elements]
+    .filter((field) => field.willValidate && !field.validity.valid)
+    .map((field) => [nameOf(field), field.validationMessage]);
+}
+"""
+
+# See `Browser.page_state`.
+_PAGE_STATE_JS = """
+() => {
+  const fields = [...document.querySelectorAll("input, select, textarea")].map(
+    (field) => (["checkbox", "radio"].includes(field.type) ? field.checked : field.value)
+  );
+  const words = document.body ? document.body.innerText.length : 0;
+  return `${document.querySelectorAll("*").length}:${words}:${JSON.stringify(fields)}`;
+}
+"""
 
 # How much visible page text one look() may return. Enough to read a heading, an amount
 # and an error message; not so much that a caller pays for the whole page every time.
@@ -146,10 +306,46 @@ MAX_TEXT_CHARS = 1200
 # replayed at another. Whatever this is, it must not change between runs.
 VIEWPORT = {"width": 1280, "height": 800}
 
+# Where the machine says its language and region, most specific first, outside Windows. A
+# browser left to itself reports en-US, or drops the region ("hi" for hi_IN, en-GB for
+# en_IN), and sites pick country, currency and dates from it: claudeai.directory took a user
+# in India for one in the United States. The time zone needs nothing: Chrome reads the
+# machine's own. `DEJO_LOCALE` (en-IN, de-DE) overrides all of it.
+LOCALE_SETTINGS = ("LC_ALL", "LC_MESSAGES", "LANG")
+NO_LOCALE = frozenset({"", "C", "POSIX"})
+# Windows' own limit on a locale name, LOCALE_NAME_MAX_LENGTH.
+WINDOWS_LOCALE_CHARS = 85
+# How long macOS gets to say its locale before the browser starts without one.
+MAC_LOCALE_TIMEOUT_S = 2
+
+# How many times a `go` is sent when the page's own move cuts it off (see `Browser._go`).
+GO_ATTEMPTS = 2
+# What Playwright says when another navigation cut a `goto` off.
+CUT_OFF_TELLS = ("net::ERR_ABORTED", "interrupted by another navigation")
+
 # How long a fresh browser gets to prove an address loads, once the profile's own attempt
 # has timed out. Shorter than the real wait: it is a second opinion, and a person is
-# already waiting.
+# already waiting. It proves something only with a page of the site's own: an HTTP status
+# under this one, at a web address (a browser error page is at chrome-error://).
 FRESH_CHECK_MS = 10_000
+FRESH_CHECK_ERROR_FROM = 400
+# How many times a profile is asked for an address before the fresh browser is asked
+# whether the profile is to blame: one slow load proves nothing about a profile.
+PROFILE_ATTEMPTS = 2
+# Where a stalled load is ended before the address is asked for again, and how long that
+# takes at most: a blank page needs no network.
+BLANK = "about:blank"
+BLANK_WAIT_MS = 2000
+
+# How long a sign-in kept in a session cookie (one with no expiry) outlives Dejo's browser.
+# Chrome drops such cookies when the browser closes, and Dejo's closes after every sign-in
+# window and server restart. A month is longer than sites keep a session alive themselves,
+# so the site, not Dejo, decides when it ends.
+SESSION_COOKIE_KEEP_S = 30 * 24 * 60 * 60
+
+# How often a waiting browser makes its session cookies lasting. A person may close the
+# sign-in window themselves, and then there is no clean close to do it at.
+SESSION_COOKIE_EVERY_S = 5
 
 # Where downloaded files land unless a caller says otherwise. A default matters: a task
 # like "download this month's invoice" is not done if the file only existed inside a
@@ -234,7 +430,8 @@ _PLACE_JS = """
 
 # Words that say a click does something that cannot be taken back: money moves, a message
 # leaves, something is deleted or published. Matched as whole words or phrases on the real
-# element, never on the agent's wording. A false alarm costs the agent one resend with `!`;
+# element, never on the agent's wording, and only on controls that do something: a link
+# opens a page, whatever it is called. A false alarm costs the agent one resend with `!`;
 # a miss can cost a real order, so the list leans to safe. Plain "Search", "Add", "Apply" or
 # "Sort order" are deliberately not here.
 RISKY_WORDS = (
@@ -263,9 +460,21 @@ RISKY_WORDS = (
     "donate",
 )
 
+# Roles that only change what the page shows, whatever they are called: lobehub.com's
+# "Publish" tab was refused as risky, and pressing it only showed the Publish panel.
+SWITCHES_VIEW = frozenset({"tab", "option"})
+
+# Taking a chip out of a form that has not been sent deletes nothing: launchit.site's
+# "Remove javascript" tag needed its own `click!` call, one per chip. Only "remove", and
+# only on a control that does not send the form and sits with its fields: within this many
+# levels up of a field, which is how far a tag input's chips sit from its text box. A
+# table row's "Remove" has no field that close, and stays risky.
+REMOVES_FROM_FORM = "remove"
+FIELD_REACH = 3
+
 # What one element would do if pressed: its words, and whether it submits a form and how.
 _RISK_JS = """
-(el) => {
+(el, reach) => {
   const words = [el.innerText, el.value, el.getAttribute("aria-label"), el.title]
     .filter(Boolean).join(" ").toLowerCase();
   const form = el.form || el.closest("form");
@@ -277,8 +486,21 @@ _RISK_JS = """
   );
   const method = form ? (form.getAttribute("method") || "get").toLowerCase() : "";
   const signsIn = !!form && !!form.querySelector("input[type=password]");
+  const role = (el.getAttribute("role") || (tag === "A" && el.hasAttribute("href") ? "link" : ""))
+    .toLowerCase();
+  // Rails and Turbo send a link as a DELETE or a POST when it says so.
+  const linkMethod = (el.getAttribute("data-method") || el.getAttribute("data-turbo-method")
+    || "get").toLowerCase();
+  // A form being filled in, as a chip's "x" sees it: inside a <form>, or a few levels
+  // below a box that also holds a field. Many React forms have no <form> at all.
+  let near = el.parentElement;
+  let inFields = !!form;
+  for (let level = 0; !inFields && near && level < reach; level++) {
+    inFields = !!near.querySelector("input:not([type=hidden]), textarea, select");
+    near = near.parentElement;
+  }
   return {
-    words, submits, method, signsIn,
+    words, submits, method, signsIn, role, linkMethod, inFields,
     field: !!form && (tag === "INPUT" || tag === "TEXTAREA"),
   };
 }
@@ -323,6 +545,8 @@ _DESCRIBE_JS = """
   // than no selector: replay takes the first match and clicks something else entirely.
   const cssOf = (node) => {
     const doc = node.ownerDocument;
+    // A page that is one text (a plain-text file) has its words in the body itself.
+    if (node === doc.body || node === doc.documentElement) return node.tagName.toLowerCase();
     if (stableId(node.id)
         && doc.querySelectorAll(`#${CSS.escape(node.id)}`).length === 1) {
       return `#${CSS.escape(node.id)}`;
@@ -374,6 +598,24 @@ _DESCRIBE_JS = """
     return '';
   };
 
+  // An element with no words of its own (a chip's drawn cross) is told apart by the words
+  // of the nearest box around it: `span:has-text("AI agents") > button`. Playwright's own
+  // :has-text, so it is checked against the page in Python, never here.
+  const besideOf = (node) => {
+    if ((node.innerText || '').trim() || node.getAttribute('aria-label')) return [null, null];
+    let box = node.parentElement;
+    for (let depth = 1; box && depth <= 3; depth++, box = box.parentElement) {
+      const words = (box.innerText || '').trim().split('\\n')[0].trim().slice(0, 40);
+      if (words) {
+        const path = `${box.tagName.toLowerCase()}:has-text(${JSON.stringify(words)}) > `
+          + '* > '.repeat(depth - 1) + node.tagName.toLowerCase();
+        return [words, path];
+      }
+    }
+    return [null, null];
+  };
+  const [beside, besideCss] = besideOf(el);
+
   const type = (el.getAttribute('type') || '').toLowerCase();
   let value = null;
   if ('value' in el && typeof el.value === 'string') {
@@ -392,6 +634,8 @@ _DESCRIBE_JS = """
     title: el.getAttribute('title'),
     alt: el.getAttribute('alt'),
     value: value,
+    beside: beside,
+    beside_css: besideCss,
   };
 }
 """
@@ -411,6 +655,77 @@ def _keep(kept: list[str], line: str) -> None:
     kept.append(line)
     if len(kept) > MAX_DIAGNOSTICS:
         del kept[0]
+
+
+def _track_work(page: Page, request: Any, *, started: bool) -> None:
+    """Keep the page's own requests in flight, for `settle_until_still`."""
+    if request.resource_type not in WORK_REQUESTS:
+        return
+    if started:
+        page._dejo_in_flight.add(request)  # type: ignore[attr-defined]
+    else:
+        page._dejo_in_flight.discard(request)  # type: ignore[attr-defined]
+
+
+def machine_locale() -> str | None:
+    """This machine's language and region as a browser names them (en-IN), or None to leave
+    the browser's own. See LOCALE_SETTINGS."""
+    chosen = setting("DEJO_LOCALE")
+    if chosen:
+        return chosen
+    if sys.platform == "win32":
+        return _windows_locale()
+    for name in LOCALE_SETTINGS:
+        found = _language_tag(os.environ.get(name, ""))
+        if found:
+            return found
+    return _mac_locale() if sys.platform == "darwin" else None
+
+
+def _language_tag(posix: str) -> str | None:
+    """`en_IN.UTF-8` -> `en-IN`. None for the C locale, which names no language."""
+    base = posix.split(".")[0].split("@")[0]
+    return None if base in NO_LOCALE else base.replace("_", "-")
+
+
+def _windows_locale() -> str | None:
+    import ctypes
+
+    found = ctypes.create_unicode_buffer(WINDOWS_LOCALE_CHARS)
+    if not ctypes.windll.kernel32.GetUserDefaultLocaleName(found, WINDOWS_LOCALE_CHARS):  # type: ignore[attr-defined]
+        return None
+    return found.value or None
+
+
+def _mac_locale() -> str | None:
+    """A Mac app started from the Dock has no LANG, so the system is asked."""
+    try:
+        said = subprocess.run(
+            ["defaults", "read", "-g", "AppleLocale"],
+            capture_output=True,
+            text=True,
+            timeout=MAC_LOCALE_TIMEOUT_S,
+            check=False,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return _language_tag(said)
+
+
+def _icon_name(shows: str, said: str, marks: str) -> str:
+    """What a nameless control is: the words it shows (devhunt.org's "Continue with Github"
+    button was printed with no name, words on show and all), else what its icon says or is
+    marked as (see ICON_WORDS), else ""."""
+    words = " ".join(shows.split())[:ICON_NAME_CHARS].replace('"', "'")
+    if words:
+        return f'shows "{words}"'
+    words = " ".join(said.split())[:ICON_NAME_CHARS]
+    lowered = marks.lower()
+    tokens = set(re.findall(r"[a-z]+", lowered))
+    known = words or next((word for word in ICON_WORDS if word in tokens), "")
+    if not known and all(colour in lowered for colour in GOOGLE_COLOURS):
+        known = "google"
+    return f"icon: {known}" if known else ""
 
 
 def profile_named(
@@ -457,6 +772,16 @@ class NoSuchElement(RuntimeError):
     """A control was named in a way this page cannot be asked for."""
 
 
+class PageNotDrawn(PlaywrightError):
+    """The page could not be described in time, twice. A Playwright error, so everything
+    that handles one handles this, with a sentence instead of Playwright's own words."""
+
+
+class NavigationCutOff(PlaywrightError):
+    """A `go` the page's own moves kept cutting off. Said in a sentence, not
+    `net::ERR_ABORTED`."""
+
+
 class NoSuchTab(RuntimeError):
     """Asked to continue in a tab that is not open."""
 
@@ -477,6 +802,11 @@ class ProfileStuck(RuntimeError):
     network, not a proxy, not a leftover process. Without this the only symptom is a
     timeout, which reads exactly like a slow or broken website.
     """
+
+
+def _cut_off(problem: BaseException) -> bool:
+    """Was a `goto` cut off by another navigation, rather than failing on its own?"""
+    return any(tell in str(problem) for tell in CUT_OFF_TELLS)
 
 
 def _is_missing_display(problem: BaseException) -> bool:
@@ -506,11 +836,22 @@ def _arrived(here: str, asked: str) -> bool:
 def _stuck_profile_advice(profile: Path, url: str) -> str:
     """Say which profile is stuck, and both ways out of it."""
     return (
-        f"Nothing loads in Dejo's browser profile at {profile}: {url} timed out there, but "
-        "the same address loads in a fresh browser. The website is fine; this profile is "
-        "stuck. Either switch to a new profile (dejo_profile with a new name, or "
-        "`dejo --profile <name>`) and sign in there, or close every Dejo window and delete "
-        f"{profile}, which signs that profile out of every site."
+        f"Nothing loads in Dejo's browser profile at {profile}: {url} timed out there twice, "
+        "but the same address loads in a fresh browser. The website is fine; this profile is "
+        "stuck. Switch to a new profile (dejo_profile with a new name, or `dejo --profile "
+        "<name>`) and sign in there; do not delete it for one site. Only if every site keeps "
+        f"timing out in it: close every Dejo window and delete {profile}, which signs that "
+        "profile out of every site."
+    )
+
+
+def _profile_in_use_advice(profile: Path, holder: str) -> str:
+    """Say which session has the profile, and the two ways on from here."""
+    return (
+        f"The browser profile at {profile} is in use by {holder}. A profile can be open in "
+        "one browser at a time, so this session cannot use it until that one closes. Close "
+        "that session (or its sign-in window), or work in another profile: dejo_profile with "
+        "a new name, or `dejo --profile <name>`. Nothing is wrong with the profile."
     )
 
 
@@ -622,6 +963,9 @@ class Browser:
         self._watched: list[Page] = []
         self._overlays: list[str] = []
         self._armed: dict[Page, set[str]] = {}
+        self._cookies_kept_at = 0.0
+        self._hold: ProfileLock | None = None
+        self._failed_while_watching: list[str] | None = None
 
     # ------------------------------------------------------------- lifecycle
 
@@ -640,6 +984,7 @@ class Browser:
         try:
             return self._open()
         except BaseException:
+            self._let_go_of_profile()
             self._playwright.stop()
             self._playwright = None
             raise
@@ -648,6 +993,7 @@ class Browser:
         """Everything after the driver is up. Never called except through `start`."""
         if self._profile is not None:
             self._profile.mkdir(parents=True, exist_ok=True)
+            self._hold_profile()
             self._context = self._open_profile()
             self._browser = None
             pages = self._context.pages
@@ -703,6 +1049,23 @@ class Browser:
                 raise
             self._channel = None
             return self._playwright.chromium.launch(**self._launch_options())
+
+    def _hold_profile(self) -> None:
+        """Take the profile for this session before any browser is asked to open it.
+
+        Another Dejo session holding it is the commonest reason Chrome refuses a profile, and
+        trying the other browser then only hid it behind "Chrome would not open" (see
+        locks.py). Asked first, it can be said plainly, with the session named."""
+        assert self._profile is not None
+        try:
+            self._hold = ProfileLock(self._profile).acquire()
+        except ProfileHeld as held:
+            raise ProfileUnavailable(_profile_in_use_advice(self._profile, str(held))) from None
+
+    def _let_go_of_profile(self) -> None:
+        if self._hold is not None:
+            self._hold.release()
+            self._hold = None
 
     def _open_profile(self) -> Any:
         """Open the saved profile, preferring the browser that made it.
@@ -810,6 +1173,9 @@ class Browser:
     def _context_options(self) -> dict[str, Any]:
         """The context settings that are the same however the browser was launched."""
         options: dict[str, Any] = {"permissions": self._permissions}
+        here = machine_locale()
+        if here:
+            options["locale"] = here
         if self._geolocation is not None:
             latitude, longitude = self._geolocation
             options["geolocation"] = {"latitude": latitude, "longitude": longitude}
@@ -867,6 +1233,10 @@ class Browser:
         page.on("console", lambda message: self._remember_console(page, message))
         page.on("pageerror", lambda error: _keep(page._dejo_console, f"error: {error}"))  # type: ignore[attr-defined]
         page.on("response", lambda response: self._remember_failure(page, response))
+        page._dejo_in_flight = set()  # type: ignore[attr-defined]
+        page.on("request", lambda request: _track_work(page, request, started=True))
+        page.on("requestfinished", lambda request: _track_work(page, request, started=False))
+        page.on("requestfailed", lambda request: _track_work(page, request, started=False))
 
         # Whatever this site is known to cover itself with, this tab gets it too.
         for selector in self._overlays:
@@ -880,6 +1250,9 @@ class Browser:
     def _remember_failure(self, page: Page, response: Any) -> None:
         if response.status >= FAILED_STATUS:
             _keep(page._dejo_failures, f"{response.status} {response.url}")  # type: ignore[attr-defined]
+            if self._failed_while_watching is not None:
+                failed = f"{response.status} {response.request.method} {response.url}"
+                _keep(self._failed_while_watching, failed)
 
     def set_time(self, when: str) -> None:
         """Tell every page it is a different date.
@@ -1004,11 +1377,13 @@ class Browser:
         return list(self._overlays)
 
     def stop(self) -> None:
+        self.keep_session_cookies()
         for closer in (self._context, self._browser):
             if closer is not None:
                 closer.close()
         if self._playwright is not None:
             self._playwright.stop()
+        self._let_go_of_profile()
         self._playwright = self._browser = self._context = self._page = None
         self.tabs = []
         self._watched = []
@@ -1060,23 +1435,55 @@ class Browser:
 
         A page that never loads has two very different causes: the site, or this profile.
         Only the second is worth a different sentence, and only a second browser can tell
-        them apart, so it is asked once, and only after the real attempt has already failed.
+        them apart. It is asked only after the profile has failed twice: once is a slow
+        moment, and blaming the profile sent a person to delete it while the site was down.
         """
         self.last_status = None
-        try:
-            response = self.page.goto(url, wait_until="domcontentloaded")
-            # Kept because an error page passes every address check: Google answers a
-            # document that is gone with a 404 page at the document's own address.
-            self.last_status = response.status if response is not None else None
-        except PlaywrightTimeout as stuck:
-            if _arrived(self.page.url, url):
-                # A slow site: the page is there and still loading its last parts. Failing
-                # here left the first `go` out of a trail the agent then learned anyway, so
-                # every replay began on a blank page (real-site bench, 23 Oct 2026).
+        for attempt in range(PROFILE_ATTEMPTS if self._profile is not None else 1):
+            try:
+                response = self._go(url)
+                # Kept because an error page passes every address check: Google answers a
+                # document that is gone with a 404 page at the document's own address.
+                self.last_status = response.status if response is not None else None
                 return
-            if self._profile is None or not self._loads_without_profile(url):
-                raise
-            raise ProfileStuck(_stuck_profile_advice(self._profile, url)) from stuck
+            except PlaywrightTimeout as stuck:
+                if _arrived(self.page.url, url):
+                    # A slow site: the page is there and still loading its last parts.
+                    # Failing here left the first `go` out of a trail the agent then learned
+                    # anyway, so every replay began on a blank page (real-site bench, 23 Oct).
+                    return
+                if attempt + 1 < PROFILE_ATTEMPTS and self._profile is not None:
+                    # The load that timed out is still pending, and the same address sent
+                    # again is aborted at once (net::ERR_ABORTED). A blank page ends it.
+                    with suppress(PlaywrightError):
+                        self.page.goto(BLANK, timeout=BLANK_WAIT_MS)
+                    continue
+                if self._profile is None or not self._loads_without_profile(url):
+                    raise
+                raise ProfileStuck(_stuck_profile_advice(self._profile, url)) from stuck
+
+    def _go(self, url: str) -> Any:
+        """`page.goto`, once more if the page's own move cut it off.
+
+        A page that moves by itself (Google's consent page a moment after "Continue")
+        cancels a `go` sent in that moment, and Playwright says `net::ERR_ABORTED`. The
+        page's move is let finish, and the `go` sent again."""
+        for attempt in range(GO_ATTEMPTS):
+            try:
+                return self.page.goto(url, wait_until="domcontentloaded")
+            except PlaywrightError as cut:
+                # A download also ends a `goto` this way, and must not happen twice.
+                downloading = bool(self._pending_downloads)
+                if isinstance(cut, PlaywrightTimeout) or not _cut_off(cut) or downloading:
+                    raise
+                if attempt == GO_ATTEMPTS - 1:
+                    raise NavigationCutOff(
+                        f"going to {url} was cut off twice by the page moving somewhere by "
+                        f"itself; it is now at {self.page.url}. Look at it, then go again"
+                    ) from None
+                self.wait_until_address_still()
+                self.settle()
+        return None
 
     def _loads_without_profile(self, url: str) -> bool:
         """Does this address load in a throwaway browser with no profile at all?"""
@@ -1086,13 +1493,57 @@ class Browser:
             # No second browser to compare with. Then nothing is known about the profile.
             return False
         try:
-            fresh.new_page().goto(url, wait_until="domcontentloaded", timeout=FRESH_CHECK_MS)
-            return True
+            page = fresh.new_page()
+            answer = page.goto(url, wait_until="domcontentloaded", timeout=FRESH_CHECK_MS)
         except PlaywrightError:
             return False
+        else:
+            # A real page, not an answer of any kind: mcp.directory's origin was down, the
+            # fresh browser got Cloudflare's HTTP 522 page, and that counted as "loads fine".
+            return (
+                answer is not None
+                and answer.status < FRESH_CHECK_ERROR_FROM
+                and page.url.startswith(("http://", "https://"))
+            )
         finally:
             with suppress(PlaywrightError):
                 fresh.close()
+
+    def idle(self, ms: int) -> None:
+        """Keep answering the browser for `ms` while nothing has been asked of it.
+
+        Playwright's sync API only handles the browser's messages while a call is running.
+        A worker blocked on its job queue made no calls, and a page left alone that way
+        stalls: a sign-in window sat on Cloudflare's "Just a moment..." for good, while the
+        same window answered once a second got through in 5 s (saashub.com, 23 Oct 2026).
+        """
+        if time.monotonic() - self._cookies_kept_at >= SESSION_COOKIE_EVERY_S:
+            self.keep_session_cookies()
+        page = next((tab for tab in self._context.pages if not tab.is_closed()), None)
+        if page is None:
+            time.sleep(ms / 1000)  # no page open, so nothing is waiting for an answer
+            return
+        with suppress(PlaywrightError):
+            # The page can close mid-wait (the person shuts the window). Next slice finds that.
+            page.wait_for_timeout(ms)
+
+    def keep_session_cookies(self) -> None:
+        """Give every session cookie an expiry, so closing this profile does not sign it out.
+
+        Chrome drops a cookie with no expiry when the browser closes. saashub.com keeps its
+        sign-in in one, so `dejo_login` there worked and the very next run was signed out
+        again (23 Oct 2026). Rewritten inside the browser, they land in Chrome's own
+        encrypted cookie store like any other cookie: nothing is written anywhere else.
+        """
+        self._cookies_kept_at = time.monotonic()
+        if self._profile is None or self._context is None:
+            return  # nothing outlives a browser with no profile anyway
+        with suppress(PlaywrightError):
+            # A browser the person already closed has nothing left to keep.
+            session = [cookie for cookie in self._context.cookies() if cookie["expires"] == -1]
+            if session:
+                until = time.time() + SESSION_COOKIE_KEEP_S
+                self._context.add_cookies([{**cookie, "expires": until} for cookie in session])
 
     def snapshot(self) -> Snapshot:
         """The page as a short list of things you can act on.
@@ -1114,8 +1565,22 @@ class Browser:
 
         The raw text is what the page view (`view.render`) is drawn from, so the view and the
         controls a caller acts on always come from the same look."""
-        raw = self.page.locator("body").aria_snapshot(mode="ai")
+        try:
+            raw = self._aria_snapshot()
+        except PlaywrightTimeout:
+            # A heavy page can take longer to describe than one wait allows (fazier.com's
+            # home page), and is usually done a moment later.
+            try:
+                raw = self._aria_snapshot()
+            except PlaywrightTimeout:
+                raise PageNotDrawn(
+                    f"the page did not finish drawing in {self._timeout_ms // 1000} s, twice, "
+                    "so there is nothing to show yet. Look again in a moment"
+                ) from None
         return raw, self._frame_selectors(raw)
+
+    def _aria_snapshot(self) -> str:
+        return self.page.locator("body").aria_snapshot(mode="ai")
 
     def mark_view(self) -> str:
         """Leave a token in the page for the view just printed, and return it."""
@@ -1153,7 +1618,7 @@ class Browser:
         POSTs. Calling it risky would stop every learning run at the login and cost a turn;
         an order, a message or a delete has no password field in its form."""
         try:
-            seen = target.evaluate(_RISK_JS)
+            seen = target.evaluate(_RISK_JS, FIELD_REACH)
         except PlaywrightError:
             return None
         if seen["submits"] or (pressing_enter and seen["field"]):
@@ -1162,9 +1627,17 @@ class Browser:
             return None
         if pressing_enter:
             return None
+        if seen["role"] == "link" and seen["linkMethod"] == "get":
+            # A link only opens a page. mcpmarket.com's footer link to /submit was refused as
+            # risky; the submit of a POST form is a button, and the rule above has it.
+            return None
+        if seen["role"] in SWITCHES_VIEW:
+            return None
         words = f" {' '.join(seen['words'].split())} "
         for risky in RISKY_WORDS:
             if f" {risky} " in words or words.strip() == risky:
+                if risky == REMOVES_FROM_FORM and seen["inFields"]:
+                    return None
                 return f'is "{risky}"'
         return None
 
@@ -1440,6 +1913,103 @@ class Browser:
             self.page.wait_for_load_state("domcontentloaded")
         self.flush_downloads()
 
+    def settle_until_still(self, timeout_ms: int = STILL_WAIT_MS) -> None:
+        """Wait until the page has finished what the last step started (see STILL_WAIT_MS).
+
+        `settle()` is not enough: a form sent with fetch loads nothing, so
+        `domcontentloaded` has long fired, and Playwright's `networkidle` stays true once
+        the first load reached it. Polling through `wait_for_timeout` keeps Playwright
+        handling the page's events, which is what moves the requests in and out."""
+        still = waited = 0
+        shape: str | None = None
+        while still < STILL_FOR_MS and waited < timeout_ms:
+            with suppress(PlaywrightError):
+                self.page.wait_for_timeout(STILL_POLL_MS)
+            waited += STILL_POLL_MS
+            try:
+                now = self.page.evaluate(_PAGE_SHAPE)
+            except PlaywrightError:
+                now = None  # the page is being replaced: not still
+            busy = bool(getattr(self.page, "_dejo_in_flight", ()))
+            still = still + STILL_POLL_MS if (now is not None and now == shape and not busy) else 0
+            shape = now
+        self.settle()
+
+    def tabs_opened_since(self, before: list[Page]) -> list[str]:
+        """The tabs opened since `before`, as `host/path (title)`, each given a moment to
+        load first: a popup starts as about:blank."""
+        named = []
+        for tab in [tab for tab in self.tabs if tab not in before and not tab.is_closed()]:
+            with suppress(PlaywrightError):
+                tab.wait_for_load_state("domcontentloaded", timeout=TAB_LOAD_MS)
+            try:
+                where, title = urlparse(tab.url), tab.title()
+            except PlaywrightError:
+                continue
+            named.append(f"{where.netloc}{where.path}" + (f" ({title})" if title else ""))
+        return named
+
+    def held_back(self, element: Element) -> list[tuple[str, str]]:
+        """The fields the browser would not send a form with, if `element` sent it now."""
+        try:
+            found = self.locate(element).evaluate(_HELD_BACK_JS, timeout=HELD_BACK_WAIT_MS)
+            return [tuple(pair) for pair in found]
+        except (PlaywrightError, NoSuchElement):
+            return []
+
+    def modal_dialogs(self, aria_refs: list[str]) -> frozenset[str]:
+        """Which of these dialogs are modal: `aria-modal`, or a <dialog> opened as one."""
+        modal = set()
+        for aria_ref in aria_refs:
+            with suppress(PlaywrightError):
+                if self.page.locator(f"aria-ref={aria_ref}").evaluate(_IS_MODAL_JS):
+                    modal.add(aria_ref)
+        return frozenset(modal)
+
+    def icon_names(self, aria_refs: list[str]) -> dict[str, str]:
+        """What each nameless control is, by Playwright ref, where the page says: `shows
+        "Continue with Github"` or `icon: github`. See ICON_WORDS."""
+        named: dict[str, str] = {}
+        for aria_ref in aria_refs[:ICONS_NAMED]:
+            try:
+                seen = self.page.locator(f"aria-ref={aria_ref}").evaluate(_ICON_JS)
+            except PlaywrightError:
+                continue
+            name = _icon_name(seen["shows"], seen["said"], seen["marks"])
+            if name:
+                named[aria_ref] = name
+        return named
+
+    def page_state(self) -> str:
+        """What the page holds, in short: how many elements, how many words, and what every
+        field holds. Two equal answers mean nothing on the page was changed in between."""
+        try:
+            return str(self.page.evaluate(_PAGE_STATE_JS))
+        except PlaywrightError:
+            return ""
+
+    def watch_for_messages(self) -> None:
+        """Start keeping what the page says for a moment (see MESSAGE_PLACES), and every
+        request that fails: a form that fails on the server often says nothing on the page
+        at all (mcpserver.dev's dialog just stayed open)."""
+        self._failed_while_watching = []
+        with suppress(PlaywrightError):
+            self.page.evaluate(_WATCH_MESSAGES_JS, [MESSAGE_PLACES, MESSAGES_KEPT, MESSAGE_CHARS])
+
+    def messages_seen(self) -> list[str]:
+        """What the page said since `watch_for_messages`. Empty when the page was replaced
+        since, and then what it says is on the new page for the view to show."""
+        try:
+            return list(self.page.evaluate(_MESSAGES_SAID_JS))
+        except PlaywrightError:
+            return []
+
+    def requests_failed(self) -> list[str]:
+        """The requests that came back 4xx or 5xx since `watch_for_messages`, as
+        `502 POST https://...`, and stop keeping them."""
+        failed, self._failed_while_watching = self._failed_while_watching or [], None
+        return failed
+
     def wait_until_quiet(self, timeout_ms: int = QUIET_WAIT_MS) -> None:
         """Wait for the page to stop working, not merely to have arrived.
 
@@ -1477,7 +2047,11 @@ class Browser:
                 # do — and it sits in the markup invisible, blocking nothing. Counting
                 # those made Dejo announce a human check and refuse to work on a site that
                 # was answering perfectly well.
-                if any(found.nth(index).is_visible() for index in range(found.count())):
+                if any(
+                    found.nth(index).is_visible()
+                    and found.nth(index).evaluate(_ASKS_A_PERSON_JS, CAPTCHA_MIN_PX)
+                    for index in range(found.count())
+                ):
                     return marker
             except PlaywrightError:
                 # A closed or navigating page cannot be asked. That is not a captcha.

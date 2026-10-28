@@ -47,6 +47,7 @@ from .events import (
     RunStarted,
     StepFailed,
     StepPassed,
+    StepSkipped,
     StepStarted,
 )
 from .models import (
@@ -76,6 +77,14 @@ HTTP_ERROR_FROM = 400
 # has nothing in flight — and only in full by a page that never stops calling home.
 SETTLE_AFTER_LAST_STEP_MS = 4000
 
+
+# Steps whose element need not be on show to work: a read, a choice in a <select> a site
+# hides behind its own menu (see `actions._select`), and a tick in a box a site hides
+# behind its label (see `actions._tick`).
+_SEEN_OR_NOT = frozenset({READ_ACTION, "select", "check", "uncheck", "set_checked"})
+
+# Why a step that clears something away was skipped, for the event and the reply.
+NOTHING_TO_CLEAR = "it only clears something away, that was not on the page this time"
 
 # Actions that put text into a field, so the value may be a secret held on this machine
 # rather than in the trail.
@@ -192,6 +201,10 @@ class ReplayResult:
     site_facts: list[str] = field(default_factory=list)
     """What is still known about the site after a stale trail is thrown away. This is why
     relearning is cheaper than a first visit."""
+
+    skipped: list[str] = field(default_factory=list)
+    """Steps that only clear something away (a cookie banner) and found nothing to clear,
+    as `step 2 (click button "Accept")`. See `Step.clears_away`."""
 
     @property
     def needs_repair(self) -> bool:
@@ -447,6 +460,7 @@ class Executor:
         self.answers: dict[str, Any] = {}
         self._went_back = False
         self._unverified = []
+        self._skipped: list[str] = []
         playbook = self._load(domain, task)
         if start_url and _leaves_out_of(start_url, playbook):
             start_url = None
@@ -505,6 +519,14 @@ class Executor:
                 )
                 continue
 
+            if outcome.found_nothing and self._needless(step, playbook):
+                self.events.emit(
+                    StepSkipped(index=step.index, intent=step.intent, reason=NOTHING_TO_CLEAR)
+                )
+                self._skipped.append(f"step {step.index} ({step.intent})")
+                continue
+            self._blame(outcome.missed, step)
+
             # The site answered with an error page. Some sites send 401 or 403 to a
             # signed-out visitor, so that case is a sign-in, not a missing page.
             if outcome.error_status is not None:
@@ -550,6 +572,7 @@ class Executor:
                             )
                         )
                         continue
+                    self._blame(retry.missed, step)
                     if retry.off_trail is not None:
                         belongs, here = retry.off_trail
 
@@ -698,6 +721,7 @@ class Executor:
             answers=dict(self.answers),
             aimed_at=self._aim,
             unverified_steps=list(self._unverified),
+            skipped=list(self._skipped),
         )
 
     def _let_the_last_step_land(self, playbook: Playbook) -> None:
@@ -738,6 +762,11 @@ class Executor:
         duration_ms: int = 0
         error_status: int | None = None
         """The HTTP error a `goto` was answered with, when the page itself is missing."""
+        found_nothing: bool = False
+        """No locator found anything, even after the page went quiet. Set only for a step
+        that may be skipped then (see `Step.clears_away`), with its misses held in `missed`
+        and blamed only if it is not."""
+        missed: list[tuple[Locator, str]] = field(default_factory=list)
         off_trail: tuple[str, str] | None = None
         """Where this step belongs, and where we actually are — when they differ.
 
@@ -872,9 +901,28 @@ class Executor:
                 self._blame(missed, step)
                 return settled
 
-        self._blame(missed, step)
         outcome.reason = "every remembered way of finding this went stale"
+        if step.clears_away and not found_anything:
+            # A banner not shown this time is not drift. Whether it is skipped is decided
+            # with the next step in view, so the misses wait for that.
+            outcome.found_nothing, outcome.missed = True, missed
+            return outcome
+        self._blame(missed, step)
         return outcome
+
+    def _needless(self, step: Step, playbook: Playbook) -> bool:
+        """Can the trail go on without this step? Yes when the step after it needs no
+        element, or finds its element now. A step that is the last of the trail has nothing
+        after it to block."""
+        later = [other for other in playbook.steps if other.index > step.index]
+        if not later or not later[0].locators:
+            return True
+        upcoming = later[0]
+        visible = upcoming.action != READ_ACTION
+        return any(
+            self.browser.resolve(locator, visible=visible) is not None
+            for locator in upcoming.ranked_locators()
+        )
 
     def _do_to_the_page(self, step: Step, began: float) -> _StepOutcome:
         try:
@@ -945,8 +993,9 @@ class Executor:
             outcome.tried.append(label)
 
             # A read only needs the element to BE there. Insisting it be visible is what
-            # made a hidden heading unreplayable on a page it had been recorded from.
-            target = self.browser.resolve(locator, visible=step.action != READ_ACTION)
+            # made a hidden heading unreplayable on a page it had been recorded from. The
+            # same goes for a hidden <select>.
+            target = self.browser.resolve(locator, visible=step.action not in _SEEN_OR_NOT)
             if target is None:
                 missed.append((locator, label))
                 continue
@@ -1183,6 +1232,8 @@ class Executor:
             value=value,
         )
         self.browser.settle()
+        if step.risky:
+            self.browser.settle_until_still()
         # This step is recorded as one that changes the address. If it has not changed
         # yet, the app may be doing it itself a moment later — which is how every
         # single-page sidebar link works. Cheap when it was going to change anyway.

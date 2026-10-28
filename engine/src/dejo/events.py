@@ -75,6 +75,16 @@ class StepFailed(Event):
 
 
 @dataclass
+class StepSkipped(Event):
+    """A step that only clears something away found nothing to clear this time."""
+
+    kind = "step_skipped"
+    index: int = 0
+    intent: str = ""
+    reason: str = ""
+
+
+@dataclass
 class MemoryRead(Event):
     """A read from Sibyl. Seeing one of these is seeing the warm path work."""
 

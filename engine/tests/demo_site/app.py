@@ -30,6 +30,7 @@ Then open http://127.0.0.1:8787  and  http://127.0.0.1:8787/?variant=b
 from __future__ import annotations
 
 import argparse
+import asyncio
 import socket
 import sys
 from pathlib import Path
@@ -40,6 +41,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from .hard import hard_page
 
 app = FastAPI(title="Acme Billing (Dejo demo site)", docs_url=None, redoc_url=None)
+
+# How long /contact/send takes to answer: well past the moment a click returns.
+CONTACT_REPLY_S = 1.5
+# How long a single-page app's data takes, after its address has already changed.
+SPA_DATA_S = 0.8
+# How long /slow takes: long enough for a page's own redirect to cut a `go` to it off.
+SLOW_PAGE_S = 1.0
 
 INVOICES = [
     {"id": "2026-09", "month": "September 2026", "amount": "48,200", "state": "due"},
@@ -169,6 +177,475 @@ def settings(request: Request, variant: str | None = Query(None)) -> HTMLRespons
     )
 
 
+@app.get("/preferences", response_class=HTMLResponse)
+def preferences(request: Request) -> HTMLResponse:
+    """A native `<select>` whose values are not its words, as on most real forms: picking
+    "September" means choosing the value `sep`."""
+    return page(
+        "Preferences",
+        """<h1>Preferences</h1>
+           <label for="month">Statement month</label>
+           <select id="month" onchange="shown.textContent = this.selectedOptions[0].label">
+             <option value="">Choose one</option>
+             <option value="jan">January</option>
+             <option value="sep">September</option>
+           </select>
+           <p>Statements for <span id="shown">no month</span></p>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/contact", response_class=HTMLResponse)
+def contact(request: Request) -> HTMLResponse:
+    """A form sent with fetch, the way most launch sites do it: the fields lock, the button
+    says "Sending...", and only after the server answers does the page say it worked."""
+    return page(
+        "Contact",
+        """<h1>Contact</h1>
+           <form id="contact">
+             <label for="note">Note</label> <input id="note" name="note">
+             <button type="submit">Send note</button>
+           </form>
+           <p id="result"></p>
+           <script>
+             contact.onsubmit = async (event) => {
+               event.preventDefault();
+               note.disabled = true;
+               contact.querySelector("button").textContent = "Sending...";
+               await fetch("/contact/send", {method: "POST"});
+               contact.remove();
+               result.textContent = "Note sent. Thank you!";
+             };
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.post("/contact/send")
+async def contact_send() -> Response:
+    """Slow on purpose: long enough that a reply written at once sees the half-sent form."""
+    await asyncio.sleep(CONTACT_REPLY_S)
+    return Response(status_code=204)
+
+
+@app.get("/news", response_class=HTMLResponse)
+def news(request: Request) -> HTMLResponse:
+    """A cookie banner shown until it is accepted once, as on most real sites: the click that
+    clears it is needed on the first visit and finds nothing on every visit after."""
+    banner = (
+        ""
+        if request.cookies.get("cookies") == "ok"
+        else """<div id="consent"><p>We use cookies.</p>
+             <button onclick="document.cookie = 'cookies=ok; path=/'; consent.remove()">
+               Accept cookies</button></div>"""
+    )
+    return page(
+        "News",
+        f'{banner}<h1>News</h1><p id="headline">Rates hold for September</p>',
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/launch", response_class=HTMLResponse)
+def launch(request: Request) -> HTMLResponse:
+    """A launch site's submit page, with the controls whose words sound risky and are not
+    (a footer link to /submit, a "Publish" tab, a tag chip's "Remove") beside ones that are
+    (a link that deletes, a button that sends, a row's "Remove")."""
+    return page(
+        "Launch",
+        """<h1>Launch</h1>
+           <div role="tablist">
+             <button role="tab" aria-selected="true" onclick="panel.textContent='Draft view'">
+               Draft</button>
+             <button role="tab" aria-selected="false"
+                     onclick="panel.textContent='Publish view'">Publish</button>
+           </div>
+           <p id="panel">Draft view</p>
+           <form id="details">
+             <label for="tags">Tags</label> <input id="tags">
+             <span class="chip" id="chip-js">javascript
+               <button type="button" aria-label="Remove javascript"
+                       onclick="this.parentElement.remove()">×</button></span>
+           </form>
+           <button type="button" onclick="panel.textContent='Sent'">Send</button>
+           <table><tr><td>Old launch</td>
+             <td><button type="button" onclick="this.closest('tr').remove()">Remove</button></td>
+           </tr></table>
+           <a href="/launch" data-method="delete">Delete launch</a>
+           <footer><a href="/submit">Submit</a></footer>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/submit", response_class=HTMLResponse)
+def submit_info(request: Request) -> HTMLResponse:
+    """Where a footer "Submit" link goes: a page about submitting, which sends nothing."""
+    return page(
+        "Submit a site",
+        "<h1>Submit a site</h1>",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/directory", response_class=HTMLResponse)
+def directory(request: Request) -> HTMLResponse:
+    """A dropdown made pretty the way Choices.js and nice-select do it: the real `<select>` is
+    hidden and a menu of the site's own shows the choice, by listening to its changes."""
+    return page(
+        "List a tool",
+        """<h1>List a tool</h1>
+           <label for="category">Category</label>
+           <select id="category" hidden
+                   onchange="picked.textContent = this.selectedOptions[0].label">
+             <option value="">Choose a category</option>
+             <option value="dev">Developer tools</option>
+             <option value="ai">AI agents</option>
+           </select>
+           <div class="menu">Category: <span id="picked">none</span></div>
+           <label for="tool">Tool name</label> <input id="tool">
+           <label for="about">About it</label> <textarea id="about"></textarea>
+           <select id="region" disabled><option>Europe</option><option>Asia</option></select>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/clients", response_class=HTMLResponse)
+def clients(request: Request) -> HTMLResponse:
+    """Styled checkboxes, the two ways sites draw them: the real box under its own label
+    (agenticskills.io), and the real box hidden with only its label on show."""
+    return page(
+        "Clients",
+        """<h1>Which clients does it support?</h1>
+           <style>
+             .pick { position: relative; width: 160px; height: 24px; margin: 6px 0 }
+             .pick input { position: absolute; left: 2px; top: 4px; margin: 0 }
+             .pick label { position: absolute; inset: 0; z-index: 1; margin: 0;
+                           padding-left: 24px; color: #0a0b0c }
+           </style>
+           <form id="clients">
+             <div class="pick"><input type="checkbox" id="claude" name="claude">
+               <label for="claude">Claude Code</label></div>
+             <div class="pick"><input type="checkbox" id="cursor" name="cursor" hidden>
+               <label for="cursor">Cursor</label></div>
+           </form>
+           <p>Chosen: <span id="chosen">none</span></p>
+           <script>
+             clients.addEventListener("change", () => {
+               const on = [...clients.querySelectorAll("input:checked")].map(i => i.name);
+               chosen.textContent = on.join(", ") || "none";
+             });
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/listing", response_class=HTMLResponse)
+def listing(request: Request) -> HTMLResponse:
+    """A listing form that says it worked only in a toast that is gone a moment later, then
+    empties itself, the way mcpserverhub.net does: once the page is still, nothing on it
+    says the form was sent. Its second button sends to an address that fails."""
+    return page(
+        "List your server",
+        """<h1>List your server</h1>
+           <form id="listing">
+             <label for="server">Server</label> <input id="server" name="server" required>
+             <button type="submit">List it</button>
+             <button type="button" id="broken">Send for review</button>
+           </form>
+           <div id="toasts"></div>
+           <script>
+             listing.onsubmit = async (event) => {
+               event.preventDefault();
+               const button = listing.querySelector("button");
+               button.textContent = "Loading...";
+               await fetch("/contact/send", {method: "POST"});
+               button.textContent = "List it";
+               listing.reset();
+               const toast = document.createElement("div");
+               toast.setAttribute("role", "status");
+               toast.textContent = "Thanks! Your server is in the queue.";
+               toasts.append(toast);
+               setTimeout(() => toast.remove(), 300);
+             };
+             broken.onclick = () => fetch("/listing/review", {method: "POST"});
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.post("/listing/review")
+def listing_review() -> Response:
+    """Fails the way a broken backend does, with nothing on the page to say so."""
+    return Response("upstream down", status_code=502)
+
+
+@app.get("/categories", response_class=HTMLResponse)
+def categories(request: Request) -> HTMLResponse:
+    """A type-ahead list that says "Loading..." before its choices arrive (saashub.com)."""
+    return page(
+        "Categories",
+        """<h1>Pick categories</h1>
+           <ul id="choices"><li>Loading...</li></ul>
+           <script>
+             setTimeout(() => {
+               choices.innerHTML = '<li class="choice">Developer tools</li>'
+                 + '<li class="choice">AI agents</li>';
+             }, 1200);
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/publish.md")
+def publish_guide() -> Response:
+    """A long markdown file served as plain text, the way market.lobehub.com serves its
+    guide for agents: the whole page is one element, far past what one read may hand back."""
+    filler = "\n\n".join(
+        f"## Note {n}\n\nThis part says nothing about money or manifests. " * 3
+        for n in range(1, 40)
+    )
+    body = (
+        "# Publish your MCP server\n\nSend this guide to your agent.\n\n"
+        "## Requirements\n\nYou need a manifest.\nIt must be valid JSON.\n\n"
+        f"{filler}\n\n"
+        "## Pricing\n\nPublishing is free for open source servers.\n\n"
+        "## Contact\n\nWrite to the team.\n"
+    )
+    return Response(body, media_type="text/plain")
+
+
+@app.get("/spa", response_class=HTMLResponse)
+@app.get("/spa/listing", response_class=HTMLResponse)
+def spa(request: Request) -> HTMLResponse:
+    """A single-page app, the way lobehub.com draws a listing: the link changes the address
+    at once, and the listing is drawn only once its data has come back."""
+    return page(
+        "Servers",
+        """<h1 id="title">Servers</h1>
+           <a id="item" href="/spa/listing">Dejo server</a>
+           <section id="detail"></section>
+           <footer>About · Terms</footer>
+           <script>
+             item.onclick = async (event) => {
+               event.preventDefault();
+               history.pushState({}, "", "/spa/listing");
+               title.textContent = "";
+               const listing = await (await fetch("/spa/data")).json();
+               title.textContent = listing.name;
+               detail.textContent = listing.about;
+             };
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/spa/data")
+async def spa_data() -> dict[str, str]:
+    """Slow on purpose, as an API behind a listing is."""
+    await asyncio.sleep(SPA_DATA_S)
+    return {"name": "Dejo", "about": "A browser your agent remembers."}
+
+
+@app.get("/sign-up", response_class=HTMLResponse)
+def sign_up(request: Request) -> HTMLResponse:
+    """Sign-in buttons that are only a logo, the way devhunt.org draws them: no words, no
+    label, nothing a screen reader could say."""
+    github = '<svg class="lucide lucide-github" viewBox="0 0 24 24"><path d="M9 19"/></svg>'
+    google = (
+        '<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9"/>'
+        '<path fill="#4285F4" d="M46 24"/><path fill="#FBBC05" d="M10 28"/></svg>'
+    )
+    blank = '<svg viewBox="0 0 24 24"><path d="M1 1"/></svg>'
+    return page(
+        "Sign up",
+        f"""<h1>Sign up</h1>
+            <button type="button" onclick="said.textContent='GitHub'">{github}</button>
+            <button type="button" onclick="said.textContent='Google'">{google}</button>
+            <button type="button">{blank}</button>
+            <p id="said">nobody</p>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/logo", response_class=HTMLResponse)
+def logo(request: Request) -> HTMLResponse:
+    """A logo picker the way devhunt.org has one: a "Select an image" button opens a hidden
+    file box that takes PNG only, and empties itself when given anything else."""
+    return page(
+        "Logo",
+        """<h1>Logo</h1>
+           <input type="file" id="logo-file" accept="image/png" hidden>
+           <button type="button" onclick="document.getElementById('logo-file').click()">
+             Select an image</button>
+           <p id="chosen">no logo</p>
+           <label>Banner <input type="file" id="banner"></label>
+           <script>
+             const box = document.getElementById("logo-file");
+             box.onchange = () => {
+               const file = box.files[0];
+               if (file && file.type !== "image/png") { box.value = ""; return; }
+               chosen.textContent = file ? file.name : "no logo";
+             };
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/continue", response_class=HTMLResponse)
+def continue_with(request: Request) -> HTMLResponse:
+    """A "Continue with Google" button that opens the sign-in in a new tab, the way
+    fazier.com does, and leaves this page exactly as it was."""
+    return page(
+        "Join",
+        """<h1>Join</h1>
+           <button type="button" onclick="window.open('/books', '_blank')">
+             Continue with Google</button>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/consent", response_class=HTMLResponse)
+def consent(request: Request) -> HTMLResponse:
+    """A consent page that moves on by itself a moment after "Continue", the way Google's
+    does: a `go` sent in that moment is cut off by the page's own move."""
+    return page(
+        "Consent",
+        """<h1>Before you continue</h1>
+           <button type="button" onclick="setTimeout(() => location.href = '/news', 300)">
+             Continue</button>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/slow", response_class=HTMLResponse)
+async def slow_page(request: Request) -> HTMLResponse:
+    """A page that takes a while to answer."""
+    await asyncio.sleep(SLOW_PAGE_S)
+    return page("Slow", "<h1>Slow page</h1>", variant=variant_of(request, None))
+
+
+@app.get("/upsell", response_class=HTMLResponse)
+def upsell(request: Request) -> HTMLResponse:
+    """A long page with a modal dialog put after its footer, the way tinystartups.com shows
+    an upsell: in the page's order the dialog comes last, past any view's budget."""
+    lines = "".join(f"<p>Startup number {n} launched today.</p>" for n in range(400))
+    return page(
+        "Startups",
+        f"""<h1>Startups</h1>{lines}<footer>About</footer>
+            <div role="dialog" aria-modal="true" aria-label="Go premium">
+              <p>Upgrade to list more startups.</p>
+              <button type="button" onclick="this.parentElement.remove()">No thanks</button>
+            </div>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/servers", response_class=HTMLResponse)
+def servers(request: Request) -> HTMLResponse:
+    """Search results under reCAPTCHA's invisible badge, pinned half off the corner the way
+    pulsemcp.com has it: it asks nobody anything."""
+    return page(
+        "Servers",
+        """<h1>Showing 1 - 1 of 1 servers</h1><p id="first">Dejo</p>
+           <iframe src="/blank?recaptcha=anchor&size=invisible" title="reCAPTCHA"
+                   style="position:fixed; right:-186px; bottom:14px; width:256px; height:60px">
+           </iframe>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/verify", response_class=HTMLResponse)
+def verify(request: Request) -> HTMLResponse:
+    """A form that waits on a reCAPTCHA checkbox a person has to tick."""
+    return page(
+        "Verify",
+        """<h1>Verify</h1>
+           <iframe src="/blank?recaptcha=anchor" title="reCAPTCHA" width="304" height="78">
+           </iframe>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/blank", response_class=HTMLResponse)
+def blank() -> HTMLResponse:
+    return HTMLResponse("<!doctype html><title>widget</title>")
+
+
+# Keys /slow-once has answered slowly already, and how slowly: well past a short test
+# timeout, the way a site has a slow moment.
+SLOW_ONCE_SEEN: set[str] = set()
+SLOW_ONCE_S = 4.0
+
+
+@app.get("/slow-once", response_class=HTMLResponse)
+async def slow_once(request: Request, key: str = "") -> HTMLResponse:
+    """Slow the first time it is asked for with a key, at once after that."""
+    if key not in SLOW_ONCE_SEEN:
+        SLOW_ONCE_SEEN.add(key)
+        await asyncio.sleep(SLOW_ONCE_S)
+    return page("Slow once", '<h1 id="answered">Answered</h1>', variant=variant_of(request, None))
+
+
+@app.get("/down", response_class=HTMLResponse)
+def down() -> HTMLResponse:
+    """A site whose server is down behind Cloudflare: an error page, HTTP 522."""
+    return HTMLResponse("<h1>Connection timed out</h1><p>Error code 522</p>", status_code=522)
+
+
+@app.get("/stack", response_class=HTMLResponse)
+def stack(request: Request) -> HTMLResponse:
+    """A type-ahead dropdown built the way react-select builds one: a text box that says it
+    is a combobox, and a list of options drawn only while something is typed in it."""
+    return page(
+        "Stack",
+        """<h1>Your stack</h1>
+           <label for="lang">Language</label>
+           <input id="lang" role="combobox" aria-expanded="false" aria-controls="langs"
+                  autocomplete="off">
+           <div id="langs" role="listbox"></div>
+           <p>Chosen: <span id="chosen-lang">none</span></p>
+           <script>
+             const names = ["JavaScript", "Python", "TypeScript"];
+             const box = document.getElementById("lang");
+             box.addEventListener("input", () => {
+               const typed = box.value.toLowerCase();
+               langs.innerHTML = "";
+               for (const name of names.filter((n) => typed && n.toLowerCase().includes(typed))) {
+                 const option = document.createElement("div");
+                 option.setAttribute("role", "option");
+                 option.textContent = name;
+                 option.onclick = () => {
+                   document.getElementById("chosen-lang").textContent = name;
+                   box.value = "";
+                   langs.innerHTML = "";
+                 };
+                 langs.append(option);
+               }
+               box.setAttribute("aria-expanded", String(langs.children.length > 0));
+             });
+           </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/chips", response_class=HTMLResponse)
+def chips(request: Request) -> HTMLResponse:
+    """Category chips whose remove buttons are only a drawn cross, with no name at all, the
+    way launchit.site draws them."""
+    cross = '<svg viewBox="0 0 8 8" width="8" height="8"><path d="M0 0L8 8M8 0L0 8"/></svg>'
+    chip = (
+        '<span class="chip">{name}<button type="button" '
+        'onclick="this.parentElement.remove()">' + cross + "</button></span>"
+    )
+    return page(
+        "Chips",
+        "<h1>Categories</h1><div id='chips'>"
+        + "".join(chip.format(name=name) for name in ("Developer tools", "AI agents", "Data"))
+        + "</div>",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/hard", response_class=HTMLResponse)
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""
@@ -292,6 +769,16 @@ def challenge() -> HTMLResponse:
         "<html><head><title>Just a moment...</title></head><body>"
         "<h1>example.org</h1><h2>Performing security verification</h2>"
         "<p>This website uses a security service to protect against malicious bots.</p>"
+        "</body></html>"
+    )
+
+
+@app.get("/humanity", response_class=HTMLResponse)
+def humanity() -> HTMLResponse:
+    """Reddit's own check, with no widget a page can see: only its words say what it is."""
+    return HTMLResponse(
+        "<html><head><title>Reddit - Prove your humanity</title></head><body>"
+        "<h1>Prove your humanity</h1><p>We need to make sure you are a person.</p>"
         "</body></html>"
     )
 

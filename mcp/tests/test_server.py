@@ -401,3 +401,174 @@ def test_a_url_the_trail_cannot_start_from_falls_back_to_its_own_start(mcp_serve
 
     assert done.startswith(f'done: "{task}"'), done
     assert "charge = ₹ 18,400" in done
+
+
+def test_an_option_picked_by_its_words_is_learned_and_replayed(mcp_server, demo_server):
+    """The view prints a dropdown's words, so that is what an agent sends; the value behind
+    "September" is `sep`. A wrong option is refused at once with the real ones named."""
+    task = "show the September statements"
+    url = f"{demo_server}/preferences"
+    wrong = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        url=url,
+        steps='select label "Statement month" "Octember"',
+    )
+    assert '"January", "September"' in wrong and "Timeout" not in wrong
+
+    learned = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        url=url,
+        steps='select label "Statement month" "September"\nread css "#shown" as month',
+    )
+    assert learned.startswith(f'saved "{task}"') and "month = September" in learned
+
+    replayed = call(mcp_server, "dejo_run", site=demo_server, task=task)
+    assert "month = September" in replayed, replayed
+
+
+def test_what_a_js_line_returns_is_in_the_reply(mcp_server, demo_server):
+    """Agents wrote the result into document.title to see it at all (23 Oct)."""
+    task = "count the statement months"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/preferences")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='js "() => [...document.querySelectorAll(`option`)].map(o => o.label)"',
+    )
+    assert 'js returned: ["Choose one", "January", "September"]' in said
+
+
+def test_a_sent_form_is_shown_after_the_site_answers(mcp_server, demo_server):
+    """23 Oct: the reply came while the form still said "Sending...", and only the next call
+    showed it had worked."""
+    task = "send a note"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/contact")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='fill label "Note" "hello"\nclick! button "Send note"',
+    )
+    assert "Note sent. Thank you!" in said, said
+    assert "Sending..." not in said
+
+
+def test_a_cookie_banner_not_shown_again_does_not_break_the_replay(mcp_server, demo_server):
+    """Bench T07: the banner was accepted while learning, so the very next replay broke at
+    the click that cleared it."""
+    task = "read the headline"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/news")
+    call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click button "Accept cookies"\nread css "#headline" as headline',
+    )
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/news")
+
+    assert said.startswith('done: "read the headline"'), said
+    assert "headline = Rates hold for September" in said
+    assert 'skipped step 2 (click button "Accept cookies")' in said
+
+
+def test_a_wrong_answer_says_how_to_replace_the_trail(mcp_server, demo_server):
+    """Bench T12: the saved read answered the wrong thing, and the agent re-asked 28 times in
+    other words, each time getting the same trail back."""
+    task = "the next charge"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/payments")
+    call(mcp_server, "dejo_run", site=demo_server, task=task, steps='read css "#card" as charge')
+    asked = "how much is the next charge"
+
+    replayed = call(mcp_server, "dejo_run", site=demo_server, task=asked)
+    assert "charge = Visa ending 4242" in replayed
+    assert "first line is restart" in replayed
+
+    call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=asked,
+        steps='restart\nread css "#next-charge" as charge',
+    )
+    again = call(mcp_server, "dejo_run", site=demo_server, task=task)
+    assert "charge = ₹ 18,400" in again, again
+
+
+def test_a_toast_shown_after_a_sent_form_is_in_the_reply(mcp_server, demo_server):
+    """mcpserverhub.net: the button went "Loading...", the form emptied itself, and the toast
+    that said it worked was gone before the reply was written."""
+    task = "list my server"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/listing")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='fill label "Server" "dejo"\nclick! button "List it"',
+    )
+    assert 'the page said: "Thanks! Your server is in the queue."' in said, said
+
+
+def test_a_sent_step_whose_request_failed_says_so(mcp_server, demo_server):
+    """mcpserver.dev: after `click! Submit` the dialog stayed open, with no message and no
+    toast, and nothing in the reply said whether it had worked."""
+    task = "send for review"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/listing")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click! button "Send for review"',
+    )
+    assert "no message appeared" in said, said
+    assert f"requests that failed: 502 POST {demo_server}/listing/review" in said
+
+
+def test_a_form_the_browser_held_back_says_which_fields(mcp_server, demo_server):
+    """A submit that the browser stopped with "Please fill out this field" looked like
+    success: the bubble is not on the page, and nothing else changed."""
+    task = "list my server"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/listing")
+    held = call(
+        mcp_server, "dejo_run", site=demo_server, task=task, steps='click! button "List it"'
+    )
+    assert "the browser did not send the form" in held, held
+    assert "Server: Please fill out this field." in held
+
+    sent = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='fill label "Server" "dejo"\nclick! button "List it"',
+    )
+    assert "Thanks! Your server is in the queue." in sent, "a held-back press is not one that ran"
+
+
+def test_a_tab_a_click_opened_is_named_in_the_reply(mcp_server, demo_server):
+    """fazier.com: "Continue with Google" opened a new tab, and the reply showed the old page
+    as if nothing had happened."""
+    task = "join"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/continue")
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click button "Continue with Google"',
+    )
+    host = demo_server.split("://")[1]
+    assert f"line 1 opened a new tab: {host}/books (Books · Acme Billing)" in said, said
+    assert "tab latest" in said

@@ -64,6 +64,14 @@ ACTIVE_PROFILE_FILE = ".active"
 # wall of text in front of the line that matters.
 MAX_LISTED = 25
 
+# Seen in bench T12: a saved trail answered the wrong thing, and the agent asked again 28
+# times in other words. Every time, matching found the same trail and gave the same answer.
+REPLACE_THE_TRAIL = (
+    "If this is NOT what the user asked for, asking again in other words finds this same "
+    "trail. Instead send steps whose first line is restart, then the steps that do the task "
+    "right: they replace this trail."
+)
+
 # Claude Code loads a tool marked with this key before the first turn, instead of waiting
 # for the agent to search for it. One search turn costs about 28k tokens of re-read context,
 # and the agent needs `dejo_run` on every website task, so it is loaded up front. Other
@@ -94,6 +102,7 @@ RUN_DESCRIPTION = (
     "Steps:\n"
     "go URL\n"
     'click T | fill T "text" | select T "option" | check T | press Enter\n'
+    "(in a multi-line box, \\n in the text starts a new line)\n"
     "read T as name   (the value you will report)\n"
     'expect url "part" | expect text "words" | expect see T\n'
     "look words       (show the page, these words first)\n"
@@ -612,6 +621,11 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
     ]
     if task != ran:
         lines.append(f'you asked for "{task}"; this is the trail "{ran}", the same job.')
+    if result.skipped:
+        lines.append(
+            f"skipped {', '.join(result.skipped)}: it only clears something away (like a "
+            "cookie banner), and that was not on the page this time."
+        )
     lines.extend(f"{name} = {value}" for name, value in result.answers.items())
     lines.extend(f"saved file: {path}" for path in result.saved_files)
     if playbook is not None:
@@ -627,6 +641,7 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
             "next: the trail reads no value. If the task needs one, send steps: read T as "
             "name. It is added to this trail. If the task was only to DO something, it is done."
         )
+    lines.append(REPLACE_THE_TRAIL)
     return "\n".join(lines)
 
 
@@ -877,8 +892,14 @@ class DejoServer:
     builds the schema from Python signatures and adds fields no model needs to read."""
 
     def __init__(self, tools: DejoTools) -> None:
+        # Imported here, not at the top: the package imports this module to build its own
+        # namespace, so its version is only there once that has finished.
+        from . import __version__
+
         self.dejo_tools = tools
-        self.server: Server = Server("dejo", instructions=INSTRUCTIONS)
+        # Without a version, the SDK reports its own (1.30.0) as the server's, and that is
+        # what every client showed as Dejo's version.
+        self.server: Server = Server("dejo", version=__version__, instructions=INSTRUCTIONS)
         self.server.list_tools()(self._list)
         self.server.call_tool(validate_input=True)(self._call)
 

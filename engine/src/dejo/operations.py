@@ -106,6 +106,11 @@ class TraceEntry:
     `distill` would infer, and it was proven true when the step ran."""
     risky: bool = False
     """Marked with `!`: the agent says this step buys, pays, sends, deletes or submits."""
+    left: str = ""
+    """What became of the element this step pressed, when the page stayed where it was:
+    "removed" from the page, "hidden" on it, or "" when it is still on show. A cookie
+    banner's button leaves this way, and its check has to say so: "the button is still
+    there" failed on every replay that pressed it."""
     at: str = field(default_factory=utc_now)
 
     @property
@@ -214,6 +219,16 @@ class Session:
         self.browser.last_download_path = None
         self.browser.last_dialog = None
         self.last_result = None
+        if risky:
+            self.browser.watch_for_messages()
+        # Asked before the press, while the fields are as the press finds them. The browser
+        # says "Please fill out this field" in a bubble no snapshot holds and simply does not
+        # send the form, so the press looked as if it had worked. Nothing happened, so such
+        # a press is not a step, and a `!` press that was held back has not run.
+        tabs_before = list(self.browser.tabs)
+        enter = action == "press" and (value or "").lower() == "enter"
+        sends = element is not None and (action in actions.PRESSES or enter)
+        held = self.browser.held_back(element) if sends and element is not None else []
 
         element, lasting = self._perform(action, element=element, value=value, second=second)
 
@@ -233,11 +248,27 @@ class Session:
             and (self.browser.await_url_change(url_before))
         ):
             self.browser.settle()
+        if held and self.browser.page.url == url_before:
+            fields = "; ".join(f"{name}: {said}" for name, said in held)
+            raise ActionFailed(
+                f"the browser did not send the form, because of these fields: {fields} "
+                "Fill them, then send the line again."
+            )
+        said: list[str] = []
+        failed: list[str] = []
+        if risky:
+            self.browser.settle_until_still()
+            said = self.browser.messages_seen()
+            failed = self.browser.requests_failed()
+        elif action != "goto" and self.browser.page.url != url_before:
+            self.browser.settle_until_still()
 
         # A password is remembered as "there is a password here", never as the password.
         secret = secret_name(element) if action in _TEXT_ENTRY else None
 
         text_after = self.browser.text()
+        left = self._what_became_of(element, action, url_before)
+        opened = [] if action == "new_tab" else self.browser.tabs_opened_since(tabs_before)
 
         # Catch stragglers LAST, immediately before the entry is written. The download
         # event can arrive after the click returns, and reading the page takes long enough
@@ -259,6 +290,7 @@ class Session:
             expect=expect,
             risky=risky,
             locators=lasting,
+            left=left,
         )
         # An action that changes nothing is not a step. Replaying `highlight` would draw a
         # box for nobody and then have its postcondition checked anyway.
@@ -276,6 +308,12 @@ class Session:
             # `evaluate` and `screenshot` answer something; every other action answers None.
             "result": self.last_result,
             "saved_to": self.browser.last_download_path,
+            # What the page said while a sent step settled: a toast can be gone by now.
+            "said": said,
+            "failed_requests": failed,
+            # Tabs the step opened, as `host/path (title)`. The page the step was on is
+            # still the one in use, so nothing else in the reply would say so.
+            "opened": opened,
             "secret": secret,
             "note": (
                 f"This was a {secret} field, so Dejo did not remember what was typed. "
@@ -284,6 +322,22 @@ class Session:
                 else None
             ),
         }
+
+    def _what_became_of(self, element: Element | None, action: Action, url_before: str) -> str:
+        """Did a press take its own element off the page? See `TraceEntry.left`."""
+        if action not in actions.PRESSES or element is None or not element.css:
+            return ""
+        if self.browser.page.url != url_before:
+            return ""
+        try:
+            matched = self.browser.matches(Locator("css", element.css, frame=element.frame))
+            if matched is None:
+                return ""
+            if matched.count() == 0:
+                return "removed"
+            return "" if matched.first.is_visible() else "hidden"
+        except PlaywrightError:
+            return ""
 
     def _spec(self, action: Action) -> actions.ActionSpec:
         try:

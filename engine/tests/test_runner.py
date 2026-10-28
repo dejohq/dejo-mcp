@@ -7,14 +7,17 @@ and how many times the shop's "Pay now" really ran.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from tests.demo_site.app import ORDERS
 
-from dejo import program
+from dejo import program, view
 from dejo.browser import Browser, domain_of
 from dejo.executor import Executor
+from dejo.models import Locator
 from dejo.operations import Session, TraceEntry
-from dejo.runner import Outcome, Runner, drop_detours
+from dejo.runner import RAW_FROM_LINES, Outcome, Runner, _raw_from, drop_detours
 from dejo.snapshot import Element
 from dejo.store import DejoStore
 
@@ -642,6 +645,16 @@ def test_a_human_check_stops_the_first_call_and_keeps_nothing(
     assert store.load_draft(domain_of(demo_server), "the bus fare") is None
 
 
+def test_reddits_prove_your_humanity_is_a_human_check(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """25 Oct, reddit.com/user/...: the check was shown as a normal page, "send steps"."""
+    outcome = run(runner_for(browser, store, "zz"), f"go {demo_server}/humanity\nlook")
+
+    assert not outcome.ok
+    assert "human check" in outcome.reason
+
+
 def test_a_refusal_is_not_called_a_wrong_address(
     browser: Browser, store: DejoStore, demo_server: str
 ) -> None:
@@ -762,3 +775,619 @@ def test_a_field_typed_again_after_moving_on_is_kept() -> None:
     ]
     kept, _ = drop_detours(trace)
     assert len(kept) == 3
+
+
+# ------------------------------------------------------------------- a banner seen once
+
+
+def _learn_past_the_banner(browser: Browser, store: DejoStore, demo_server: str) -> None:
+    outcome = run(
+        runner_for(browser, store, "the headline"),
+        f'go {demo_server}/news\nclick button "Accept cookies"\nread css "#headline" as headline',
+    )
+    assert outcome.ok, outcome.text()
+
+
+def test_a_banner_shown_again_is_cleared_again(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """The click removes its own button, so "the button is still there" could never hold."""
+    _learn_past_the_banner(browser, store, demo_server)
+    browser._context.clear_cookies()  # a new visitor: the banner is back
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the headline")
+
+    assert replay.ok, replay.reason
+    assert replay.skipped == []
+    assert replay.answers == {"headline": "Rates hold for September"}
+
+
+def test_a_banner_not_shown_is_skipped_and_not_called_drift(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Bench T07: the banner was accepted once, so every later replay broke at its click."""
+    _learn_past_the_banner(browser, store, demo_server)
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the headline")
+
+    assert replay.ok, replay.reason
+    assert replay.skipped == ['step 2 (click button "Accept cookies")']
+    assert replay.answers == {"headline": "Rates hold for September"}
+    saved = store.load_playbook(domain_of(demo_server), "the headline")
+    assert saved is not None
+    assert all(locator.misses == 0 for locator in saved.steps[1].locators)
+
+
+def test_a_missing_click_the_next_step_needs_still_breaks(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Skipping is only for a step the trail can do without."""
+    _learn_past_the_banner(browser, store, demo_server)
+    trail = store.load_playbook(domain_of(demo_server), "the headline")
+    assert trail is not None
+    trail.steps[2].locators = [Locator("css", "#not-there")]
+    store.save_playbook(trail)
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the headline")
+
+    assert not replay.ok
+    assert replay.repair is not None and replay.repair.step_index == 2
+
+
+def _refused(browser: Browser, store: DejoStore, demo_server: str, line: str) -> str:
+    """Why `line` was refused on the launch page, or "" when it ran."""
+    outcome = run(runner_for(browser, store, "launch"), f"go {demo_server}/launch\n{line}")
+    return "" if outcome.ok else outcome.reason
+
+
+def test_a_link_named_submit_only_opens_a_page(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """mcpmarket.com: the footer link to /submit was refused as risky. A link opens a page."""
+    assert _refused(browser, store, demo_server, 'click link "Submit"') == ""
+    assert browser.page.url.endswith("/submit")
+
+
+def test_a_link_that_deletes_and_a_button_that_sends_are_still_risky(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    deletes = _refused(browser, store, demo_server, 'click link "Delete launch"')
+    assert 'is "delete"' in deletes
+    assert 'is "send"' in _refused(browser, store, demo_server, 'click button "Send"')
+
+
+def test_a_tab_named_publish_only_switches_the_view(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """lobehub.com/mcp: `click tab "Publish"` was refused as risky. A tab shows a panel."""
+    assert _refused(browser, store, demo_server, 'click tab "Publish"') == ""
+    assert browser.page.locator("#panel").inner_text() == "Publish view"
+
+
+def test_removing_a_tag_chip_from_an_unsent_form_is_not_risky(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: each "Remove javascript" chip needed its own `click!` call."""
+    assert _refused(browser, store, demo_server, 'click button "Remove javascript"') == ""
+    assert browser.page.locator("#chip-js").count() == 0
+
+
+def test_removing_a_row_outside_any_form_is_still_risky(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    said = _refused(browser, store, demo_server, 'click button "Remove"')
+    assert 'is "remove"' in said
+
+
+# ------------------------------------------------------------------- dropdowns
+
+
+def test_a_hidden_dropdown_behind_the_sites_own_menu_is_chosen_from(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """fewservers.com: `select` on the Category dropdown timed out, by its words and by its
+    label, while a `js` line that set the value worked. The real <select> was hidden behind
+    the site's own menu, and Playwright waited for it to be seen."""
+    runner = runner_for(browser, store, "list a tool")
+    outcome = run(
+        runner,
+        f'go {demo_server}/directory\nselect label "Category" "AI agents"\n'
+        'read css "#picked" as category',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"category": "AI agents"}
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="list a tool")
+    assert replay.ok, replay.reason
+
+
+def test_a_disabled_dropdown_says_so(browser: Browser, store: DejoStore, demo_server: str) -> None:
+    outcome = run(
+        runner_for(browser, store, "pick a region"),
+        f'go {demo_server}/directory\nselect css "#region" "Asia"',
+    )
+    assert not outcome.ok
+    assert "disabled" in outcome.reason
+    assert "Timeout" not in outcome.reason
+
+
+# ------------------------------------------------------------------- styled checkboxes
+
+
+def test_a_checkbox_its_own_label_covers_is_ticked_through_the_label(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """agenticskills.io: `check` failed with "something covers it: <label ...>". The cover
+    was the checkbox's own label, which is what a person clicks."""
+    runner = runner_for(browser, store, "pick clients")
+    outcome = run(
+        runner,
+        f'go {demo_server}/clients\ncheck checkbox "Claude Code"\ncheck label "Cursor"\n'
+        'read css "#chosen" as chosen',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"chosen": "claude, cursor"}
+
+    browser.page.reload()
+    replay = Executor(store, browser).run(domain_of(demo_server), task="pick clients")
+    assert replay.ok, replay.reason
+    assert replay.answers == {"chosen": "claude, cursor"}
+
+
+# ------------------------------------------------------------------- refs
+
+
+def test_a_ref_in_a_folded_row_can_be_used(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """agenticskills.io: rows 4-7 of a folded group were refused ("there is no e72 in the
+    latest view"), even right after `look g2`, though the page had them."""
+    runner = runner_for(browser, store, "fourth")
+    shown = run(runner, f"go {demo_server}/books\nlook").view
+    assert shown is not None and "+1 more" in shown.text
+    raw, _ = browser.raw_snapshot()
+    last = re.search(r'link "Vagabonding" \[ref=(e\d+)\]', raw)
+    assert last is not None and f"{last.group(1)} " not in shown.text, "the row is folded away"
+
+    outcome = run(runner, f'click {last.group(1)}\nread css "#title" as title')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"title": "Vagabonding"}
+
+
+# ------------------------------------------------------------------- look raw from
+
+
+def _page_with_a_form_and_a_long_footer() -> str:
+    links = "\n".join(f'    - link "Footer link {n}" [ref=e{100 + n}]' for n in range(200))
+    return (
+        "- main [ref=e1]:\n"
+        '  - heading "Submit" [level=1] [ref=e2]\n'
+        "  - form [ref=e3]:\n"
+        '    - textbox "Name" [ref=e4]\n'
+        '    - textbox "Website" [ref=e5]\n'
+        '    - button "Submit" [ref=e6]\n'
+        '  - paragraph [ref=e7]: "Reviewed within a week"\n'
+        "- contentinfo [ref=e8]:\n"
+        f"{links}\n"
+    )
+
+
+def test_look_raw_from_a_ref_stops_at_the_end_of_its_section() -> None:
+    """mcpserver.dev: `look raw from eN` printed the whole footer, ~200 lines, when only the
+    form was wanted."""
+    raw = _page_with_a_form_and_a_long_footer()
+    seen = view.render(raw, url="https://example.com/", title="Submit")
+
+    shown = _raw_from(raw, seen, "e4")
+
+    assert 'textbox "Name"' in shown and 'button "Submit"' in shown
+    assert "Footer link" not in shown
+    assert shown.endswith("the page goes on: look raw from e7")
+
+
+def test_look_raw_from_a_ref_with_no_section_is_cut_and_says_where_to_go_on() -> None:
+    raw = _page_with_a_form_and_a_long_footer()
+    seen = view.render(raw, url="https://example.com/", title="Submit")
+
+    shown = _raw_from(raw, seen, "e101")
+
+    assert "Footer link 1" in shown
+    assert len(shown.splitlines()) <= RAW_FROM_LINES + 1
+    assert re.search(r"\+ more: look raw from e\d+$", shown)
+
+
+def test_a_new_line_written_in_a_fill_breaks_the_line_in_a_text_area(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchingnext.com: `\\n` in a description went in as a backslash and an n."""
+    outcome = run(
+        runner_for(browser, store, "describe the tool"),
+        f'go {demo_server}/directory\nfill label "About it" "One line.\\nAnother line."\n'
+        'fill label "Tool name" "a\\nb"',
+    )
+    assert outcome.ok, outcome.text()
+    assert browser.page.input_value("#about") == "One line.\nAnother line."
+    assert browser.page.input_value("#tool") == "a\\nb", "a one-line box keeps what was written"
+
+
+def test_a_read_of_a_field_reads_what_it_holds(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchingnext.com: `read e58` on a box holding text said "the read found nothing
+    there". A field's words are its value; a dropdown's are the option on show."""
+    outcome = run(
+        runner_for(browser, store, "what was entered"),
+        f'go {demo_server}/directory\nfill label "Tool name" "Dejo"\n'
+        'select label "Category" "AI agents"\n'
+        'read label "Tool name" as tool\nread css "#category" as category',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"tool": "Dejo", "category": "AI agents"}
+
+
+def test_wait_waits_for_what_is_not_there_yet(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """saashub.com: `wait css "..."` failed at once with "nothing on this page matches"
+    while the list still said "Loading..."."""
+    outcome = run(
+        runner_for(browser, store, "the first category"),
+        f'go {demo_server}/categories\nwait css "li.choice"\nwait text "AI agents"\n'
+        'read css "li.choice" first as first',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"first": "Developer tools"}
+
+
+# ------------------------------------------------------------------- one long text
+
+
+def test_a_long_plain_text_page_is_read_by_the_part_that_answers(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """market.lobehub.com/s/publish-mcp: a 48k markdown file was one element, `read e1` was
+    refused as the whole page, and there was no smaller element to read."""
+    runner = runner_for(browser, store, "the price of publishing")
+    run(runner, f"go {demo_server}/publish.md\nlook")
+    whole = run(runner, "read e1 as guide")
+    assert not whole.ok
+    assert 'read passage "' in whole.next_step
+
+    outcome = run(runner, 'read passage "Pricing" e1 as pricing')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {
+        "pricing": "## Pricing\n\nPublishing is free for open source servers."
+    }
+    replay = Executor(store, browser).run(domain_of(demo_server), task="the price of publishing")
+    assert replay.ok, replay.reason
+    assert replay.answers["pricing"].endswith("free for open source servers.")
+
+
+def test_look_words_shows_the_passages_of_a_long_text(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    runner = runner_for(browser, store, "zz")
+    outcome = run(runner, f"go {demo_server}/publish.md\nlook open source")
+    assert outcome.view is not None
+    assert "Publishing is free for open source servers." in outcome.view.text
+
+
+def test_a_click_into_a_single_page_app_shows_the_page_it_drew(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """lobehub.com: a click into a listing returned while only the footer was drawn; the
+    next look had the page."""
+    outcome = run(
+        runner_for(browser, store, "zz"), f'go {demo_server}/spa\nclick link "Dejo server"'
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.view is not None
+    assert "A browser your agent remembers." in outcome.view.text
+
+
+def test_an_icon_button_says_what_its_icon_is(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """devhunt.org: the GitHub and Google sign-in buttons were bare `button` lines, in the
+    view and in raw."""
+    shown = run(runner_for(browser, store, "zz"), f"go {demo_server}/sign-up\nlook").view
+    assert shown is not None
+    assert re.search(r"e\d+ (button )?\[icon: github\]", shown.text), shown.text
+    assert re.search(r"e\d+ (button )?\[icon: google\]", shown.text)
+    assert re.search(r"e\d+ (button )?\[icon, no name\]", shown.text)
+
+
+def test_a_nameless_button_is_named_by_the_words_it_shows_first() -> None:
+    """devhunt.org: Playwright printed "Continue with Github" as a bare `button`."""
+    from dejo.browser import _icon_name
+
+    assert _icon_name("Continue with Github", "", "lucide-github") == 'shows "Continue with Github"'
+    assert _icon_name("", "Close dialog", "") == "icon: Close dialog"
+    assert _icon_name("", "", "lucide lucide-github h-5") == "icon: github"
+    assert _icon_name("", "", "#000") == ""
+
+
+# ------------------------------------------------------------------- uploads
+
+
+def test_an_upload_the_page_refused_says_so(
+    browser: Browser, store: DejoStore, demo_server: str, tmp_path
+) -> None:
+    """devhunt.org: `upload` onto "Select an image" said done, and nothing on the page
+    changed: the file box had thrown the file away."""
+    text = tmp_path / "logo.txt"
+    text.write_text("not a picture", encoding="utf-8")
+    picture = tmp_path / "logo.png"
+    picture.write_bytes(b"\x89PNG\r\n\x1a\n")
+    runner = runner_for(browser, store, "set the logo")
+
+    refused = run(runner, f'go {demo_server}/logo\nupload button "Select an image" "{text}"')
+    assert not refused.ok
+    assert "did not keep" in refused.reason and "image/png" in refused.reason
+
+    taken = run(
+        runner, f'upload button "Select an image" "{picture}"\nread css "#chosen" as chosen'
+    )
+    assert taken.ok, taken.text()
+    assert taken.answers == {"chosen": "logo.png"}
+
+
+def test_an_upload_onto_something_that_opens_no_chooser_says_so(
+    browser: Browser, store: DejoStore, demo_server: str, tmp_path
+) -> None:
+    picture = tmp_path / "logo.png"
+    picture.write_bytes(b"\x89PNG\r\n\x1a\n")
+    outcome = run(
+        runner_for(browser, store, "set the logo"),
+        f'go {demo_server}/logo\nupload css "#chosen" "{picture}"',
+    )
+    assert not outcome.ok
+    assert "opened no file chooser" in outcome.reason
+
+
+# ------------------------------------------------------------------- slow pages
+
+
+def _slow_snapshots(browser: Browser, monkeypatch, failures: int) -> None:
+    """The next `failures` snapshots time out, as on a page too heavy to draw in time."""
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
+    real, left = browser._aria_snapshot, [failures]
+
+    def slow() -> str:
+        if left[0]:
+            left[0] -= 1
+            raise PlaywrightTimeout("Locator.aria_snapshot: Timeout 15000ms exceeded.")
+        return real()
+
+    monkeypatch.setattr(browser, "_aria_snapshot", slow)
+
+
+def test_a_page_too_slow_to_draw_once_is_looked_at_again(
+    browser: Browser, store: DejoStore, demo_server: str, monkeypatch
+) -> None:
+    """fazier.com: `Locator.aria_snapshot: Timeout 15000ms exceeded.` reached the agent."""
+    runner = runner_for(browser, store, "zz")
+    run(runner, f"go {demo_server}/books")
+    _slow_snapshots(browser, monkeypatch, failures=1)
+
+    outcome = run(runner, "look")
+
+    assert outcome.ok, outcome.text()
+
+
+def test_a_page_that_never_draws_says_so_in_words(
+    browser: Browser, store: DejoStore, demo_server: str, monkeypatch
+) -> None:
+    runner = runner_for(browser, store, "zz")
+    run(runner, f"go {demo_server}/books")
+    _slow_snapshots(browser, monkeypatch, failures=10)
+
+    outcome = run(runner, "look")
+
+    assert not outcome.ok
+    assert "did not finish drawing" in outcome.reason
+    assert "Timeout" not in outcome.text()
+
+
+def test_go_while_the_page_moves_by_itself_still_gets_there(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Right after Google's consent "Continue": `Page.goto: net::ERR_ABORTED`."""
+    outcome = run(
+        runner_for(browser, store, "zz"),
+        f'go {demo_server}/consent\nclick button "Continue"\ngo {demo_server}/slow\n'
+        'read css "h1" as heading',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"heading": "Slow page"}
+
+
+def test_an_open_modal_dialog_is_shown_first(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """tinystartups.com: the upsell dialog came after the footer, past "+129 more lines",
+    and every click failed with "something covers it"."""
+    shown = run(runner_for(browser, store, "zz"), f"go {demo_server}/upsell\nlook").view
+    assert shown is not None
+    lines = shown.text.split("\n")
+    assert lines[1].startswith("a dialog is open over the page"), shown.text[:300]
+    assert re.match(r'e\d+ dialog "Go premium"', lines[2])
+    assert 'button "No thanks"' in "\n".join(lines[:6])
+
+
+def test_a_partial_look_keeps_the_refs_of_the_whole_page_usable(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: after `look from e826`, e114 from the full view, still on the page, was
+    refused as "not in the latest view"."""
+    runner = runner_for(browser, store, "zz")
+    run(runner, f"go {demo_server}/launch\nlook")
+    send = ref_of(runner, "Send")
+    later = ref_of(runner, "Delete launch")
+    partial = run(runner, f"look from {later}").view
+    assert partial is not None and f"{send} " not in partial.text
+
+    outcome = run(runner, f'click! {send}\nread css "#panel" as panel')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"panel": "Sent"}
+
+
+def test_every_look_in_a_program_is_shown_in_order(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """agenticskills.io: `look g2` then `look raw from e1591` in one call returned only the
+    raw part."""
+    runner = runner_for(browser, store, "zz")
+    run(runner, f"go {demo_server}/books\nlook")
+    title = ref_of(runner, "See America")
+
+    said = run(runner, f"look g1\nlook raw from {title}").text()
+
+    folded = said.find("g1 4 rows:")
+    raw = said.find('link "See America"')
+    assert 0 <= folded < raw, said
+
+
+def test_an_invisible_captcha_badge_is_not_a_human_check(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """pulsemcp.com/servers?q=dejo: the results had loaded, and reCAPTCHA's invisible badge
+    in the corner was taken for "a captcha in the way"."""
+    outcome = run(
+        runner_for(browser, store, "zz"),
+        f'go {demo_server}/servers\nread css "#first" as first',
+    )
+    assert outcome.ok, outcome.text()
+    assert browser.captcha_on_page() is None
+
+
+def test_a_captcha_a_person_must_tick_still_counts(browser: Browser, demo_server: str) -> None:
+    browser.goto(f"{demo_server}/verify")
+    assert browser.captcha_on_page() is not None
+
+
+def test_a_ref_as_look_raw_prints_it_can_be_used(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: `look raw` printed f155e826, and `click f155e826` was refused; only
+    e826 worked. After a page has moved, Playwright puts its document number on every ref."""
+    runner = runner_for(browser, store, "zz")
+    run(runner, f'go {demo_server}/books\nclick link "See America"\nback')
+    raw = run(runner, "look raw").raw
+    found = re.search(r'link "Vagabonding" \[ref=(f\d+e\d+)\]', raw)
+    assert found is not None, raw[:400]
+
+    outcome = run(runner, f'click {found.group(1)}\nread css "#title" as title')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"title": "Vagabonding"}
+
+
+def test_select_types_into_a_combobox_and_picks_the_option(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: `select` on a react-select box gave up with "not a real <select>...
+    click the button". It is a text box with role=combobox: type, then pick the option."""
+    runner = runner_for(browser, store, "set the language")
+    outcome = run(
+        runner,
+        f'go {demo_server}/stack\nselect combobox "Language" "Python"\n'
+        'read css "#chosen-lang" as chosen',
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers == {"chosen": "Python"}
+
+    browser.page.reload()
+    replay = Executor(store, browser).run(domain_of(demo_server), task="set the language")
+    assert replay.ok, replay.reason
+
+
+def test_select_says_which_options_a_combobox_offered(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = run(
+        runner_for(browser, store, "zz"),
+        f'go {demo_server}/stack\nselect combobox "Language" "Script"',
+    )
+    assert not outcome.ok
+    assert '"JavaScript", "TypeScript"' in outcome.reason
+
+
+# ------------------------------------------------------------------- js and the trail
+
+SETS_CATEGORY = (
+    "js \"() => { const box = document.querySelector('#category'); box.value = 'ai'; "
+    "box.dispatchEvent(new Event('change')); }\""
+)
+
+
+def test_a_trail_that_needed_a_js_change_is_not_saved_without_saying_why(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: Python was set only by a `js` line, the saved trail had no such step,
+    and a replay would have stopped at a disabled Continue."""
+    runner = runner_for(browser, store, "list a tool")
+    run(runner, f"go {demo_server}/directory")
+    run(runner, SETS_CATEGORY)
+
+    outcome = run(runner, 'read css "#picked" as category')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.saved is None
+    assert store.load_playbook(domain_of(demo_server), "list a tool") is None
+    assert "not saved" in outcome.text() and "js" in outcome.text()
+
+
+def test_a_js_line_that_only_reads_does_not_stop_the_save(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    runner = runner_for(browser, store, "the headline")
+    run(runner, f"go {demo_server}/news")
+    run(runner, 'js "() => document.title"')
+
+    outcome = run(runner, 'read css "#headline" as headline')
+
+    assert outcome.saved is not None, outcome.text()
+
+
+def test_a_nameless_button_is_saved_by_the_words_beside_it(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: the cross on a category chip was saved as `click! button (by name)`,
+    which reads as any button, and was stored by its place: the second chip's cross."""
+    runner = runner_for(browser, store, "drop a category")
+    shown = run(runner, f"go {demo_server}/chips\nlook").view
+    assert shown is not None
+    cross = re.search(r"e\d+: AI agents · (e\d+) button", shown.text)
+    assert cross is not None, shown.text
+
+    outcome = run(runner, f'click {cross.group(1)}\nread css "#chips" as left')
+
+    assert outcome.ok, outcome.text()
+    assert 'click button in "AI agents" (by the words beside it)' in outcome.text()
+    step = outcome.saved.steps[1] if outcome.saved else None
+    assert step is not None and step.locators[0].value == 'span:has-text("AI agents") > button'
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task="drop a category")
+    assert replay.ok, replay.reason
+    assert "AI agents" not in replay.answers["left"]
+
+
+def test_a_title_a_js_line_wrote_does_not_name_the_page_after(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site: a `js` line wrote its result into document.title, the old way to see
+    it, and later replies named the page by it ("read from pre on 'B:Free=flex-1…'")."""
+    runner = runner_for(browser, store, "the headline")
+    run(runner, f"go {demo_server}/news")
+    wrote = run(runner, "js \"() => { document.title = 'B:Free=flex-1'; return 5; }\"")
+    assert "js returned: 5" in wrote.text()
+    assert "title" in wrote.text() and "put back" in wrote.text()
+
+    outcome = run(runner, 'read css "#headline" as headline')
+
+    assert 'on "News · Acme Billing"' in outcome.text(), outcome.text()

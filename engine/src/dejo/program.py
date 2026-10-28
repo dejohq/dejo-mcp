@@ -444,7 +444,7 @@ def _read_with_kind(reader: _Words, number: int, body: str, reason: str) -> Read
         raise ProgramError(number, f"cannot read {word!r}. Kinds: {_read_kinds()}")
     attribute = None
     if spec.needs_attribute:
-        attribute = reader.string("read attr needs the attribute name, like: read attr href e4")
+        attribute = reader.string(f"read {word} needs {spec.attribute_means}")
     target = reader.target() if spec.needs_target else None
     return Read(number, body, kind, _named(reader, number), target, attribute, reason)
 

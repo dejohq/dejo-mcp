@@ -341,6 +341,10 @@ class TestAProfileBelongsToOneBrowser:
         running._timeout_ms = 1000
         running._geolocation = None
         running._permissions = []
+        # The honest user agent is read from a throwaway launch of the real browser, which
+        # the fake cannot do. It is cached per process, so these passed only after another
+        # test had already launched that browser, and failed when run on their own.
+        running._honest_agent_for_profile = lambda: None
         return running
 
     def test_a_profile_no_browser_will_open_does_not_guess_why(self, tmp_path) -> None:
@@ -440,6 +444,67 @@ class TestAProfileBelongsToOneBrowser:
         assert "playwright install chromium" in said
         assert "Nothing is wrong with your profile" in said
         assert "delet" not in said.lower(), "never send somebody to delete a profile that is fine"
+
+
+class TestAProfileInUseNamesItsSession:
+    """Seen 24 Oct: a second Dejo session asked for a profile the first one held. Chrome
+    refused, Chromium was tried, and the reply said only "Chrome would not open Dejo's browser
+    profile", with nothing about the session that could be closed."""
+
+    @staticmethod
+    @pytest.fixture
+    def held(tmp_path) -> Iterator[tuple[object, int]]:
+        """The profile, held by another Dejo session running in a process of its own."""
+        import subprocess
+
+        profile = tmp_path / "profile"
+        profile.mkdir()
+        holds = (
+            "import sys; from pathlib import Path; from dejo.locks import ProfileLock; "
+            f"ProfileLock(Path({str(profile)!r})).acquire(); print('held', flush=True); "
+            "sys.stdin.read()"
+        )
+        other = subprocess.Popen(
+            [sys.executable, "-c", holds],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            text=True,
+            env={**os.environ, "DEJO_AGENT": "codex"},
+        )
+        try:
+            assert other.stdout is not None and other.stdout.readline().strip() == "held"
+            yield profile, other.pid
+        finally:
+            other.kill()
+            other.wait(timeout=10)
+
+    def test_the_other_session_is_named_and_no_browser_is_tried(self, held) -> None:
+        from dejo.browser import ProfileUnavailable
+
+        profile, pid = held
+        tried: list[str | None] = []
+
+        class Records:
+            def launch_persistent_context(self, *args, **kwargs):
+                tried.append(kwargs.get("channel"))
+                return "opened"
+
+        running = TestAProfileBelongsToOneBrowser._stub(profile.parent, Records())
+        with pytest.raises(ProfileUnavailable) as raised:
+            running._open()
+
+        said = str(raised.value)
+        assert f"process {pid}" in said
+        assert "agent codex" in said
+        assert "dejo_profile with a new name" in said
+        assert tried == [], "a profile another session holds is never handed to a browser"
+
+    def test_a_closed_session_lets_go_of_the_profile(self, tmp_path) -> None:
+        profile = tmp_path / "profile"
+        with Browser(headless=True, profile=profile, downloads=tmp_path / "d"):
+            pass
+        with Browser(headless=True, profile=profile, downloads=tmp_path / "d") as again:
+            assert again.page is not None
 
 
 class TestAFailedStartLeavesNothingBehind:
@@ -595,3 +660,33 @@ class TestTheThreeThingsAUserActuallyHits:
 
         assert outcome.matched_by is not None, "the second look should have found it"
         assert step.locators[0].misses == 0, "a slow page must not be recorded as a miss"
+
+
+class TestTheBrowserSaysWhereTheMachineIs:
+    """claudeai.directory guessed "United States" for a user in India: the browser said
+    en-US, whatever the machine said. Sites pick country, currency and dates from it."""
+
+    @staticmethod
+    def _language(tmp_path) -> list[str]:
+        with Browser(headless=True, downloads=tmp_path / "d") as running:
+            return running.page.evaluate("() => [navigator.language, navigator.languages[0]]")
+
+    def test_the_machines_language_and_region_are_used(self, tmp_path, monkeypatch) -> None:
+        for name in ("LC_ALL", "LC_MESSAGES", "DEJO_LOCALE"):
+            monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv("LANG", "hi_IN.UTF-8")
+        if sys.platform in ("win32", "darwin"):
+            pytest.skip("this machine says its locale another way; DEJO_LOCALE is tested below")
+        assert self._language(tmp_path) == ["hi-IN", "hi-IN"]
+
+    def test_a_setting_overrides_the_machine(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("DEJO_LOCALE", "en-IN")
+        assert self._language(tmp_path) == ["en-IN", "en-IN"]
+
+    def test_the_c_locale_names_no_language(self) -> None:
+        from dejo.browser import _language_tag
+
+        assert _language_tag("C.UTF-8") is None
+        assert _language_tag("POSIX") is None
+        assert _language_tag("en_IN.UTF-8") == "en-IN"
+        assert _language_tag("de_DE@euro") == "de-DE"

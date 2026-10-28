@@ -22,8 +22,10 @@ text into data before this file ever sees it.
 
 from __future__ import annotations
 
+import json
 import re
 import tempfile
+from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -34,6 +36,8 @@ from playwright.sync_api import Error as PlaywrightError
 
 from . import program as language
 from . import view as pageview
+from . import waits
+from .actions import PRESSES
 from .browser import NoSuchElement, domain_of
 from .distill import distill, locators_for, postcondition_for
 from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, href_path, utc_now
@@ -65,6 +69,16 @@ REFUSED = frozenset({403, 429})
 # over 25k tokens or 50k characters), so the reply is cut here instead.
 LOOK_CAP_CHARS = 30_000
 
+# `look raw from eN` stops at the end of eN's section: one of these, the nearest above it.
+# A form is printed as one only when it has a name, so the cap below is what holds the rest.
+SECTION_ROLES = frozenset(
+    {"form", "dialog", "alertdialog", "region", "article", "main", "table", "contentinfo"}
+)
+# At most this many raw lines from a ref: a long form fits, a page's footer does not.
+RAW_FROM_LINES = 80
+_RAW_ROLE = re.compile(r"""^\s*- ['"]?([a-z]+)""")
+_RAW_REF = re.compile(r"\[ref=([^\]]+)\]")
+
 # How many matches a "too many" stop names before saying "+N more".
 MATCHES_SHOWN = 4
 
@@ -78,13 +92,18 @@ RISKY_MEMORY = timedelta(minutes=15)
 _LOCATOR_KIND = {"text": "text", "label": "label", "placeholder": "placeholder", "alt": "alt"}
 _LOCATOR_KIND |= {"title": "title", "css": "css"}
 
-# Actions that press something, so they can buy, send or delete. The rest only move,
-# type or look.
-PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event"})
-
 # Locator kinds made of an element's own words. Only these can contain the value being
 # read; a css path's numbers are positions, not values.
 _WORDED_LOCATORS = frozenset({"role", "text", "label", "title", "alt", "placeholder"})
+
+# A css path that names something (an id, a class, an attribute), not only tags in order.
+_PATH_MARKS = re.compile(r"[#.\[]")
+
+# Locator kinds that find an element by what it is called, not where it is.
+_NAMING_LOCATORS = _WORDED_LOCATORS | {"test_id", "structural"}
+
+# Reads that hand back only a part of their element, so the element may be the whole page.
+_PART_READS = frozenset({"passage"})
 
 # Reads that answer about many elements at once, so several matches are the point.
 _MANY_READS = {"count", "all_text"}
@@ -93,6 +112,10 @@ _MANY_READS = {"count", "all_text"}
 # is a section or the whole page, and every replay would hand all of it back. Seen 23 Oct:
 # `read css "body"` was saved as the answer to "which BCP is about DNSSEC".
 LONGEST_ANSWER = 2_000
+
+# What a `js` line returned, as printed. Agents used to write it into document.title to see
+# it at all (23 Oct), so it is shown; past this it would crowd out the page view.
+JS_RESULT_LIMIT = 2_000
 WHOLE_PAGE = frozenset({"body", "html", ":root"})
 
 # Every reply that shows a page and saved nothing ends with this. Seen 21-22 Oct: a call that
@@ -145,6 +168,15 @@ class Outcome:
     risky_steps: list[str] = field(default_factory=list)
     repaired: Step | None = None
     """The trail step this program fixed in place, as it was saved."""
+    unsaved: str = ""
+    """Why steps that would have made a trail were kept only as a draft."""
+    looks: list[str] = field(default_factory=list)
+    """What the looks before the last line showed, in order."""
+    after_sending: list[str] = field(default_factory=list)
+    """For each `!` line, what the page said while it settled, which may be gone by now; and
+    for any line that opened a tab, which tab."""
+    js_result: str | None = None
+    """What a `js` line returned, as JSON. Not an answer: it is never saved or replayed."""
     trail_total: int = 0
     tail: ReplayResult | None = None
     """The replay of the steps after the repaired one. When it did not finish, the reply
@@ -177,7 +209,16 @@ class Outcome:
                 f"done: {len(self.passed)} lines. Nothing saved yet ({self.kept_in_draft}"
                 " steps in the draft)."
             )
+            if self.unsaved:
+                lines.append(self.unsaved)
         lines.extend(self._answer_lines())
+        lines.extend(self.after_sending)
+        if self.js_result is not None:
+            lines.append(f"js returned: {_capped_line(self.js_result, JS_RESULT_LIMIT)}")
+        if self.looks:
+            # All the looks together stay under the one cap a reply has (see LOOK_CAP_CHARS).
+            room = LOOK_CAP_CHARS - len(self.raw or (self.view.text if self.view else ""))
+            lines.append(_capped("\n".join(self.looks), max(room, 0)))
         if self.raw:
             lines.append(self.raw)
         elif self.view is not None:
@@ -257,6 +298,8 @@ class Runner:
         gives its check to."""
         self._broken: _Broken | None = None
         """Set while a replay that broke waits for its fix. See `fix_from`."""
+        self._changed_by_code: list[str] = []
+        """The `js` lines that changed the page since the trail began. See `_code_in_the_way`."""
 
     # ------------------------------------------------------------------- looking
 
@@ -269,14 +312,19 @@ class Runner:
         into the site's map, exactly as `Session.look` does."""
         raw, frames = self.browser.raw_snapshot()
         url, title = self.browser.page.url, self.browser.page.title()
+        icons = self.browser.icon_names(pageview.nameless_controls(raw))
+        modal = self.browser.modal_dialogs(pageview.dialogs(raw))
         self.domain = self.domain or domain_of(url)
         controls = parse_controls(raw, frames=frames)
         self.session.remember_page(Snapshot(url=url, title=title, elements=controls))
         self._controls = {element.aria_ref: element for element in controls}
         self._token = self.browser.mark_view()
         if mode == "raw":
-            self._view = pageview.render(raw, url=url, title=title, frames=frames)
-            return _capped(raw if not argument else _raw_from(raw, self._view, argument))
+            self._view = pageview.render(
+                raw, url=url, title=title, frames=frames, icons=icons, modal=modal
+            )
+            shown = raw if not argument else _raw_from(raw, self._view, argument)
+            return _capped(pageview.hide_one_time_secrets(shown))
         words = " ".join(filter(None, [self.task, focus, argument if mode == "words" else ""]))
         self._view = pageview.render(
             raw,
@@ -287,6 +335,9 @@ class Runner:
             start=argument if mode == "from" else "",
             group=argument if mode == "group" else "",
             everything=mode == "all",
+            find=argument if mode == "words" else "",
+            icons=icons,
+            modal=modal,
         )
         return self._view
 
@@ -303,8 +354,12 @@ class Runner:
             try:
                 if isinstance(step, Look) and at < len(steps) - 1:
                     # Agents write "look, then read". The page is shown when the program ends
-                    # or stops anyway, so a look in the middle has nothing to add, and refusing
-                    # it cost a whole turn (real-site bench, 21-23 Oct 2026).
+                    # or stops anyway, so a plain look in the middle has nothing to add, and
+                    # refusing it cost a whole turn (real-site bench, 21-23 Oct 2026). A look
+                    # that asks for something (`look g2`, `look raw from e5`) is shown where
+                    # it stands: only the last one used to be.
+                    if step.mode != "page":
+                        outcome.looks.append(self._shown(step))
                     outcome.passed.append(step)
                     continue
                 if isinstance(step, Look):
@@ -331,7 +386,10 @@ class Runner:
         if fixing is not None and outcome.ok:
             self._repair(fixing, outcome)
         elif outcome.ok and (read_something or downloaded or done) and self._has_steps():
-            self._save(outcome)
+            if self._changed_by_code:
+                self._code_in_the_way(outcome)
+            else:
+                self._save(outcome)
         else:
             outcome.kept_in_draft = self._write_draft()
             if outcome.ok and outcome.view is None and not outcome.raw:
@@ -399,7 +457,7 @@ class Runner:
 
     def _run_one(self, step: language.Step, before: language.Step | None, out: Outcome) -> None:
         if isinstance(step, Action):
-            self._act(step)
+            self._act(step, out)
         elif isinstance(step, Expect):
             self._expect(step, before)
         elif isinstance(step, Read):
@@ -407,10 +465,17 @@ class Runner:
         elif isinstance(step, Note):
             self._note(step)
 
-    def _act(self, step: Action) -> None:
+    def _act(self, step: Action, out: Outcome) -> None:
         if step.risky:
             self._refuse_a_repeat(step)
-        element = self._element(step.target) if step.target else None
+        waiting = step.action == "wait_for" and step.target is not None
+        if waiting and step.target.kind != "ref":
+            self._wait_to_appear(step.target)
+        element = self._element(step.target, many=waiting) if step.target else None
+        if element is not None and not element.name and not element.selector:
+            # Read now, so the step can say what it is: `click button in "AI agents"`, not
+            # `click button`, which reads as any button at all.
+            element = self.browser.describe(element)
         second = self._element(step.second) if step.second else None
         value = step.value
         if step.action == "goto" and value:
@@ -423,7 +488,9 @@ class Runner:
             self._refuse_unmarked_risk(step, element)
         written = len(self.session.trace)
         was = self.browser.page.url
-        self.session.act_on(
+        before = self.browser.page_state() if step.action == "evaluate" else ""
+        title = self.browser.page.title() if step.action == "evaluate" else ""
+        did = self.session.act_on(
             step.reason or _intent_of(step, element),
             step.action,
             element=element,
@@ -432,8 +499,19 @@ class Runner:
             risky=step.risky,
         )
         self._last_entry = self.session.trace[-1] if len(self.session.trace) > written else None
+        if step.action == "evaluate":
+            out.js_result = _as_text(did["result"])
+            if self.browser.page_state() != before:
+                self._changed_by_code.append(_short(step))
+            self._put_the_title_back(title, out)
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
+            out.after_sending.append(_after_sending(step, did))
+        for tab in did.get("opened") or []:
+            out.after_sending.append(
+                f"line {step.line} opened a new tab: {tab}. This call stayed in the tab it was "
+                "in; to work in the new one, send: tab latest"
+            )
         self.domain = self.domain or domain_of(self.browser.page.url)
         if self.browser.page.url != was:
             self._map_this_page()
@@ -454,6 +532,41 @@ class Runner:
                 f"the page answered HTTP {status} instead of the page",
                 "check the address; nothing on an error page is worth learning",
             )
+
+    def _put_the_title_back(self, title: str, out: Outcome) -> None:
+        """Undo a `js` line's write to the page's title.
+
+        Before `js` results were shown, agents wrote them into document.title to see them,
+        and every later reply named the page by that ("read from pre on 'B:Free=flex-1…'",
+        launchit.site). What a `js` line returns is shown now, so the title is the page's."""
+        if self.browser.page.title() == title:
+            return
+        with suppress(PlaywrightError):
+            self.browser.page.evaluate("(title) => { document.title = title; }", title)
+        out.after_sending.append(
+            "the js line changed the page's title; its own title was put back. What js "
+            "returns is shown in the reply, so nothing needs writing to the title"
+        )
+
+    def _wait_to_appear(self, target: language.Target) -> None:
+        """Wait up to the usual timeout for what a `wait` line names, before it is looked up.
+
+        A wait is for something that is not there yet. Looked up first, the way every other
+        line is, `wait css "..."` failed at once with "nothing on this page matches" while
+        saashub.com's list still said "Loading..."."""
+        found = self.browser.matches(
+            Locator("css", target.value) if target.kind == "css" else _locator_for(target)
+        )
+        try:
+            if found is None:
+                raise PlaywrightError("not a target this page can be asked for")
+            found.first.wait_for(state="visible", timeout=waits.DEFAULT_WAIT_MS)
+        except PlaywrightError:
+            raise _Stopped(
+                f"waited {waits.DEFAULT_WAIT_MS // 1000} s for {_target_words(target)} and it "
+                "never appeared",
+                "look at the page below for what it shows instead",
+            ) from None
 
     def _refuse_a_human_check(self, written: int) -> None:
         """Stop the moment a step lands on a human check instead of the page.
@@ -510,13 +623,22 @@ class Runner:
                 "the read found nothing there",
                 "the value may sit in another element; look at the page below",
             )
-        if step.kind not in _MANY_READS and _whole_page(element, answer):
+        if step.kind not in _MANY_READS and _whole_page(element, answer, part=step.kind):
             if self.session.trace:
                 self.session.trace.pop()
+            if step.kind in _PART_READS:
+                raise _Stopped(
+                    f"that part is {len(str(answer)):,} characters, more than one answer may "
+                    f"be ({LONGEST_ANSWER:,})",
+                    "name a smaller part: a lower heading, or words from the one paragraph "
+                    "that answers",
+                )
             raise _Stopped(
                 f"that read is the whole page ({len(str(answer)):,} characters), and every "
                 "replay would hand all of it back",
-                "read the element that holds the answer instead",
+                "read the element that holds the answer instead, or only the part of this "
+                f'one that does: read passage "a heading or words in it" '
+                f"{_target_line(step.target)} as {step.name}",
             )
         entry = self.session.trace[-1] if self.session.trace else None
         kept = entry.element if entry is not None else None
@@ -580,6 +702,14 @@ class Runner:
         else:
             out.view = shown
 
+    def _shown(self, step: Look) -> str:
+        """What a look in the middle of a program shows, as text."""
+        try:
+            shown = self.look(mode=step.mode, argument=step.argument)
+        except pageview.ViewError as wrong:
+            raise _Stopped(str(wrong)) from None
+        return shown if isinstance(shown, str) else shown.text
+
     # ------------------------------------------------------------------- finding
 
     def _element(self, target: language.Target, *, many: bool = False) -> Element:
@@ -619,9 +749,9 @@ class Runner:
                 f"{target.value} is from the page before an earlier line moved to a new page",
                 "use the refs below, or a role, text or css target",
             )
-        shown = self._view.targets.get(target.value)
+        shown = self._view.find(target.value)
         if shown is None:
-            raise _Stopped(f"there is no {target.value} in the latest view", "use a ref below")
+            raise _Stopped(f"there is no {target.value} on this page", "use a ref below")
         element = self._controls.get(shown.aria_ref) or Element(
             ref=shown.ref,
             role=shown.node.role,
@@ -850,6 +980,7 @@ class Runner:
 
     def _save(self, out: Outcome) -> None:
         self._broken = None
+        self._changed_by_code = []
         steps, dropped = self._steps()
         playbook = Playbook(domain=self.domain, task=self.task, steps=steps)
         if self.store is not None:
@@ -870,6 +1001,25 @@ class Runner:
                 "same name: it replaces this one."
             )
 
+    def _code_in_the_way(self, out: Outcome) -> None:
+        """Keep the steps as a draft and say why they are not a trail.
+
+        A `js` line is never part of a trail: code cannot be checked or repaired when the
+        site changes. When one changed the page, a trail saved without it would replay up to
+        where that change was needed and stop there (launchit.site: Python was set only by
+        `js`, and the saved trail would have stopped at a disabled Continue)."""
+        out.kept_in_draft = self._write_draft()
+        lines = " · ".join(self._changed_by_code)
+        out.unsaved = (
+            f"not saved: the page was changed by code ({lines}), and a trail cannot replay "
+            "code, so every replay would stop where that change was needed."
+        )
+        out.next_step = (
+            "do that change with steps Dejo can replay (fill, select, check, click), starting "
+            "with restart if the order matters. If only code can do it, tell the user this "
+            "task cannot be saved, and report the answer above"
+        )
+
     def _write_draft(self) -> int:
         if self.store is None or not self.domain or not self._has_steps():
             return 0
@@ -881,6 +1031,7 @@ class Runner:
 
     def _start_over(self) -> None:
         self._kept = []
+        self._changed_by_code = []
         if self.store is not None and self.domain:
             self.store.drop_draft(self.domain, self.task)
 
@@ -1053,10 +1204,29 @@ def _go_to(url: str) -> Step:
     )
 
 
-def _whole_page(element: Element | None, answer: Any) -> bool:
-    if element is not None and (element.css or "").strip().lower() in WHOLE_PAGE:
+def _after_sending(step: Action, did: dict[str, Any]) -> str:
+    """What a `!` line's page said while it settled, for the reply."""
+    said = " · ".join(f'"{message}"' for message in did.get("said") or [])
+    told = [f"the page said: {said}" if said else "no message appeared"]
+    failed = did.get("failed_requests") or []
+    if failed:
+        told.append("requests that failed: " + " · ".join(failed))
+    elif not said:
+        told[0] += " and no request failed; the page below shows where it stands"
+    return f"after line {step.line} ({_short(step)}): " + "; ".join(told)
+
+
+def _whole_page(element: Element | None, answer: Any, *, part: str = "") -> bool:
+    """Is this read the whole page? A `passage` of the page is not, while it stays short."""
+    whole = element is not None and (element.css or "").strip().lower() in WHOLE_PAGE
+    if whole and part not in _PART_READS:
         return True
     return len(str(answer)) > LONGEST_ANSWER
+
+
+def _as_text(value: Any) -> str:
+    """A script's return as JSON, the way it would print in a browser console."""
+    return json.dumps(value, ensure_ascii=False, default=str)
 
 
 def _capped_line(text: str, limit: int = 200) -> str:
@@ -1155,11 +1325,19 @@ def _css_hint(element: Element) -> str:
 
 
 def _stored_how(step: Step) -> str:
+    """How a saved step finds its element, said truly: a css path alone is a place in the
+    page, and launchit.site's chip cross saved that way read "(by name)"."""
     only = step.locators[0] if len(step.locators) == 1 else None
     if only is not None and only.nth is not None:
         return " (by place)"
-    if step.locators:
+    if any(locator.kind in _NAMING_LOCATORS for locator in step.locators):
         return " (by name)"
+    if any(":has-text(" in locator.value for locator in step.locators):
+        return " (by the words beside it)"
+    if any(_PATH_MARKS.search(locator.value) for locator in step.locators):
+        return " (by css)"
+    if step.locators:
+        return " (by position)"
     return ""
 
 
@@ -1174,6 +1352,8 @@ def _intent_of(step: Action, element: Element | None) -> str:
     text = step.text
     if step.target is not None and step.target.kind == "ref" and element is not None:
         called = f'{element.role} "{element.name}"' if element.name else element.role
+        if not element.name and element.beside:
+            called = f'{element.role or "it"} in "{element.beside}"'.lstrip()
         text = text.replace(step.target.value, called or step.target.value, 1)
     if step.action in ("fill", "type") and step.value is not None:
         verb = text.split(" ", 1)[0]
@@ -1181,23 +1361,75 @@ def _intent_of(step: Action, element: Element | None) -> str:
     return text
 
 
+def _target_line(target: language.Target | None) -> str:
+    """A target as a line writes it."""
+    if target is None:
+        return ""
+    return target.value if target.kind == "ref" else f'{target.kind} "{target.value}"'
+
+
 def _short(step: language.Step) -> str:
     return step.text if len(step.text) <= 80 else step.text[:79] + "…"
 
 
-def _capped(text: str) -> str:
-    if len(text) <= LOOK_CAP_CHARS:
+def _capped(text: str, limit: int = LOOK_CAP_CHARS) -> str:
+    if len(text) <= limit:
         return text
-    return text[:LOOK_CAP_CHARS] + "\n+ cut here. Use look raw from <ref> for the rest."
+    return text[:limit] + "\n+ cut here. Use look raw from <ref> for the rest."
 
 
 def _raw_from(raw: str, view: pageview.View, ref: str) -> str:
-    shown = view.targets.get(ref)
+    """The raw page from `ref` to the end of the section it sits in, at most RAW_FROM_LINES
+    lines, ending with where the rest starts.
+
+    It used to run to the end of the page: from a form's first field on mcpserver.dev that
+    was the whole footer, about 200 lines, when only the form was wanted."""
+    shown = view.find(ref)
     if shown is None:
         raise pageview.ViewError(f"there is no {ref} on this page")
+    lines = raw.splitlines()
     marker = f"[ref={shown.aria_ref}]"
-    at = raw.find(marker)
-    return raw[raw.rfind("\n", 0, at) + 1 :] if at >= 0 else raw
+    start = next((at for at, line in enumerate(lines) if marker in line), 0)
+    end = _end_of_section(lines, start)
+    if end - start > RAW_FROM_LINES:
+        end, more = start + RAW_FROM_LINES, "+ more: look raw from {}"
+    else:
+        more = "the page goes on: look raw from {}"
+    following = _first_ref(lines[end:], view)
+    tail = [more.format(following)] if following else []
+    return "\n".join([*lines[start:end], *tail])
+
+
+def _end_of_section(lines: list[str], start: int) -> int:
+    """Where the section holding line `start` ends: the next line no deeper than the
+    nearest SECTION_ROLES line above it. The end of the page when there is none."""
+    depth = _indent(lines[start])
+    for above in range(start - 1, -1, -1):
+        indent = _indent(lines[above])
+        if indent >= depth:
+            continue
+        depth = indent
+        role = _RAW_ROLE.match(lines[above])
+        if role is not None and role.group(1) in SECTION_ROLES:
+            return next(
+                (at for at in range(start + 1, len(lines)) if _indent(lines[at]) <= indent),
+                len(lines),
+            )
+    return len(lines)
+
+
+def _first_ref(lines: list[str], view: pageview.View) -> str:
+    """The first ref an agent can use in these raw lines, as Dejo prints it."""
+    dejo_ref = {target.aria_ref: ref for ref, target in view.known.items()}
+    for line in lines:
+        for aria_ref in _RAW_REF.findall(line):
+            if aria_ref in dejo_ref:
+                return dejo_ref[aria_ref]
+    return ""
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip())
 
 
 def _covering(message: str) -> str:

@@ -19,6 +19,7 @@ Two rules hold throughout:
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from typing import Any
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator as PWLocator
 from playwright.sync_api import Page
+from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from . import waits
 
@@ -38,6 +40,85 @@ MS_PER_SECOND = 1000
 SCREENS_PER_SCROLL = 0.9  # just under a full screen, so nothing scrolls past unseen
 SCREENS_TO_REACH_END = 40  # far enough to hit either end of any ordinary page
 FALLBACK_VIEWPORT_HEIGHT = 720
+
+# A <select>'s options as [value, label] pairs, or null for anything that is not one.
+_SELECT_OPTIONS_JS = (
+    "el => el.tagName === 'SELECT' ? [...el.options].map(o => [o.value, o.label]) : null"
+)
+# Is this checkbox or radio hidden, or covered where it would be clicked, by its own label
+# (or by something wrapping that label)? Then the label is the thing to click.
+_COVERED_BY_OWN_LABEL_JS = """
+el => {
+  const labels = [...(el.labels || [])];
+  const wrap = el.closest("label");
+  if (wrap && !labels.includes(wrap)) labels.push(wrap);
+  if (!labels.length) return false;
+  const style = getComputedStyle(el);
+  if (el.hidden || style.display === "none" || style.visibility === "hidden") return true;
+  el.scrollIntoView({block: "center"});
+  const box = el.getBoundingClientRect();
+  if (!box.width || !box.height) return true;
+  const top = el.ownerDocument.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+  if (!top || top === el || el.contains(top)) return false;
+  return labels.some(label => label === top || label.contains(top) || top.contains(label));
+}
+"""
+_CLICK_OWN_LABEL_JS = "el => (el.labels && el.labels[0] || el.closest('label')).click()"
+
+# How a step writes a line break, and the fields that can hold one.
+NEW_LINE = "\\n"
+_HOLDS_LINES_JS = "el => el.tagName === 'TEXTAREA' || el.isContentEditable"
+
+# How a dropdown that is not a <select> is chosen in: "typed" into (react-select's text
+# box with role=combobox), "opens" when clicked (a button with role=combobox or a listbox
+# popup), or null for anything else. How long its option gets to be drawn.
+_COMBOBOX_JS = """
+el => {
+  const typed = el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable;
+  const combo = (el.getAttribute("role") || "").toLowerCase() === "combobox"
+    || el.getAttribute("aria-haspopup") === "listbox" || !!el.closest("[role=combobox]");
+  return combo ? (typed ? "typed" : "opens") : null;
+}
+"""
+OPTION_WAIT_MS = 3000
+# The options a combobox shows: in the list it says it controls, else anywhere in its own
+# document (react-select draws its menu beside the box, others in a portal at the end).
+_OPTIONS_OF = """
+const optionsOf = (el) => {
+  const doc = el.ownerDocument;
+  const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
+  const list = (id && doc.getElementById(id)) || doc;
+  return [...list.querySelectorAll("[role=option]")].filter((o) => o.getClientRects().length);
+};
+const said = (o) => (o.getAttribute("aria-label") || o.textContent || "").trim();
+"""
+# The option whose words are exactly `value`, once it is drawn, or null after `ms`.
+_OPTION_JS = (
+    "(el, [value, ms]) => {"
+    + _OPTIONS_OF
+    + """
+  return new Promise((done) => {
+    const began = Date.now();
+    const look = () => {
+      const hit = optionsOf(el).find((o) => said(o) === value);
+      if (hit || Date.now() - began > ms) return done(hit || null);
+      setTimeout(look, 50);
+    };
+    look();
+  });
+}"""
+)
+_OPTIONS_SHOWN_JS = "(el) => {" + _OPTIONS_OF + "return optionsOf(el).map(said).filter(Boolean); }"
+
+# Options named when the one asked for is not there: enough to see what kind of list it is.
+OPTIONS_NAMED = 30
+
+# Actions that press something, so they can buy, send or delete. The rest only move, type
+# or look.
+PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event"})
+
+# How long a click gets to open the file chooser. A site opens it at once, or never.
+CHOOSER_WAIT_MS = 5000
 
 # Resolves once the browser has drawn twice, which is when a scroll has been committed.
 _TWO_FRAMES = "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
@@ -132,8 +213,9 @@ ACTIONS: dict[str, ActionSpec] = {
         "select",
         "choose from a dropdown",
         value_means=(
-            'the option: plain text matches by value, "label:September" matches by what is '
-            'shown, "index:2" matches by position, and commas pick several at once'
+            "the option: plain text matches the value behind it, or else the words shown; "
+            '"label:September" matches only the words, "index:2" the position, and commas '
+            "pick several at once"
         ),
         verifies_with="value_is",
     ),
@@ -378,13 +460,24 @@ def _hover(page: Page, t: _T, value: str | None, second: _T | None) -> None:
 
 
 def _fill(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.fill(value or "")
+    t.fill(_lines_for(t, value or ""))
 
 
 def _type(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     # One key at a time. Search and autocomplete boxes listen for keystrokes and ignore a
     # value that simply appears, which is exactly what `fill` does.
-    t.press_sequentially(value or "")
+    t.press_sequentially(_lines_for(t, value or ""))
+
+
+def _lines_for(t: _T, text: str) -> str:
+    """`\\n` written in a step, as a real new line where the field can hold one.
+
+    A step is one line, so a description with several lines can only be written with `\\n`,
+    and it went in as a backslash and an n (launchingnext.com). A one-line box cannot hold a
+    new line, and a backslash there may be meant, so it keeps what was written."""
+    if NEW_LINE not in text or not t.evaluate(_HOLDS_LINES_JS):
+        return text
+    return text.replace(NEW_LINE, "\n")
 
 
 def _clear(page: Page, t: _T, value: str | None, second: _T | None) -> None:
@@ -402,31 +495,82 @@ def _press(page: Page, t: _T | None, value: str | None, second: _T | None) -> No
 
 
 def _check(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.check()
+    _tick(t, True)
 
 
 def _uncheck(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.uncheck()
+    _tick(t, False)
 
 
 def _set_checked(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.set_checked(_as_bool(value))
+    _tick(t, _as_bool(value))
+
+
+def _tick(t: _T, wanted: bool) -> None:
+    """Tick or untick, through the box's own label when that is what is on show.
+
+    Sites style a checkbox by laying its label over the real box, or by hiding the box and
+    drawing one in the label. Playwright then refuses: "<label> intercepts pointer events"
+    (agenticskills.io), or it waits for the hidden box to be seen. A person clicks the label,
+    and so does this. Anything else in the way is still reported as covering it."""
+    if t.evaluate(_COVERED_BY_OWN_LABEL_JS):
+        if t.is_checked() != wanted:
+            t.evaluate(_CLICK_OWN_LABEL_JS)
+        if t.is_checked() != wanted:
+            raise ActionNeedsMore(
+                "clicking this box's label did not change it. The page may draw its own box "
+                "elsewhere: look at the page and click what shows the tick."
+            )
+        return
+    t.set_checked(wanted)
 
 
 def _select(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    try:
-        t.select_option(**_select_options(value or ""))
-    except PlaywrightError as not_a_dropdown:
-        # `select` only works on a real <select>. Half the dropdowns on the modern web are
-        # a button and a list of divs — Radix, Headless UI, anything built on them — and
-        # Playwright's own message for that says nothing about what to do instead.
-        if "not a <select>" not in str(not_a_dropdown).lower():
-            raise
+    # Read the options first. `select_option` waits its whole timeout for an option that is
+    # not there and then raises Playwright's bare "Timeout 15000ms exceeded", which tells
+    # the agent nothing about what it could have picked.
+    options = t.evaluate(_SELECT_OPTIONS_JS)
+    if options is None:
+        _pick_from_a_combobox(t, value or "")
+        return
+    if not t.is_enabled():
+        # Playwright waits its whole timeout for a disabled dropdown to become usable, and
+        # then says only "Timeout 15000ms exceeded".
         raise ActionNeedsMore(
-            "this is not a real <select>, so there is nothing to choose from. It is a "
-            "custom dropdown built out of a button and a list — click the button, then "
-            "look at the page again and click the option you want."
-        ) from not_a_dropdown
+            "this dropdown is disabled, so nothing can be chosen in it yet. Something else on "
+            "the page usually has to be done first: look at the page for what."
+        )
+    chosen = _select_options(value or "", options)
+    # Choices.js, nice-select and many sites hide the real <select> and draw a menu of their
+    # own that listens to it. Playwright waits for a hidden one to be seen, which never
+    # happens (fewservers.com timed out by option and by label). Choosing in it is what the
+    # site's own menu does, and it fires the same change the menu listens for.
+    t.select_option(**chosen, force=not t.is_visible())
+
+
+def _pick_from_a_combobox(t: _T, value: str) -> None:
+    """Choose in a dropdown that is not a <select>: type into it (react-select's text box)
+    or open it (a Radix or Headless UI button), then click the option with these words.
+
+    Half the dropdowns on the modern web are built this way, and `select` used to give up on
+    all of them with "click the button" (launchit.site)."""
+    how = t.evaluate(_COMBOBOX_JS)
+    if how is None:
+        raise ActionNeedsMore(
+            "this is not a dropdown Dejo can choose in: neither a <select> nor a combobox. "
+            "Click it, then look at the page again and click the option you want."
+        )
+    t.click()
+    if how == "typed":
+        t.fill("")
+        t.press_sequentially(value)
+    # Found from the box itself, never by searching the page, so a box in a frame finds the
+    # options in its own frame.
+    found = t.evaluate_handle(_OPTION_JS, [value, OPTION_WAIT_MS]).as_element()
+    if found is None:
+        shown = t.evaluate(_OPTIONS_SHOWN_JS)
+        raise ActionNeedsMore(_no_such_option([value], shown))
+    found.click()
 
 
 def _upload(page: Page, t: _T, value: str | None, second: _T | None) -> None:
@@ -440,10 +584,34 @@ def _upload(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     # clicking it opens the operating system's file chooser, which Playwright can catch.
     if _is_file_input(t):
         t.set_input_files(paths)
+        _check_the_box_kept(t.element_handle(), paths)
         return
-    with page.expect_file_chooser() as caught:
-        t.click()
+    try:
+        with page.expect_file_chooser(timeout=CHOOSER_WAIT_MS) as caught:
+            t.click()
+    except PlaywrightTimeout:
+        raise ActionNeedsMore(
+            "clicking this opened no file chooser, so the file went nowhere. Upload onto the "
+            "page's file box itself: look raw for a button named Choose File or Browse."
+        ) from None
     caught.value.set_files(paths)
+    _check_the_box_kept(caught.value.element, paths)
+
+
+def _check_the_box_kept(box: Any, paths: list[Path]) -> None:
+    """Fail unless the file box still holds the files once the page has looked at them.
+
+    A site checks a file the moment it arrives and empties the box when it does not like
+    it, saying nothing: devhunt.org's "Select an image" took the upload, reported done, and
+    showed no logo. What the box accepts is the likeliest reason, so it is named."""
+    kept, accepts = box.evaluate("el => [el.files ? el.files.length : 0, el.accept || '']")
+    if kept >= len(paths):
+        return
+    takes = f" It takes only {accepts}." if accepts else ""
+    raise ActionNeedsMore(
+        f"the page's file box did not keep {', '.join(path.name for path in paths)}: it took "
+        f"the file and then emptied itself.{takes} Send a file it accepts."
+    )
 
 
 def _is_file_input(target: _T) -> bool:
@@ -670,31 +838,45 @@ def _as_bool(value: str | None) -> bool:
     return str(value).strip().lower() in {"true", "1", "yes", "on", "checked"}
 
 
-def _select_options(value: str) -> dict[str, Any]:
-    """Turn one written value into keyword arguments for `select_option`.
+def _select_options(value: str, options: Sequence[Sequence[str]]) -> dict[str, Any]:
+    """Turn one written value into keyword arguments for `select_option`, checked against
+    the dropdown's real `(value, label)` options.
 
     A dropdown option can be picked by the value behind it, by the words a person actually
     sees, or by position. Sites change the hidden value far more often than the visible
-    label, so `label:September` is the more durable way to record a choice.
+    label, so `label:September` is the more durable way to record a choice. Plain text is
+    the value if one matches, else the words shown: the page view prints the words, and
+    `select e3 "Python"` failed on a value of `python`.
 
     Playwright's Python API takes these as separate keyword arguments. The list-of-dicts
     form works only in JavaScript, and here it fails without saying why.
     """
+    known_values = [v for v, _ in options]
+    known_labels = [label for _, label in options]
     values: list[str] = []
     labels: list[str] = []
     indexes: list[int] = []
+    missing: list[str] = []
 
     for part in (piece.strip() for piece in value.split(",")):
         if not part:
             continue
         if part.startswith("label:"):
-            labels.append(part[len("label:") :])
+            wanted, found, into = part[len("label:") :], known_labels, labels
         elif part.startswith("index:"):
-            indexes.append(int(part[len("index:") :]))
+            position = int(part[len("index:") :])
+            (indexes if 0 <= position < len(options) else missing).append(position)
+            continue
         elif part.startswith("value:"):
-            values.append(part[len("value:") :])
+            wanted, found, into = part[len("value:") :], known_values, values
+        elif part in known_values:
+            wanted, found, into = part, known_values, values
         else:
-            values.append(part)
+            wanted, found, into = part, known_labels, labels
+        (into if wanted in found else missing).append(wanted)
+
+    if missing:
+        raise ActionNeedsMore(_no_such_option(missing, known_labels))
 
     chosen: dict[str, Any] = {}
     if values:
@@ -704,6 +886,16 @@ def _select_options(value: str) -> dict[str, Any]:
     if indexes:
         chosen["index"] = indexes
     return chosen
+
+
+def _no_such_option(missing: list[str | int], labels: list[str]) -> str:
+    shown = ", ".join(f'"{label}"' for label in labels[:OPTIONS_NAMED])
+    more = f" and {len(labels) - OPTIONS_NAMED} more" if len(labels) > OPTIONS_NAMED else ""
+    asked = ", ".join(f'"{m}"' if isinstance(m, str) else f"index:{m}" for m in missing)
+    return (
+        f"this dropdown has no option {asked}. Its options are {shown}{more}. "
+        "Send the step again with one of them, written as it is shown."
+    )
 
 
 def sanity_check() -> None:

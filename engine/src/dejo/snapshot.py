@@ -163,6 +163,11 @@ class Element:
     placeholder: str | None = None
     title: str | None = None
     alt: str | None = None
+    beside: str | None = None
+    """For an element with no words of its own, the words of the nearest box around it
+    ("AI agents" for that chip's cross). What it is, said in a way a step can show."""
+    beside_css: str | None = None
+    """The path that finds it by those words: `span:has-text("AI agents") > button`."""
     fallback_css: str = ""
     """A second, positional path to the same element, worked out from the page.
 
@@ -212,6 +217,10 @@ class Element:
             found.append(self._pin(Locator("title", self.title)))
         if self.name and self._text_is_its_own:
             found.append(self._pin(Locator("text", self.name)))
+        if self.beside_css and not self.name:
+            # A nameless element by what sits beside it, ahead of its place in the page: the
+            # cross of the "AI agents" chip, not the second chip's cross (launchit.site).
+            found.append(Locator("css", self.beside_css))
         if self.css:
             found.append(Locator("css", self.css))
         if self.fallback_css and self.fallback_css != self.css:
@@ -362,6 +371,14 @@ def lines(snapshot: str) -> list[Node]:
         attrs = _attributes(match.group("attrs") or "")
         ref = attrs.get("ref", "")
         role = match.group("role")
+        owner = open_[-1] if open_ else None
+        if role == "text" and not ref and owner is not None and owner.role in TYPED_ROLES:
+            # A field with a placeholder holds its value on a line of its own, under the
+            # placeholder: `textbox "Email" [ref=e4]:` then `- text: me@x.com`. Read as the
+            # field's own text, the way a field without one prints it, so it is marked
+            # filled and its value is never printed (mcpmarket.com, startupfa.me, dang.ai).
+            owner.trailing = owner.trailing or _plain((match.group("text") or "").strip())
+            continue
         frame_ref, frame_index = (frames[-1][1], frames[-1][2]) if frames else ("", 0)
         node = Node(
             aria_ref=ref,

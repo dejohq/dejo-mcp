@@ -27,6 +27,11 @@ T = TypeVar("T")
 
 _STOP = object()
 
+# How long the browser is kept answered between looks at the job queue: the most a job can
+# wait to start. Short enough that nobody notices, long enough that an idle worker is
+# not a busy loop.
+IDLE_SLICE_MS = 100
+
 
 class BrowserWorker:
     """A browser that lives on its own thread, driven by posting callables to it."""
@@ -98,7 +103,12 @@ class BrowserWorker:
         self._ready.set()
         try:
             while True:
-                job = self._jobs.get()
+                try:
+                    job = self._jobs.get_nowait()
+                except queue.Empty:
+                    # Never block here: a browser nobody answers stalls (see Browser.idle).
+                    self.browser.idle(IDLE_SLICE_MS)
+                    continue
                 if job is _STOP:
                     return
                 call, future = job

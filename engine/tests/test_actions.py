@@ -7,6 +7,7 @@ quietly grow a member that has never been run.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterator
 
 import pytest
@@ -257,13 +258,42 @@ def test_select_several(lab: Browser) -> None:
     assert chosen == ["a", "c"]
 
 
+def test_select_by_the_words_shown(lab: Browser) -> None:
+    """The page view prints the words, so plain words that are not a value pick by them."""
+    do(lab, "select", "#month", value="September")
+    assert lab.page.locator("#month").input_value() == "sep"
+
+
+def test_a_missing_option_stops_at_once_and_names_the_real_ones(lab: Browser) -> None:
+    """It used to wait 15 s and raise Playwright's bare 'Timeout 15000ms exceeded'."""
+    started = time.monotonic()
+    with pytest.raises(actions.ActionNeedsMore) as refused:
+        do(lab, "select", "#month", value="Octember")
+    assert time.monotonic() - started < 2
+    assert '"Octember"' in str(refused.value)
+    assert '"January", "September", "December"' in str(refused.value)
+
+
 def test_select_options_parsing() -> None:
-    assert actions._select_options("sep") == {"value": ["sep"]}
-    assert actions._select_options("label:September") == {"label": ["September"]}
-    assert actions._select_options("index:2") == {"index": [2]}
-    assert actions._select_options("value:sep") == {"value": ["sep"]}
-    assert actions._select_options("a, b") == {"value": ["a", "b"]}
-    assert actions._select_options("a,label:Beta") == {"value": ["a"], "label": ["Beta"]}
+    months = [("jan", "January"), ("sep", "September")]
+    letters = [("a", "Alpha"), ("b", "Beta")]
+    assert actions._select_options("sep", months) == {"value": ["sep"]}
+    assert actions._select_options("September", months) == {"label": ["September"]}
+    assert actions._select_options("label:September", months) == {"label": ["September"]}
+    assert actions._select_options("index:1", months) == {"index": [1]}
+    assert actions._select_options("value:sep", months) == {"value": ["sep"]}
+    assert actions._select_options("a, b", letters) == {"value": ["a", "b"]}
+    assert actions._select_options("a,label:Beta", letters) == {"value": ["a"], "label": ["Beta"]}
+    for wrong in ("index:2", "value:September", "label:sep"):
+        with pytest.raises(actions.ActionNeedsMore):
+            actions._select_options(wrong, months)
+
+
+def test_a_long_option_list_is_named_in_part() -> None:
+    many = [(str(n), f"Country {n}") for n in range(249)]
+    with pytest.raises(actions.ActionNeedsMore) as refused:
+        actions._select_options("Atlantis", many)
+    assert '"Country 29" and 219 more' in str(refused.value)
 
 
 # -------------------------------------------------------------------- files

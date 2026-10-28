@@ -39,6 +39,49 @@ ALL_BUDGET = 27_000
 # label, short enough that one paragraph cannot eat the budget.
 TEXT_LIMIT = 120
 
+# Characters of a native select's options printed on its line. Under TEXT_LIMIT so the
+# " · +246 more" ending always fits before the line is cut (a country list has 249).
+CHOICES_LIMIT = 100
+
+# An element whose text is longer than this is one long text (a plain-text page, an article
+# in one block): `look <words>` shows the parts of it that say them, PASSAGE_SIDE characters
+# either side of each, at most PASSAGES_SHOWN of them.
+LONG_TEXT = 1_000
+PASSAGE_SIDE = 120
+PASSAGES_SHOWN = 6
+
+# One-time secrets a view never prints (see `hide_one_time_secrets`): a 4 to 8 digit number
+# a few words from "code", and a long value of letters and digits in an address, which is
+# how a magic link carries its token.
+_CODE_WORDS = r"(?:code|otp|passcode|pin|verification|one-time)"
+# A zip, postal, area or country code is no secret.
+_PUBLIC_CODES = r"(?<!zip )(?<!postal )(?<!area )(?<!country )"
+_CODE_BEFORE = re.compile(rf"({_PUBLIC_CODES}\b{_CODE_WORDS}\b[^\d\n]{{0,30}}?)\b\d{{4,8}}\b", re.I)
+_CODE_AFTER = re.compile(rf"\b\d{{4,8}}\b(?=[^\d\n]{{0,30}}\b{_CODE_WORDS}\b)", re.I)
+_TOKEN_IN_ADDRESS = re.compile(r"([?&#][\w.-]*=)([\w%.~-]{20,})")
+HIDDEN_CODE = "[hidden code]"
+HIDDEN_TOKEN = "[hidden token]"
+SECRETS_NOTE = (
+    "codes and sign-in tokens are hidden in this view; to use one, read the element that holds it"
+)
+
+# Said first when a modal dialog is open, which the view then shows first.
+MODAL_NOTE = (
+    "a dialog is open over the page, shown first; the page behind it cannot be used until "
+    "it is closed"
+)
+_DIALOG_ROLES = frozenset({"dialog", "alertdialog"})
+
+# Controls that are often only an icon. With no words, the view says what the icon is, or
+# that it has no name (devhunt.org's GitHub and Google sign-in buttons were bare `button`).
+ICON_ROLES = frozenset({"button", "link"})
+
+# A run of siblings that repeats word for word is printed once (see `_without_repeats`):
+# runs of up to REPEAT_PERIOD siblings, holding at least REPEAT_MIN_LINES lines between them.
+# A carousel shows a handful of cards; a single repeated line is a fold's job, not this.
+REPEAT_PERIOD = 12
+REPEAT_MIN_LINES = 3
+
 # Siblings of the same shape that make a fold. Three is where a run reads as a list.
 FOLD_MIN = 3
 # Rows a fold shows. The first rows are what "the first X" tasks need; `look gK` shows all.
@@ -187,10 +230,12 @@ class Item:
         return self.render(BEST_TEXT_LIMIT, alone=True)
 
     def render(self, limit: int, *, with_role: bool = True, alone: bool = False) -> str:
-        head = f"{self.ref} {self.role}" if self.role and with_role else self.ref
+        role = self.role if with_role or not self.ref else ""
+        head = " ".join(part for part in (self.ref, role) if part)
         named = f" {_quoted(self.name, limit)}" if self.name else ""
         said = self.said if alone or not self.bare else ""
-        return f"{head}{named}{self.tail}" + (f": {_cut_text(said, limit)}" if said else "")
+        line = f"{head}{named}{self.tail}" + (f": {_cut_text(said, limit)}" if said else "")
+        return line.lstrip()
 
 
 @dataclass(frozen=True)
@@ -234,6 +279,19 @@ class View:
     """Every fold on the page, all rows, whether shown or not."""
     hidden_lines: int
     """Element lines left out by the budget (0 when everything fitted)."""
+    known: dict[str, Target] = field(default_factory=dict)
+    """Every ref on the page, printed or not: rows folded away, lines past the budget, and
+    the refs `look raw` shows. A ref the page has is a ref an agent may use (agenticskills.io:
+    a folded row's ref was refused while the page plainly had it)."""
+
+    def find(self, ref: str) -> Target | None:
+        """What a ref points at: one this view printed, any of the page's, or Playwright's
+        own spelling of one. `look raw` prints Playwright's (`f155e826`, once the page has
+        moved), and launchit.site refused it while `e826` worked."""
+        found = self.targets.get(ref) or self.known.get(ref)
+        if found is not None:
+            return found
+        return next((target for target in self.known.values() if target.aria_ref == ref), None)
 
 
 @dataclass
@@ -260,8 +318,24 @@ class _Fold:
     rows: tuple[tuple[Item, ...], ...]
 
 
-_Block = Item | Group
-_Draft = Item | _Fold
+@dataclass(frozen=True)
+class _Repeat:
+    """Siblings that say exactly what the ones before them said, left out (see REPEAT_*)."""
+
+    order: int
+    lines: int
+    times: int
+
+    @property
+    def text(self) -> str:
+        return (
+            f"(the {self.lines} lines above appear {self.times} more times, word for word; "
+            "their refs work too)"
+        )
+
+
+_Block = Item | Group | _Repeat
+_Draft = Item | _Fold | _Repeat
 
 
 def render(
@@ -275,6 +349,9 @@ def render(
     group: str = "",
     everything: bool = False,
     budget: int = LINE_BUDGET,
+    find: str = "",
+    icons: Mapping[str, str] | None = None,
+    modal: frozenset[str] = frozenset(),
 ) -> View:
     """Turn Playwright's ai snapshot into the view an agent reads.
 
@@ -282,11 +359,14 @@ def render(
     words of `look <words>`). `frames` maps an iframe's Playwright ref to a CSS selector for
     it, as in `snapshot.parse`. At most one of the paging inputs may be given: `start` (a
     ref: the next slice from there), `group` (`g2`: every row of that fold) or `everything`
-    (no budget, only the 30,000-char reply cap).
+    (no budget, only the 30,000-char reply cap). `icons` names the icons of nameless
+    controls, by Playwright ref (`Browser.icon_names`, asked about `nameless_controls`).
+    `find` is the words of `look <words>`:
+    where one element holds a long text, the passages of it that say them are shown too.
     """
     if sum((bool(start), bool(group), everything)) > 1:
         raise ViewError("Ask for one of: from <ref>, a group, or all, not several at once.")
-    page = _Page(snapshot, url)
+    page = _Page(snapshot, url, icons or {}, modal)
     if group:
         sequence, limit = page.group_lines(group.strip()), budget
     elif start:
@@ -296,7 +376,66 @@ def render(
     else:
         sequence, limit = page.sequence(expand=False), budget
     shown, rest = _cut(sequence, limit)
-    return _assemble(page, shown, rest, focus_words(focus), title, frames or {})
+    view = _assemble(page, shown, rest, focus_words(focus), title, frames or {})
+    lines = view.text.split("\n")
+    text = "\n".join([lines[0], *_passages(page, focus_words(find)), *lines[1:]])
+    hidden = hide_one_time_secrets(text)
+    if hidden != text:
+        hidden += "\n" + SECRETS_NOTE
+    return View(hidden, view.targets, view.groups, view.hidden_lines, view.known)
+
+
+def dialogs(snapshot: str) -> list[str]:
+    """Playwright refs of the dialogs on the page, for `Browser.modal_dialogs` to ask which
+    are modal: the snapshot does not say."""
+    return [node.aria_ref for node in lines(snapshot) if node.role in _DIALOG_ROLES]
+
+
+def _dialog_first(
+    blocks: list[_Block], root: _Branch, modal: frozenset[str]
+) -> tuple[list[_Block], bool]:
+    """The blocks with those of an open modal dialog moved to the front, and whether there
+    was one. tinystartups.com put its upsell after the footer, past the view's budget, while
+    the page behind it could not be clicked at all."""
+    spans = [
+        (branch.order, max(inner.order for inner in _walk(branch)))
+        for branch in _walk(root)
+        if branch.node.aria_ref and branch.node.aria_ref in modal
+    ]
+    if not spans:
+        return blocks, False
+    inside = [block for block in blocks if any(a <= _first_order(block) <= b for a, b in spans)]
+    return inside + [block for block in blocks if block not in inside], bool(inside)
+
+
+def hide_one_time_secrets(text: str) -> str:
+    """`text` with one-time sign-in codes and the tokens of sign-in links hidden.
+
+    A view of a mailbox printed a Dang.ai sign-in code and the token of its magic link, for
+    the agent's whole conversation to keep. A `read` of the element still answers with the
+    real value: reading one is a deliberate act, a view is not."""
+    hidden = _CODE_BEFORE.sub(lambda found: found.group(1) + HIDDEN_CODE, text)
+    hidden = _CODE_AFTER.sub(HIDDEN_CODE, hidden)
+    return _TOKEN_IN_ADDRESS.sub(_hide_token, hidden)
+
+
+def _hide_token(found: re.Match[str]) -> str:
+    value = found.group(2)
+    random_looking = re.search(r"[a-z]", value, re.I) and re.search(r"\d", value)
+    return found.group(1) + (HIDDEN_TOKEN if random_looking else value)
+
+
+def nameless_controls(snapshot: str) -> list[str]:
+    """Playwright refs of the buttons and links with no name: icons mostly, whose names
+    `Browser.icon_names` can look for in the page."""
+    return [
+        branch.node.aria_ref
+        for branch in _walk(_tree(lines(snapshot)))
+        if branch.node.ref
+        and branch.node.role in ICON_ROLES
+        and not branch.node.name
+        and not _clean(branch.node.trailing or _words(branch))
+    ]
 
 
 def focus_words(text: str) -> list[str]:
@@ -315,13 +454,16 @@ def focus_words(text: str) -> list[str]:
 class _Page:
     """The snapshot read once: its tree, every printable element, and the folds."""
 
-    def __init__(self, snapshot: str, url: str):
+    def __init__(self, snapshot: str, url: str, icons: Mapping[str, str], modal: frozenset[str]):
         self.url = url
+        self.icons = icons
         self.root = _tree(lines(snapshot))
         self.frame_number = _iframe_numbers(self.root)
         self.order_of = {b.node.ref: b.order for b in _walk(self.root) if b.node.ref}
         _mark_blocky(self.root)
-        self.blocks = _name_groups(self._blocks(self.root, absorb=False))
+        self.blocks, self.modal = _dialog_first(
+            _name_groups(self._blocks(self.root, absorb=False)), self.root, modal
+        )
         self.groups = {block.id: block for block in self.blocks if isinstance(block, Group)}
         self.items = sorted(_flatten(self.blocks), key=lambda item: item.order)
 
@@ -338,11 +480,18 @@ class _Page:
         return [item, *drafts]
 
     def _dropped(self, branch: _Branch) -> bool:
-        """A picture nobody can click, or a second, nameless link to a card's own target."""
+        """A picture nobody can click, or a second, nameless link to a card's own target
+        with no words of its own (the cover picture's link).
+
+        A link that wraps a whole card has no name either: Playwright names no link from a
+        heading inside it. Dropped for its "Edit" twin, it took the card's words with it,
+        and tinylaunch.com's "Dejo · Waiting for approval" was only in `look raw`."""
         node = branch.node
         if node.role == "img" and not _is_control(node):
             return True
-        return node.role == "link" and not node.name and self._has_named_twin(branch)
+        if node.role != "link" or node.name or _words_besides_pictures(branch):
+            return False
+        return self._has_named_twin(branch)
 
     def _has_named_twin(self, branch: _Branch) -> bool:
         """Is there a named link to the same place in the same card?
@@ -369,6 +518,8 @@ class _Page:
         under it belong to it (inside a control or heading they are its name)."""
         node = branch.node
         if not node.ref:
+            if _disabled_control(node):
+                return self._control(branch), set(), True
             return None, set(), absorb
         if _is_control(node):
             return self._control(branch), set(), True
@@ -392,18 +543,27 @@ class _Page:
             label, filled = node.name or node.trailing or self._words_under(branch), False
         label = _clean(label)
         states = [f"[{flag}]" for flag in node.flags.split() if flag.split("=")[0] in STATES]
+        if not label and node.role in ICON_ROLES:
+            # A state, not a name: `button "github"` would find nothing, the ref does.
+            states.append(f"[{self.icons.get(node.aria_ref) or 'icon, no name'}]")
         if filled:
             states.append("[filled]")
+        choices = _choices(branch)
+        chosen = next((name for name, picked in choices if picked), "")
+        if chosen:
+            states.append(f"[chosen {_quoted(chosen)}]")
         return Item(
             ref=node.ref,
             role=node.role,
             kind=node.role,
             node=node,
             order=branch.order,
-            words=label,
+            # Every option, uncut: "look India" must find the country select.
+            words=" ".join([label, *(name for name, _ in choices)]),
             control=True,
             name=label,
             tail="".join(f" {state}" for state in states),
+            said=_choice_line([name for name, _ in choices]),
         )
 
     def _heading(self, branch: _Branch) -> Item | None:
@@ -537,6 +697,33 @@ def _walk(branch: _Branch) -> Iterator[_Branch]:
         stack.extend(reversed(current.children))
 
 
+def _choices(branch: _Branch) -> list[tuple[str, bool]]:
+    """A native `<select>`'s options, each with whether it is the one chosen.
+
+    Playwright gives them no ref, and a line without a ref is never printed, so before this
+    the choices of every plain dropdown were missing from the view (mcpservers.org's
+    "Category"). A custom listbox's options have refs and lines of their own."""
+    if branch.node.role != "combobox":
+        return []
+    return [
+        (_clean(kid.node.name), "selected" in kid.node.flags.split())
+        for kid in _walk(branch)
+        if kid.node.role == "option" and not kid.node.ref and _clean(kid.node.name)
+    ]
+
+
+def _choice_line(names: Sequence[str]) -> str:
+    """`options A · B · C`, cut to CHOICES_LIMIT with how many were left out."""
+    if not names:
+        return ""
+    shown = [names[0]]
+    for name in names[1:]:
+        if len(" · ".join([*shown, name])) > CHOICES_LIMIT:
+            return f"options {' · '.join(shown)} · +{len(names) - len(shown)} more"
+        shown.append(name)
+    return f"options {' · '.join(shown)}"
+
+
 def _iframe_numbers(root: _Branch) -> dict[str, int]:
     """Number the iframes in document order from 1, as `snapshot.lines` does for the refs
     inside them, so `iframe (f1)` names the prefix its elements carry."""
@@ -554,11 +741,26 @@ def _is_control(node: Node) -> bool:
     return "cursor=pointer" in node.flags and bool(node.name or node.trailing)
 
 
+def _disabled_control(node: Node) -> bool:
+    """A control Playwright gave no ref because it cannot be clicked now, and says why.
+
+    A button that is disabled with pointer events turned off (how shadcn styles every
+    disabled button) has no ref, and every line without one used to be left out: after
+    `click! Submit` on mcpserver.dev the button was simply gone from the view, and the agent
+    could not tell "busy" from "gone". It is printed, with no ref to act on."""
+    return node.role in CONTROL_ROLES and bool(node.name) and "disabled" in node.flags.split()
+
+
 def _mark_blocky(root: _Branch) -> None:
     for branch in reversed(list(_walk(root))):
         node = branch.node
-        own = bool(node.ref) and (
-            _is_control(node) or node.role in ("heading", "iframe") or node.role in SPECIAL_ROLES
+        own = _disabled_control(node) or (
+            bool(node.ref)
+            and (
+                _is_control(node)
+                or node.role in ("heading", "iframe")
+                or node.role in SPECIAL_ROLES
+            )
         )
         branch.blocky = own or any(kid.blocky for kid in branch.children)
 
@@ -567,6 +769,17 @@ def _inline_only(branch: _Branch) -> bool:
     """Is every element in this subtree a piece of a sentence? A `generic` can be a `<span>`
     or a `<div>` full of paragraphs; only the first may melt into its parent's line."""
     return all(not b.node.ref or b.node.role in _INLINE_ROLES for b in _walk(branch))
+
+
+def _words_besides_pictures(branch: _Branch) -> str:
+    """The words in a subtree, leaving out what pictures say (a cover's alt text)."""
+    node = branch.node
+    if node.role == "img":
+        return ""
+    if node.name and not node.trailing:
+        return node.name
+    parts = [node.trailing, *(_words_besides_pictures(kid) for kid in branch.children)]
+    return _clean(" ".join(part for part in parts if part))
 
 
 def _words(branch: _Branch) -> str:
@@ -578,8 +791,12 @@ def _words(branch: _Branch) -> str:
         # no content and only a name is a `title` on an empty box: Wikipedia's citation
         # metadata (`ctx_ver=Z39.88-2004&rft...`, hundreds of chars each) reads like this.
         return ""
-    if not node.trailing and node.name:
+    if node.name and (not node.trailing or node.role in _TYPED_ROLES):
+        # What a field holds is never words of the page: a row holding a password box would
+        # otherwise carry the password in its words.
         return node.name
+    if node.role in _TYPED_ROLES:
+        return ""
     parts = [node.trailing] if node.trailing else []
     parts += [_words(kid) for kid in branch.children]
     return " ".join(part for part in parts if part)
@@ -594,8 +811,10 @@ def _fold(kids: list[_Branch], drafts: list[list[_Draft]], url: str) -> list[_Dr
     Look-alike: same role, the same sequence of element kinds inside (a repeat counts once,
     so a quote with two tags and one with four still match), and the same first path
     segment on the first link. Siblings with nothing to show do not break a run."""
-    present = [(kid, found) for kid, found in zip(kids, drafts, strict=True) if found]
-    shapes = [_shape(kid, found, url) for kid, found in present]
+    present = _without_repeats(
+        [(kid, found) for kid, found in zip(kids, drafts, strict=True) if found]
+    )
+    shapes = [_shape(kid, found, url) if kid is not None else None for kid, found in present]
     out: list[_Draft] = []
     index = 0
     while index < len(present):
@@ -609,6 +828,52 @@ def _fold(kids: list[_Branch], drafts: list[list[_Draft]], url: str) -> list[_Dr
             out += present[index][1]
             index += 1
     return out
+
+
+def _without_repeats(
+    present: list[tuple[_Branch | None, list[_Draft]]],
+) -> list[tuple[_Branch | None, list[_Draft]]]:
+    """Siblings with a run that repeats word for word kept once, and a note for the rest.
+
+    tinylaunch.com cloned a testimonial carousel about 20 times, and the clones filled the
+    view. A run of up to REPEAT_PERIOD siblings counts when it holds REPEAT_MIN_LINES lines
+    or more; smaller look-alikes (a row of stars, pager dots) fold as before."""
+    signs = [_signature(found) for _, found in present]
+    out: list[tuple[_Branch | None, list[_Draft]]] = []
+    at = 0
+    while at < len(present):
+        period, times = _repetition(signs, at)
+        unit = present[at : at + period]
+        lines = sum(len(list(_flatten(found))) for _, found in unit)
+        if times < 2 or lines < REPEAT_MIN_LINES:
+            out.append(present[at])
+            at += 1
+            continue
+        out.extend(unit)
+        first_again = next(_flatten(present[at + period][1]))
+        out.append((None, [_Repeat(first_again.order, lines, times - 1)]))
+        at += period * times
+    return out
+
+
+def _repetition(signs: list[tuple[tuple[str, ...], ...]], at: int) -> tuple[int, int]:
+    """The run starting at `at` that repeats most, as (siblings in it, times in a row)."""
+    best = (1, 1)
+    for period in range(1, min(REPEAT_PERIOD, (len(signs) - at) // 2) + 1):
+        unit = signs[at : at + period]
+        if not all(unit):
+            continue
+        times = 1
+        while signs[at + times * period : at + (times + 1) * period] == unit:
+            times += 1
+        if times > 1 and period * times > best[0] * best[1]:
+            best = (period, times)
+    return best
+
+
+def _signature(found: Sequence[_Draft]) -> tuple[tuple[str, ...], ...]:
+    """What a sibling says, without its refs: two clones of one card have the same."""
+    return tuple((item.kind, item.role, item.name, item.said) for item in _flatten(found))
 
 
 def _shape(kid: _Branch, found: list[_Draft], url: str) -> tuple[str, tuple[str, ...], str] | None:
@@ -635,7 +900,7 @@ def _flatten(found: Sequence[_Draft | Group]) -> Iterator[Item]:
     for draft in found:
         if isinstance(draft, Item):
             yield draft
-        else:
+        elif not isinstance(draft, _Repeat):
             for row in draft.rows:
                 yield from row
 
@@ -644,7 +909,7 @@ def _name_groups(drafts: list[_Draft]) -> list[_Block]:
     """Give every fold its id, g1 first, in page order."""
     named: list[_Block] = []
     for draft in drafts:
-        if isinstance(draft, Item):
+        if isinstance(draft, Item | _Repeat):
             named.append(draft)
             continue
         number = sum(isinstance(block, Group) for block in named) + 1
@@ -661,7 +926,7 @@ def _noun(rows: tuple[tuple[Item, ...], ...]) -> str:
 
 
 def _first_order(block: _Block) -> int:
-    return block.order if isinstance(block, Item) else block.rows[0][0].order
+    return block.order if isinstance(block, Item | _Repeat) else block.rows[0][0].order
 
 
 # ------------------------------------------------------------------------- rendering
@@ -672,6 +937,8 @@ def _block_lines(blocks: Sequence[_Block], *, expand: bool) -> list[_Line]:
     for block in blocks:
         if isinstance(block, Item):
             out.append(_Line(block.line, (block,)))
+        elif isinstance(block, _Repeat):
+            out.append(_Line(block.text))
         elif expand:
             out += _expanded(block, 0)
         else:
@@ -735,18 +1002,26 @@ def _assemble(
     title: str,
     frames: Mapping[str, str],
 ) -> View:
+    # Items are told apart by their place on the page, not their ref: a disabled control
+    # with no ref is printed too (see `_disabled_control`).
     on_screen = [item for line in shown for item in line.items]
-    seen = {item.ref for item in on_screen}
-    something_hidden = any(item.ref not in seen for item in page.items)
+    seen = {item.order for item in on_screen}
+    something_hidden = any(item.order not in seen for item in page.items)
     best = _best(page, words) if words and something_hidden else []
-    listed_best = {item.ref for item in best}
+    listed_best = {item.order for item in best}
     pager = [
         item
         for item in page.items
-        if item.control and _is_pager(item) and item.ref not in seen and item.ref not in listed_best
+        if item.control
+        and item.ref
+        and _is_pager(item)
+        and item.order not in seen
+        and item.order not in listed_best
     ]
 
     text = [f"page {_quoted(_clean(title))} {page.url}"]
+    if page.modal:
+        text.append(MODAL_NOTE)
     if best:
         joined = " · ".join(item.brief for item in best)
         text.append(f"best for {_quoted(' '.join(words))}: {joined}")
@@ -758,8 +1033,13 @@ def _assemble(
         text.append(pager_line)
 
     printed = [*on_screen, *best, *listed]
-    targets = {item.ref: _target(item, frames) for item in printed}
-    return View("\n".join(text), targets, page.groups, len(rest))
+    targets = {item.ref: _target(item, frames) for item in printed if item.ref}
+    known = {
+        branch.node.ref: _node_target(branch.node, frames)
+        for branch in _walk(page.root)
+        if branch.node.ref
+    }
+    return View("\n".join(text), targets, page.groups, len(rest), known)
 
 
 def _note(rest: list[_Line]) -> str:
@@ -782,8 +1062,11 @@ def _pager_line(pager: list[Item]) -> tuple[str, list[Item]]:
 
 
 def _target(item: Item, frames: Mapping[str, str]) -> Target:
-    node = item.node
-    return Target(item.ref, node, frames.get(node.frame_ref) if node.frame_ref else None)
+    return _node_target(item.node, frames)
+
+
+def _node_target(node: Node, frames: Mapping[str, str]) -> Target:
+    return Target(node.ref, node, frames.get(node.frame_ref) if node.frame_ref else None)
 
 
 def _is_pager(item: Item) -> bool:
@@ -806,7 +1089,7 @@ def _best(page: _Page, words: list[str]) -> list[Item]:
     plain counting missed Lagos (post-hoc, lab-results.md §7); it is measured again in
     Phase 2."""
     stems = list(dict.fromkeys(_stem(word) for word in words))
-    own = {item.ref: _tokens(item.words) for item in page.items}
+    own = {item.order: _tokens(item.words) for item in page.items}
     count = len(page.items)
     weight = {
         stem: math.log((count + 1) / (sum(stem in seen for seen in own.values()) + 1)) + IDF_FLOOR
@@ -818,12 +1101,41 @@ def _best(page: _Page, words: list[str]) -> list[Item]:
         if item.kind == "heading":
             heading = item.words
         context = (_tokens(_href_words(item.node.href, page.url)), _tokens(heading))
-        score = sum(OWN_WEIGHT * weight[stem] for stem in stems if stem in own[item.ref])
+        score = sum(OWN_WEIGHT * weight[stem] for stem in stems if stem in own[item.order])
         score += sum(weight[stem] for stem in stems for seen in context if stem in seen)
         if score > 0:
             scored.append((score + (CONTROL_BONUS if item.control else 0.0), item.order, item))
     scored.sort(key=lambda entry: (-entry[0], entry[1]))
     return [item for _, _, item in scored[:BEST_COUNT]]
+
+
+def _passages(page: _Page, words: list[str]) -> list[str]:
+    """`e1 says: …words around a match…`, for each element whose text is too long to print.
+
+    market.lobehub.com served a 48k markdown guide as one element: its line was cut at 120
+    characters, and `look <words>` could only point at that one line again."""
+    if not words:
+        return []
+    found: list[str] = []
+    for item in page.items:
+        text = item.said or item.words
+        if len(text) <= LONG_TEXT:
+            continue
+        lowered = text.lower()
+        spans: list[tuple[int, int]] = []
+        for word in words:
+            for match in re.finditer(re.escape(word), lowered):
+                start = max(match.start() - PASSAGE_SIDE, 0)
+                end = min(match.end() + PASSAGE_SIDE, len(text))
+                if spans and start <= spans[-1][1]:
+                    spans[-1] = (spans[-1][0], max(end, spans[-1][1]))
+                else:
+                    spans.append((start, end))
+        for start, end in sorted(spans)[:PASSAGES_SHOWN]:
+            before = "…" if start else ""
+            after = "…" if end < len(text) else ""
+            found.append(f"{item.ref} says: {before}{text[start:end].strip()}{after}")
+    return found[:PASSAGES_SHOWN]
 
 
 def _href_words(href: str | None, url: str) -> str:
