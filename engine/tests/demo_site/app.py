@@ -52,6 +52,8 @@ SPA_DATA_S = 0.8
 APP_CODE_S = 0.8
 # How long /slow takes: long enough for a page's own redirect to cut a `go` to it off.
 SLOW_PAGE_S = 1.0
+# The cookie /register sets, which is all "signed in" means on this site.
+MEMBER_COOKIE = "member"
 
 INVOICES = [
     {"id": "2026-09", "month": "September 2026", "amount": "48,200", "state": "due"},
@@ -504,6 +506,47 @@ def sign_up(request: Request) -> HTMLResponse:
             <button type="button" onclick="said.textContent='Google'">{google}</button>
             <button type="button">{blank}</button>
             <p id="said">nobody</p>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/register", response_class=HTMLResponse, response_model=None)
+def register(request: Request) -> Response:
+    """A sign-up page the way launchit.site has one: "Continue with Google" signs you in and
+    goes on to the submit form. Once you are signed in, the site sends this page there."""
+    if request.cookies.get(MEMBER_COOKIE):
+        return RedirectResponse("/new-product", status_code=303)
+    return page(
+        "Register",
+        f"""<h1>Create your account</h1>
+            <button type="button"
+                    onclick="document.cookie = '{MEMBER_COOKIE}=yes; path=/';
+                             location.href = '/new-product'">Continue with Google</button>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/sign-in", response_class=HTMLResponse, response_model=None)
+def sign_in(request: Request) -> Response:
+    """The same sign-in on a page that sends a signed-in member to the dashboard, as most
+    sites do, rather than on to the page they came for."""
+    if request.cookies.get(MEMBER_COOKIE):
+        return RedirectResponse("/invoices", status_code=303)
+    return register(request)
+
+
+@app.get("/new-product", response_class=HTMLResponse, response_model=None)
+def new_product(request: Request) -> Response:
+    """A submit form only a signed-in member sees. Anyone else is sent to /register."""
+    if not request.cookies.get(MEMBER_COOKIE):
+        return RedirectResponse("/register", status_code=303)
+    return page(
+        "Submit a product",
+        """<h1>Submit a product</h1>
+           <label for="product">Product name</label> <input id="product">
+           <button type="button" onclick="sent.textContent = 'Submitted ' + product.value">
+             Submit</button>
+           <p id="sent"></p>""",
         variant=variant_of(request, None),
     )
 

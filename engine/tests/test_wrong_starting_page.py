@@ -16,9 +16,12 @@ from __future__ import annotations
 
 import pytest
 
-from dejo.browser import Browser
+from dejo import program
+from dejo.browser import Browser, domain_of
 from dejo.executor import Executor, pages_along
-from dejo.models import Locator, Playbook, Postcondition, Step
+from dejo.models import Locator, Playbook, Postcondition, Step, signs_in_at
+from dejo.operations import Session
+from dejo.runner import Runner
 from dejo.store import DejoStore
 
 SITE = "billing.example"
@@ -337,3 +340,159 @@ class TestATrailThatNavigatesByClicking:
 
         assert result.needs_repair is False
         assert result.repair is None
+
+
+class TestATrailThatSignsInOnTheWayToItsWork:
+    """28 Oct, launchit.site, "submit a product to Launchit": the trail was learned signed
+    out, so it signs in with Google on /register before it fills the submit form. Replayed
+    signed in, the site sends /register straight on to the form, and the replay stopped
+    with "the work is already done". The sign-in was done; the submit was not."""
+
+    TASK = "submit Dejo to the demo site"
+
+    def learned_signed_out(self, store: DejoStore, browser: Browser, demo_server: str) -> None:
+        """Learn the trail the way the agent did: signed out, so the form first sends it to
+        sign in. "Continue with Google" leaves the browser signed in for the replay."""
+        outcome = Runner(Session(browser=browser, store=store), task=self.TASK, store=store).run(
+            program.parse(
+                f"go {demo_server}/new-product\n"
+                'click button "Continue with Google"\n'
+                'fill label "Product name" "Dejo"\n'
+                'click! button "Submit"\n'
+            ),
+            done=True,
+        )
+        assert outcome.ok and outcome.saved is not None, outcome.text()
+        assert outcome.saved.steps[1].page == "/register"
+        browser.page.goto("about:blank")
+
+    def test_the_sign_in_is_skipped_and_the_rest_of_the_trail_runs(
+        self, store: DejoStore, browser: Browser, demo_server: str
+    ) -> None:
+        self.learned_signed_out(store, browser, demo_server)
+
+        result = Executor(store, browser).run(domain_of(demo_server), task=self.TASK)
+
+        assert result.ok is True, result.reason
+        assert result.already_done is False
+        assert browser.page.inner_text("#sent") == "Submitted Dejo"
+        assert result.signed_in_already == ['step 2 (click button "Continue with Google")']
+
+    def test_the_skipped_sign_in_is_not_blamed(
+        self, store: DejoStore, browser: Browser, demo_server: str
+    ) -> None:
+        self.learned_signed_out(store, browser, demo_server)
+
+        Executor(store, browser).run(domain_of(demo_server), task=self.TASK)
+
+        sign_in = store.load_playbook(domain_of(demo_server), self.TASK).steps[1]
+        assert all(locator.misses == 0 for locator in sign_in.locators)
+
+    def test_when_the_site_sends_its_sign_in_to_a_dashboard_the_rest_is_walked_to(
+        self, store: DejoStore, browser: Browser, demo_server: str
+    ) -> None:
+        """Most sites send their sign-in page to a dashboard, not to the page the trail goes
+        on from. Dejo asks for the sign-in page, is sent away from it, and then opens the
+        page the rest of the trail belongs on."""
+        self.learned_signed_out(store, browser, demo_server)
+        playbook = store.load_playbook(domain_of(demo_server), self.TASK)
+        playbook.steps[0].value = f"{demo_server}/payments"
+        playbook.steps[0].postcondition = Postcondition("url_contains", "/payments")
+        playbook.steps[1].page = "/sign-in"
+        store.save_playbook(playbook)
+
+        result = Executor(store, browser).run(domain_of(demo_server), task=self.TASK)
+
+        assert result.ok is True, result.reason
+        assert browser.page.inner_text("#sent") == "Submitted Dejo"
+
+    def test_a_tab_left_on_another_page_is_not_taken_for_signed_in(
+        self, store: DejoStore, browser: Browser, demo_server: str
+    ) -> None:
+        """Signed out, the sign-in page is shown when asked for, so nothing is skipped."""
+        self.learned_signed_out(store, browser, demo_server)
+        browser.page.context.clear_cookies()
+        playbook = store.load_playbook(domain_of(demo_server), self.TASK)
+        playbook.steps[0].value = f"{demo_server}/payments"
+        playbook.steps[0].postcondition = Postcondition("url_contains", "/payments")
+        store.save_playbook(playbook)
+
+        result = Executor(store, browser).run(domain_of(demo_server), task=self.TASK)
+
+        assert result.ok is True, result.reason
+        assert result.signed_in_already == []
+        assert browser.page.inner_text("#sent") == "Submitted Dejo"
+
+    def test_a_trail_that_only_signs_in_is_still_already_done(
+        self, store: DejoStore, browser: Browser, demo_server: str
+    ) -> None:
+        """Nothing comes after the sign-in, so there is nothing left to do."""
+        store.save_playbook(
+            Playbook(
+                domain=domain_of(demo_server),
+                task="sign in to the demo site",
+                steps=[
+                    Step(
+                        1,
+                        "open the sign-up page",
+                        "goto",
+                        Postcondition("url_contains", "/register"),
+                        value=f"{demo_server}/register",
+                    ),
+                    Step(
+                        2,
+                        'click button "Continue with Google"',
+                        "click",
+                        Postcondition("url_contains", "/new-product"),
+                        [Locator("role", "button|Continue with Google")],
+                        page="/register",
+                    ),
+                ],
+            )
+        )
+        browser.page.goto(f"{demo_server}/register")
+        browser.page.click("text=Continue with Google")
+
+        result = Executor(store, browser).run(
+            domain_of(demo_server), task="sign in to the demo site"
+        )
+
+        assert result.already_done is True
+        assert result.signed_in_already == []
+
+    def test_signed_out_the_whole_trail_still_runs(
+        self, store: DejoStore, browser: Browser, demo_server: str
+    ) -> None:
+        self.learned_signed_out(store, browser, demo_server)
+        browser.page.context.clear_cookies()
+
+        result = Executor(store, browser).run(domain_of(demo_server), task=self.TASK)
+
+        assert result.ok is True, result.reason
+        assert result.signed_in_already == []
+        assert browser.page.inner_text("#sent") == "Submitted Dejo"
+
+
+class TestWhichPagesSignIn:
+    @pytest.mark.parametrize(
+        "address",
+        [
+            "/register",
+            "/login",
+            "https://launchit.site/sign-in?next=/submit",
+            "/users/sign_in",
+            "/Login.aspx",
+            "https://accounts.google.com/v3/signin/identifier",
+            "https://accounts.google.com/o/oauth2/v2/auth",
+            "/api/auth/callback/google",
+            "/signup",
+        ],
+    )
+    def test_a_sign_in_page(self, address: str) -> None:
+        assert signs_in_at(address)
+
+    @pytest.mark.parametrize(
+        "address", ["/submit", "/authors", "/blog/how-to-login-faster", "/", "/registry"]
+    )
+    def test_not_a_sign_in_page(self, address: str) -> None:
+        assert not signs_in_at(address)

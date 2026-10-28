@@ -75,6 +75,14 @@ _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 _LONG_HEX = re.compile(r"^[0-9a-f]{16,}$", re.I)  # Mongo-style ids and hashes
 _ID_MARKER = ":id"
 
+# A path segment that names a sign-in or sign-up page: the word alone, or followed by what
+# is not a letter (/login.php, /oauth2, /sign_in-oidc), so /authors is never one.
+_SIGN_IN_SEGMENT = re.compile(
+    r"^(log[-_]?in|log[-_]?on|sign[-_]?in|sign[-_]?on|sign[-_]?up|register|auth|authn"
+    r"|authorize|authenticate|sso|oauth|openid)(?![a-z])",
+    re.I,
+)
+
 
 def _field_name(intent: str) -> str:
     """A name for the value a borrowed step will need, taken from what the step is for.
@@ -137,6 +145,16 @@ def page_path(url: str) -> str:
     segments = [_generalise(segment) for segment in path.split("/")]
     joined = "/".join(segments)
     return joined if joined.startswith("/") else f"/{joined}"
+
+
+def signs_in_at(address: str) -> bool:
+    """Is this the address of a page a person signs in or signs up on?
+
+    Read from whole path segments, so /authors and /registry are not sign-ins and
+    /Login.aspx, /oauth2 and Google's /v3/signin/identifier are. A sign-up page counts:
+    launchit.site's "Continue with Google" is on /register (28 Oct).
+    """
+    return any(_SIGN_IN_SEGMENT.match(segment) for segment in urlparse(address).path.split("/"))
 
 
 def _generalise(segment: str) -> str:

@@ -234,6 +234,10 @@ password for you and never automates an SSO button. When you say you are done, D
 window first: if it still shows a sign-in page, it says so rather than pretending. The session
 is kept, so you stay signed in.
 
+A task learned while signed out keeps its sign-in steps. Replayed once you are signed in, the
+site skips its sign-in page, so Dejo skips those steps too, says so, and runs the rest of the
+task. A task that is only a sign-in answers that there is nothing to do.
+
 **Passwords never go into memory.** A step that needs one records only *that* a password goes
 there. The value is read at run time from an environment variable
 (`DEJO_SECRET_BILLING_ACME_COM_PASSWORD`) or from `~/.dejo/secrets.json`:

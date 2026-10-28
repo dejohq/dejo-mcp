@@ -59,6 +59,7 @@ from .models import (
     Step,
     href_path,
     page_path,
+    signs_in_at,
 )
 from .operations import READ_ACTION, check_postcondition, controls_in, settles_into
 from .secrets import MissingSecret
@@ -85,6 +86,9 @@ _SEEN_OR_NOT = frozenset({READ_ACTION, "select", "check", "uncheck", "set_checke
 
 # Why a step that clears something away was skipped, for the event and the reply.
 NOTHING_TO_CLEAR = "it only clears something away, that was not on the page this time"
+
+# Why a step of the trail's sign-in was skipped, for the event and the reply.
+ALREADY_SIGNED_IN = "it is part of signing in, and the site is already past its sign-in page"
 
 # Actions that put text into a field, so the value may be a secret held on this machine
 # rather than in the trail.
@@ -205,6 +209,10 @@ class ReplayResult:
     skipped: list[str] = field(default_factory=list)
     """Steps that only clear something away (a cookie banner) and found nothing to clear,
     as `step 2 (click button "Accept")`. See `Step.clears_away`."""
+
+    signed_in_already: list[str] = field(default_factory=list)
+    """The trail's sign-in steps, skipped because the site was already signed in, in the
+    same form as `skipped`. See `Executor._past_the_sign_in`."""
 
     @property
     def needs_repair(self) -> bool:
@@ -461,6 +469,7 @@ class Executor:
         self._went_back = False
         self._unverified = []
         self._skipped: list[str] = []
+        self._signed_in_already: list[str] = []
         playbook = self._load(domain, task)
         if start_url and _leaves_out_of(start_url, playbook):
             start_url = None
@@ -537,6 +546,11 @@ class Executor:
             # every listener — all of it about a page this trail has nothing to do with.
             if outcome.off_trail is not None:
                 belongs, here = outcome.off_trail
+                rest = self._past_the_sign_in(playbook, step, belongs)
+                if rest is not None:
+                    # The steps before `rest` are skipped by the check at the loop's top.
+                    resume_at = self._skip_the_sign_in(playbook, step, rest)
+                    continue
 
                 # Usually this only means the browser was left somewhere else. Walking back
                 # to the page the step belongs on fixes that without telling anyone, which
@@ -575,6 +589,10 @@ class Executor:
                     self._blame(retry.missed, step)
                     if retry.off_trail is not None:
                         belongs, here = retry.off_trail
+                        rest = self._past_the_sign_in(playbook, step, belongs)
+                        if rest is not None:
+                            resume_at = self._skip_the_sign_in(playbook, step, rest)
+                            continue
 
                 self.events.emit(
                     StepFailed(index=step.index, intent=step.intent, reason=outcome.reason)
@@ -586,7 +604,12 @@ class Executor:
                 # and answering "the trail is broken" to that sends an agent hunting a bug
                 # that does not exist. Only claimed for a trail that owes no answer — one
                 # with a READ in it has to come back with something, and we have nothing.
-                if self._went_back and not self._reads_anything(playbook):
+                # Nor once its sign-in was skipped: the work after the sign-in is not done.
+                if (
+                    self._went_back
+                    and not self._reads_anything(playbook)
+                    and not self._signed_in_already
+                ):
                     return ReplayResult(
                         ok=True,
                         metrics=metrics,
@@ -722,6 +745,7 @@ class Executor:
             aimed_at=self._aim,
             unverified_steps=list(self._unverified),
             skipped=list(self._skipped),
+            signed_in_already=list(self._signed_in_already),
         )
 
     def _let_the_last_step_land(self, playbook: Playbook) -> None:
@@ -1142,13 +1166,77 @@ class Executor:
         """
         if step.action == "goto":
             return None
-        belongs = step.page or self._expected.get(step.index, "")
+        belongs = self._page_of(step)
         if not belongs:
             return None
         here = self.browser.page.url
         if _same_page(here, belongs):
             return None
         return (belongs, here)
+
+    def _page_of(self, step: Step) -> str:
+        """The page this step was done on: its own record, or else the trail's geography.
+        See `_off_trail`."""
+        return step.page or self._expected.get(step.index, "")
+
+    def _past_the_sign_in(self, playbook: Playbook, step: Step, belongs: str) -> Step | None:
+        """The step the trail goes on from after its sign-in, when the site is past it.
+
+        A trail learned signed out signs in on the way to its work. Replayed signed in, the
+        site sends its sign-in page on, and the step that wants it is off the trail. For a
+        trail that is only a sign-in that means the work is done; for one that goes on to
+        submit something it does not (launchit.site, 28 Oct: "submit a product" stopped at
+        "Continue with Google" on /register and said the work was done).
+
+        Only with evidence that the session is signed in: the site sent its sign-in page
+        away when Dejo asked for it, or it already shows the page the trail goes on from.
+        A tab that was merely left on another page proves neither.
+        """
+        here = self.browser.page.url
+        if not signs_in_at(belongs) or signs_in_at(here) or self.browser.still_on_sign_in():
+            return None
+        rest = self._after_the_sign_in(playbook, step)
+        if rest is None:
+            return None
+        already_there = rest.action != "goto" and _same_page(here, self._page_of(rest))
+        return rest if self._went_back or already_there else None
+
+    def _after_the_sign_in(self, playbook: Playbook, step: Step) -> Step | None:
+        """The first step after `step` that is not done on a sign-in page.
+
+        None when the trail ends signing in, or when a step's page is not known: then
+        nothing says where the sign-in ends, and skipping a step of the work would be worse
+        than stopping."""
+        for later in playbook.steps:
+            if later.index <= step.index:
+                continue
+            where = (later.value or "") if later.action == "goto" else self._page_of(later)
+            if not where:
+                return None
+            if not signs_in_at(where):
+                return later
+        return None
+
+    def _skip_the_sign_in(self, playbook: Playbook, step: Step, rest: Step) -> int:
+        """Skip from `step` up to `rest`, and stand where `rest` was done. Returns where
+        the run goes on from.
+
+        Nothing is blamed: the skipped steps were never tried."""
+        for skipped in playbook.steps:
+            if step.index <= skipped.index < rest.index:
+                self.events.emit(
+                    StepSkipped(
+                        index=skipped.index, intent=skipped.intent, reason=ALREADY_SIGNED_IN
+                    )
+                )
+                self._signed_in_already.append(f"step {skipped.index} ({skipped.intent})")
+        where = self._page_of(rest)
+        if rest.action != "goto" and not _same_page(self.browser.page.url, where):
+            # The site sent its sign-in page to a dashboard, not to the page the skipped
+            # steps would have reached. Once per run, like any other walk back.
+            self._went_back = True
+            self.browser.goto(urljoin(_trail_origin(playbook) or self.browser.page.url, where))
+        return rest.index
 
     def _blame(self, missed: list[tuple[Locator, str]], step: Step) -> None:
         """Write down the misses from the pass that actually decided the step."""
