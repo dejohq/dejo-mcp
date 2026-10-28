@@ -30,7 +30,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
@@ -38,7 +38,7 @@ from . import program as language
 from . import view as pageview
 from . import waits
 from .actions import PRESSES
-from .browser import NoSuchElement, domain_of
+from .browser import NoSuchElement, domain_of, on_site
 from .distill import distill, locators_for, postcondition_for
 from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, href_path, utc_now
 from .operations import (
@@ -178,6 +178,8 @@ class Outcome:
     js_result: str | None = None
     """What a `js` line returned, as JSON. Not an answer: it is never saved or replayed."""
     trail_total: int = 0
+    went_back: str = ""
+    """Where the tab was, when it was not on this task's page and Dejo went back first."""
     tail: ReplayResult | None = None
     """The replay of the steps after the repaired one. When it did not finish, the reply
     about why is the server's, the same one a plain replay that stopped would get."""
@@ -190,7 +192,7 @@ class Outcome:
         """The reply, always in the same order so an agent can read it at a glance."""
         if self.repaired is not None:
             return "\n".join(self._repaired_lines())
-        lines: list[str] = []
+        lines: list[str] = [self.went_back] if self.went_back else []
         if self.stopped_at is not None:
             lines.append(
                 f"stopped at line {self._number(self.stopped_at)} of {self.total}: "
@@ -300,6 +302,8 @@ class Runner:
         """Set while a replay that broke waits for its fix. See `fix_from`."""
         self._changed_by_code: list[str] = []
         """The `js` lines that changed the page since the trail began. See `_code_in_the_way`."""
+        self._stood = ""
+        """The address this task left the tab at. See `_back_to_its_page`."""
 
     # ------------------------------------------------------------------- looking
 
@@ -312,6 +316,7 @@ class Runner:
         into the site's map, exactly as `Session.look` does."""
         raw, frames = self.browser.raw_snapshot()
         url, title = self.browser.page.url, self.browser.page.title()
+        self._stood = url
         icons = self.browser.icon_names(pageview.nameless_controls(raw))
         modal = self.browser.modal_dialogs(pageview.dialogs(raw))
         self.domain = self.domain or domain_of(url)
@@ -350,6 +355,14 @@ class Runner:
         fixing = self._fix_for(written)
         read_something = False
         trace_before = len(self.session.trace)
+        try:
+            outcome.went_back = self._back_to_its_page(steps)
+        except _Stopped as stop:
+            self._stop(outcome, steps[0], stop, steps[1:])
+            steps = []
+        except PlaywrightError as failed:
+            self._stop(outcome, steps[0], self._explain(failed), steps[1:])
+            steps = []
         for at, step in enumerate(steps):
             try:
                 if isinstance(step, Look) and at < len(steps) - 1:
@@ -380,6 +393,7 @@ class Runner:
                 break
 
         outcome.domain = self.domain
+        self._stood = self.browser.page.url
         # Only what THIS program did. A download from an earlier program has already been
         # saved, and counting it again saved a later look as a new step.
         downloaded = any(entry.download for entry in self.session.trace[trace_before:])
@@ -397,6 +411,35 @@ class Runner:
             if outcome.ok:
                 outcome.next_step = KEEP_THE_ANSWER
         return outcome
+
+    def _back_to_its_page(self, steps: list[language.Step]) -> str:
+        """Put the tab back where this task left it, when something else has moved it since.
+
+        A profile is one browser with one tab, and every task in it shares that tab. On
+        28 Oct a `js` line for agenticskills.io ran on the saashub.com page a task for that
+        site had left open, and nothing said so. A program that starts with `go` says where
+        it runs, and a page on another site that this task left the tab at itself (a Google
+        sign-in on the way) is still its own. Refs come from the view this task was shown, so
+        once the page was replaced they point at nothing: nothing runs, and the page is shown.
+        Returns the line that says so for the reply, or "" when the tab was where it was."""
+        here = self.browser.page.url
+        if not self.domain or not steps or _goes_somewhere(steps[0]):
+            return ""
+        if here == self._stood or on_site(here, self.domain):
+            return ""
+        back = self._stood or f"https://{self.domain}/"
+        self.browser.goto(back)
+        self.browser.settle()
+        went = (
+            f"the tab showed {_address(here)}, not this task's page; Dejo went back to "
+            f"{_address(back)} first"
+        )
+        if any(_names_a_ref(step) for step in steps):
+            raise _Stopped(
+                f"{went}, so the refs sent are not on this page",
+                "send the steps again with the refs below",
+            )
+        return went
 
     def _fix_for(self, written: Program) -> _Broken | None:
         """The broken step this program fixes in place, if it is one line doing what that
@@ -1046,6 +1089,7 @@ class Runner:
         self._kept = [Step.from_dict(step.to_dict()) for step in steps]
         self.session.trace.clear()
         self._broken = None
+        self._stood = self.browser.page.url
 
     def fix_from(
         self,
@@ -1190,6 +1234,22 @@ def _latest_reads(steps: list[Step]) -> list[Step]:
             later.add(step.intent)
         kept.append(step)
     return kept[::-1]
+
+
+def _goes_somewhere(step: language.Step) -> bool:
+    """Does this line say for itself which page it runs on?"""
+    return isinstance(step, Action) and step.action == "goto"
+
+
+def _names_a_ref(step: language.Step) -> bool:
+    targets = [getattr(step, "target", None), getattr(step, "second", None)]
+    return any(target is not None and target.kind == "ref" for target in targets)
+
+
+def _address(url: str) -> str:
+    """An address as a reply prints it: host and path, the way a tab is named."""
+    parts = urlparse(url)
+    return f"{parts.netloc}{parts.path}" if parts.netloc else url
 
 
 def _go_to(url: str) -> Step:

@@ -4,6 +4,11 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **A task's steps never run on another site's page.** Every task in a profile shares one
+  tab, so steps sent for one site could run on a page a task for another site had left open
+  (a `js` line for agenticskills.io ran on saashub.com, and nothing said so). Dejo now goes
+  back to where the task left the tab first and says so in the reply; steps that name refs
+  from the old view do not run, and the task's page is shown again for fresh ones.
 - **A sign-in window behind a Cloudflare check no longer spins forever.** Between calls,
   Dejo's browser thread waited on its job queue and made no Playwright calls, and Playwright
   only handles the browser while a call runs. A page left alone that way stalled:

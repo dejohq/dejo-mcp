@@ -768,6 +768,15 @@ def domain_of(url: str) -> str:
     return (parsed.netloc or url).lower()
 
 
+def on_site(url: str, domain: str) -> bool:
+    """Is `url` a page of the site `domain` names: the same host give or take `www.`, or a
+    host under it (app.example.com is part of example.com)."""
+    if urlparse(url).scheme not in ("http", "https") or not domain:
+        return False
+    host, site = domain_of(url).removeprefix("www."), domain.lower().removeprefix("www.")
+    return host == site or host.endswith("." + site)
+
+
 class NoSuchElement(RuntimeError):
     """A control was named in a way this page cannot be asked for."""
 

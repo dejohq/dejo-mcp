@@ -1391,3 +1391,52 @@ def test_a_title_a_js_line_wrote_does_not_name_the_page_after(
     outcome = run(runner, 'read css "#headline" as headline')
 
     assert 'on "News · Acme Billing"' in outcome.text(), outcome.text()
+
+
+def test_another_task_in_the_shared_tab_does_not_get_this_tasks_steps(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """28 Oct: every task in a profile shares one tab, and a `js` line for one site ran on
+    the page a task for another site had left open."""
+    other = demo_server.replace("127.0.0.1", "localhost")
+    runner = runner_for(browser, store, "the headline")
+    run(runner, f"go {demo_server}/news")
+    runner_for(browser, store, "the first book").run(program.parse(f"go {other}/books"))
+
+    outcome = run(runner, 'read css "#headline" as headline')
+
+    assert outcome.ok, outcome.text()
+    assert outcome.text().startswith(f"the tab showed {domain_of(other)}/books"), outcome.text()
+    assert browser.page.url == f"{demo_server}/news"
+
+
+def test_a_task_page_that_cannot_be_opened_again_stops_in_words(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Going back can fail like any `go`, and then the program stops there and says why."""
+    runner = runner_for(browser, store, "the headline")
+    run(runner, f"go {demo_server}/news")
+    runner_for(browser, store, "the first book").run(
+        program.parse(f"go {demo_server.replace('127.0.0.1', 'localhost')}/books")
+    )
+    runner._stood = "http://127.0.0.1:9/"  # nothing listens there
+
+    outcome = run(runner, 'read css "#headline" as headline')
+
+    assert not outcome.ok
+    assert outcome.text().startswith("stopped at line 1 of 1"), outcome.text()
+
+
+def test_a_page_this_task_left_on_another_site_is_still_its_own(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """A sign-in on the way passes through another site, and the next call carries on there."""
+    other = demo_server.replace("127.0.0.1", "localhost")
+    runner = runner_for(browser, store, "the first book")
+    run(runner, f"go {demo_server}/news\ngo {other}/books")
+
+    outcome = run(runner, "look")
+
+    assert outcome.ok, outcome.text()
+    assert "the tab showed" not in outcome.text()
+    assert browser.page.url == f"{other}/books"

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from dejo.browser import domain_of
 
-from helpers import TASK, call, result, teach_the_site
+from helpers import TASK, call, ref_named, result, teach_the_site
 
 
 def descriptions(server) -> dict[str, str]:
@@ -572,3 +572,33 @@ def test_a_tab_a_click_opened_is_named_in_the_reply(mcp_server, demo_server):
     host = demo_server.split("://")[1]
     assert f"line 1 opened a new tab: {host}/books (Books · Acme Billing)" in said, said
     assert "tab latest" in said
+
+
+def test_a_task_goes_back_to_its_own_page_when_another_site_holds_the_tab(mcp_server, demo_server):
+    """28 Oct: one tab per profile. A step for one site's task ran its js on another site's
+    page, left open by a task for that site, and the reply did not say so."""
+    other = demo_server.replace("127.0.0.1", "localhost")
+    task = "read the next charge"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/payments")
+    call(mcp_server, "dejo_run", site=other, task="read the first book", url=f"{other}/books")
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, steps='js "location.href"')
+
+    assert f'js returned: "{demo_server}/payments"' in said, said
+    assert f"the tab showed {other.split('://')[1]}/books" in said, said
+
+
+def test_refs_from_before_another_site_used_the_tab_are_not_run(mcp_server, demo_server):
+    """The refs an agent sends came from its own last view. Once another site's task used the
+    tab they point at nothing, so nothing runs and the task's page is shown again."""
+    other = demo_server.replace("127.0.0.1", "localhost")
+    task = "read the next charge"
+    first = call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/payments")
+    change = ref_named(first, "Change card")
+    call(mcp_server, "dejo_run", site=other, task="read the first book", url=f"{other}/books")
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, steps=f"click {change}")
+
+    assert said.startswith("stopped at line 1 of 1"), said
+    assert f"the tab showed {other.split('://')[1]}/books" in said, said
+    assert ref_named(said, "Change card"), "the task's own page is shown again"

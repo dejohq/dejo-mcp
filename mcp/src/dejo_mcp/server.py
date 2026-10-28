@@ -614,7 +614,8 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
     ran = result.metrics.task
     playbook = tools.store.load_playbook(key, ran)
     if playbook is not None:
-        tools.carry_on(key, task, ran).continue_from(key, playbook.steps)
+        runner = tools.carry_on(key, task, ran)
+        tools.worker.submit(lambda _browser: runner.continue_from(key, playbook.steps))
     lines = [
         f'done: "{ran}" on {key} (profile {tools.active}), {result.metrics.steps_replayed} '
         f"steps replayed in {result.metrics.duration_ms} ms, no page reading."
@@ -657,7 +658,11 @@ def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply
     total = len(playbook.steps) if playbook is not None else at
     runner = tools.carry_on(key, task, ran)
     if playbook is not None:
-        runner.fix_from(key, playbook, at, answers=result.answers, profile=tools.secrets_profile)
+        tools.worker.submit(
+            lambda _browser: runner.fix_from(
+                key, playbook, at, answers=result.answers, profile=tools.secrets_profile
+            )
+        )
     view = tools.worker.submit(lambda _browser: runner.look(focus=broken.intent))
     shown = view.text if hasattr(view, "text") else str(view)
     tried = f" (tried {len(broken.tried)} ways)" if broken.tried else ""
