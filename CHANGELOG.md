@@ -4,6 +4,11 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **The first look at a client-side app shows the page it draws.** A `go` returned as soon as
+  the page's HTML had arrived, before the app's own code had loaded and drawn anything, so
+  launchit.site/submit showed only its header and footer and tinylaunch.com/dashboard a
+  signed-out shell. A `go` now waits, like a click that changes the address, until the
+  page's scripts and requests have finished and nothing has been redrawn for half a second.
 - **A task's steps never run on another site's page.** Every task in a profile shares one
   tab, so steps sent for one site could run on a page a task for another site had left open
   (a `js` line for agenticskills.io ran on saashub.com, and nothing said so). Dejo now goes

@@ -1087,6 +1087,17 @@ def test_a_click_into_a_single_page_app_shows_the_page_it_drew(
     assert "A browser your agent remembers." in outcome.view.text
 
 
+def test_the_first_go_shows_a_client_side_app_once_it_has_drawn(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """tinylaunch.com/dashboard: the first `go` returned the signed-out shell with an empty
+    list, and only the next look had the real page. The app's own code was still loading."""
+    outcome = run(runner_for(browser, store, "zz"), f"go {demo_server}/app/dashboard\nlook")
+    assert outcome.view is not None
+    assert "Dejo · Waiting for approval" in outcome.view.text, outcome.view.text
+    assert "Sign in" not in outcome.view.text
+
+
 def test_an_icon_button_says_what_its_icon_is(
     browser: Browser, store: DejoStore, demo_server: str
 ) -> None:

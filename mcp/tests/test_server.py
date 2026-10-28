@@ -29,6 +29,13 @@ class TestAnUnknownSite:
         assert 'e10 button "Sign in"' in first or 'button "Sign in"' in first
         assert "send steps" in first
 
+    def test_the_first_look_waits_for_a_client_side_app_to_draw(self, mcp_server, demo_server):
+        """tinylaunch.com: the first look showed a signed-out shell; the next one, the page."""
+        said = call(
+            mcp_server, "dejo_run", site=demo_server, task="t", url=f"{demo_server}/app/dashboard"
+        )
+        assert "Dejo · Waiting for approval" in said, said
+
     def test_the_first_look_stays_cheap_to_read(self, mcp_server, demo_server):
         first = call(mcp_server, "dejo_run", site=demo_server, task=TASK, url=f"{demo_server}/")
         assert len(first) < 2000, "a first look must stay cheap to read"

@@ -34,6 +34,7 @@ import asyncio
 import socket
 import sys
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -46,6 +47,9 @@ app = FastAPI(title="Acme Billing (Dejo demo site)", docs_url=None, redoc_url=No
 CONTACT_REPLY_S = 1.5
 # How long a single-page app's data takes, after its address has already changed.
 SPA_DATA_S = 0.8
+# How long a client-side app's own code takes to arrive: longer than the page has to stay
+# still to count as drawn, so only waiting for the page to load can see it coming.
+APP_CODE_S = 0.8
 # How long /slow takes: long enough for a page's own redirect to cut a `go` to it off.
 SLOW_PAGE_S = 1.0
 
@@ -444,6 +448,43 @@ async def spa_data() -> dict[str, str]:
     """Slow on purpose, as an API behind a listing is."""
     await asyncio.sleep(SPA_DATA_S)
     return {"name": "Dejo", "about": "A browser your agent remembers."}
+
+
+@app.get("/app/dashboard", response_class=HTMLResponse)
+def app_dashboard(request: Request) -> HTMLResponse:
+    """A client-side app the way tinylaunch.com draws its dashboard: the page arrives as a
+    signed-out shell with an empty list, and the app's own code, once it has loaded and
+    asked who is signed in, draws the real page."""
+    return page(
+        "Dashboard",
+        """<header><a id="account" href="/">Sign in</a></header>
+           <h1>Your launches</h1>
+           <ul id="launches"></ul>
+           <footer>About · Terms</footer>
+           <script src="/app/code.js" async></script>""",
+        variant=variant_of(request, None),
+        nav=False,
+    )
+
+
+@app.get("/app/code.js")
+async def app_code() -> Response:
+    """Slow on purpose, as a site's code split into parts is on a first visit."""
+    await asyncio.sleep(APP_CODE_S)
+    code = """
+      (async () => {
+        const me = await (await fetch("/app/session")).json();
+        document.getElementById("account").textContent = me.name;
+        document.getElementById("launches").innerHTML = me.launches
+          .map((launch) => `<li>${launch}</li>`).join("");
+      })();"""
+    return Response(code, media_type="text/javascript")
+
+
+@app.get("/app/session")
+async def app_session() -> dict[str, Any]:
+    await asyncio.sleep(SPA_DATA_S)
+    return {"name": "Rohit", "launches": ["Dejo · Waiting for approval"]}
 
 
 @app.get("/sign-up", response_class=HTMLResponse)

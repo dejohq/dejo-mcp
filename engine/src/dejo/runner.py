@@ -429,7 +429,7 @@ class Runner:
             return ""
         back = self._stood or f"https://{self.domain}/"
         self.browser.goto(back)
-        self.browser.settle()
+        self.browser.settle_until_still()
         went = (
             f"the tab showed {_address(here)}, not this task's page; Dejo went back to "
             f"{_address(back)} first"

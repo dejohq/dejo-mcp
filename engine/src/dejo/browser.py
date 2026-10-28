@@ -173,8 +173,11 @@ STILL_WAIT_MS = 10_000
 STILL_FOR_MS = 500
 STILL_POLL_MS = 100
 # Requests that are the page doing its work. Images, fonts and beacons keep arriving on a
-# busy page and say nothing about whether the form was answered.
-WORK_REQUESTS = frozenset({"document", "fetch", "xhr"})
+# busy page and say nothing about whether the form was answered. A script is the page's own
+# code on its way: a client-side app that has just arrived shows a signed-out shell with an
+# empty list, drawn and not changing, until its code has loaded and asked who is signed in
+# (tinylaunch.com/dashboard, 28 Oct).
+WORK_REQUESTS = frozenset({"document", "fetch", "script", "xhr"})
 # Changes whenever the page redraws something that matters: elements added or removed, or
 # its words.
 _PAGE_SHAPE = (
