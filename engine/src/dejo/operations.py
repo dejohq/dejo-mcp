@@ -260,7 +260,10 @@ class Session:
             self.browser.settle_until_still()
             said = self.browser.messages_seen()
             failed = self.browser.requests_failed()
-        elif action != "goto" and self.browser.page.url != url_before:
+        elif action == "goto" or self.browser.page.url != url_before:
+            # A `go` too, the first one most of all: it returns at `domcontentloaded`, long
+            # before a client-side app has drawn (launchit.site/submit showed only its header
+            # and footer, 28 Oct).
             self.browser.settle_until_still()
 
         # A password is remembered as "there is a password here", never as the password.

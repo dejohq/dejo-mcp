@@ -592,9 +592,17 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
             "the user to sign in in the window, then dejo_login done=true, then dejo_run again."
         )
     if result.wrong_place:
+        # A trail found by other words is said by name: "the work is done" read as an answer
+        # about the task that was asked, not the trail that ran.
+        picked = (
+            f' this was the trail "{ran}", picked for "{task}". If that is not the job, send '
+            "steps: they are learned as a new task in your words."
+            if ran != task
+            else ""
+        )
         return Reply(
             f"stopped: {result.reason} Nothing is broken; the trail starts from a page you "
-            "are not on. If it is a sign-in and you are signed in, the work is done."
+            f"are not on. If it is a sign-in and you are signed in, the work is done.{picked}"
         )
     if result.aimed_at:
         was, now = result.aimed_at
@@ -614,7 +622,8 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
     ran = result.metrics.task
     playbook = tools.store.load_playbook(key, ran)
     if playbook is not None:
-        tools.carry_on(key, task, ran).continue_from(key, playbook.steps)
+        runner = tools.carry_on(key, task, ran)
+        tools.worker.submit(lambda _browser: runner.continue_from(key, playbook.steps))
     lines = [
         f'done: "{ran}" on {key} (profile {tools.active}), {result.metrics.steps_replayed} '
         f"steps replayed in {result.metrics.duration_ms} ms, no page reading."
@@ -657,7 +666,11 @@ def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply
     total = len(playbook.steps) if playbook is not None else at
     runner = tools.carry_on(key, task, ran)
     if playbook is not None:
-        runner.fix_from(key, playbook, at, answers=result.answers, profile=tools.secrets_profile)
+        tools.worker.submit(
+            lambda _browser: runner.fix_from(
+                key, playbook, at, answers=result.answers, profile=tools.secrets_profile
+            )
+        )
     view = tools.worker.submit(lambda _browser: runner.look(focus=broken.intent))
     shown = view.text if hasattr(view, "text") else str(view)
     tried = f" (tried {len(broken.tried)} ways)" if broken.tried else ""

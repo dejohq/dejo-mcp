@@ -56,3 +56,13 @@ def test_a_url_that_adds_or_changes_something_is_a_new_start() -> None:
     assert not _leaves_out_of("https://x.org/pages/forms/?page_num=7", trail)
     assert not _leaves_out_of("https://x.org/?variant=b", trail)
     assert not _leaves_out_of("https://y.org/pages/forms/", trail)
+
+
+def test_a_page_belongs_to_its_site_with_or_without_www_and_under_it() -> None:
+    from dejo.browser import on_site
+
+    assert on_site("https://www.saashub.com/x", "saashub.com")
+    assert on_site("https://app.saashub.com/", "www.saashub.com")
+    assert not on_site("https://saashub.com/", "agenticskills.io")
+    assert not on_site("https://notsaashub.com/", "saashub.com")
+    assert not on_site("about:blank", "saashub.com")

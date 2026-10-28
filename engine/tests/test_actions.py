@@ -503,3 +503,10 @@ def test_press_without_an_element_goes_to_the_page(lab: Browser) -> None:
     )
     actions.perform("press", page=lab.page, value="Escape")
     assert log_says(lab) == "page key:Escape"
+
+
+def test_a_combobox_that_drew_nothing_says_so_with_no_empty_list() -> None:
+    """launchit.site: a combobox with no options printed "Its options are ."."""
+    said = actions._no_options_appeared("Go", "opens", [])
+    assert said.startswith("opened it, and no options appeared, nor anything else to click")
+    assert "options are" not in said

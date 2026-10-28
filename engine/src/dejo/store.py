@@ -119,6 +119,35 @@ _ACTIONS = frozenset(
         "visit",
     ]
 )
+
+# What a task DOES, by the words people use for it. Two tasks that do different things are
+# two jobs, whatever else their names share: on launchit.site "submit Dejo" ran the site's
+# only trail, a sign-in, because both names said "Dejo" (28 Oct), and "download the invoice"
+# would have replayed "delete the invoice". Words that are as often a thing as a deed are
+# left out ("post", "order", "update", "list"), or "read the latest post" would stop being
+# "what is the newest post".
+_DEEDS = {
+    "sign in": frozenset(
+        ["log", "login", "logon", "logout", "register", "sign", "signin", "signout", "signup"]
+    ),
+    "add": frozenset(["add", "attach", "create", "publish", "submit", "upload"]),
+    "remove": frozenset(["cancel", "deactivate", "delete", "remove", "unsubscribe"]),
+    "buy": frozenset(["buy", "checkout", "pay", "purchase"]),
+    "send": frozenset(["invite", "reply", "send"]),
+    "change": frozenset(["edit", "modify", "rename"]),
+}
+_DEED_WORDS = frozenset().union(*_DEEDS.values())
+# Signing in on the way to something else is how it is done, not what is done: "sign in and
+# download the invoice" is the job "download the invoice".
+_MEANS = "sign in"
+# A task that only finds something out, said as a verb or as a question. Any other deed in
+# the same name is what the task is for: "open the settings and delete my account".
+_LOOKS = "look"
+_LOOKING = frozenset(
+    ["check", "count", "download", "fetch", "find", "get", "give", "go", "how", "look", "open"]
+    + ["read", "search", "see", "show", "tell", "view", "visit", "what", "when", "where"]
+    + ["which", "who", "why"]
+)
 SITE_KNOWLEDGE = "site_knowledge"
 
 
@@ -829,10 +858,34 @@ def shares_meaning(wanted: str, candidate: str, domain: str | None = None) -> bo
     exception is a swapped subject ("message riya" against "message ankush"), which is the
     same route aimed somewhere else and is handled as exactly that.
     """
+    if not _same_deed(wanted, candidate, domain):
+        return False
     shared = _meaningful(wanted, domain) & _meaningful(candidate, domain)
     if shared - _ACTIONS:
         return True
     return bool(shared) and swapped_subject(wanted, candidate, domain) is not None
+
+
+def _same_deed(wanted: str, candidate: str, domain: str | None = None) -> bool:
+    """Could these two do the same thing? Only no when both say what they do, differently.
+
+    A name that does not say ("billing", "message riya") could be either, and is left to
+    the words it shares."""
+    asked, saved = _deeds(wanted, domain), _deeds(candidate, domain)
+    return not asked or not saved or asked == saved
+
+
+def _deeds(text: str, domain: str | None = None) -> frozenset[str]:
+    """What a task does, as the names in `_DEEDS`, or `look` for a task that only finds
+    something out. Empty when its words do not say."""
+    words = _words(text) - _site_words(domain)
+    done = {deed for deed, said in _DEEDS.items() if words & said}
+    looks = bool(words & _LOOKING)
+    if _MEANS in done and (len(done) > 1 or looks):
+        done.discard(_MEANS)
+    if done:
+        return frozenset(done)
+    return frozenset([_LOOKS]) if looks else frozenset()
 
 
 def swapped_subject(
@@ -857,6 +910,10 @@ def swapped_subject(
     added, dropped = asked - known, known - asked
     if len(added) != 1 or len(dropped) != 1:
         return None
+    if (added | dropped) & _DEED_WORDS:
+        # What is done, never to whom: "delete riya" against "remove riya" is a rewording,
+        # and swapping "remove" into the trail's steps would aim them at nothing.
+        return None
     if not asked & known:
         # Nothing shared at all, so there is no route in common to reuse — a one-word
         # request against a one-word trail is not a swap, it is a different job.
@@ -875,7 +932,7 @@ def _overlap(wanted: str, candidate: str, domain: str | None = None) -> float:
     """
     asked = _meaningful(wanted, domain)
     against = _meaningful(candidate, domain)
-    if not asked or not against:
+    if not asked or not against or not _same_deed(wanted, candidate, domain):
         return 0.0
     return len(asked & against) / min(len(asked), len(against))
 
@@ -887,9 +944,16 @@ def _meaningful(text: str, domain: str | None = None) -> set[str]:
     separate argument. Leaving it in meant "read the first quote on quotes.toscrape.com"
     scored worse than "read the first quote" against the very trail it belonged to.
     """
-    ignore = COMMON_WORDS | (_meaningful(domain.replace(".", " ")) if domain else set())
+    return _words(text) - COMMON_WORDS - _site_words(domain)
+
+
+def _site_words(domain: str | None) -> set[str]:
+    return _meaningful(domain.replace(".", " ")) if domain else set()
+
+
+def _words(text: str) -> set[str]:
     words = "".join(character if character.isalnum() else " " for character in text.lower())
-    return {word for word in words.split() if word not in ignore}
+    return set(words.split())
 
 
 def agent_owner(agent: str | None) -> str:

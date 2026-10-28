@@ -4,6 +4,28 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **A new task is never given a trail that does something else.** A request was matched to a
+  site's only trail when the two names shared any one word, so on launchit.site a brand-new
+  "submit" task, whose name shared the product's name with the saved sign-in trail, replayed
+  the sign-in and stopped on its page instead of answering "new task". Now two names that
+  say they do different things (sign in, add or submit, delete or cancel, buy, send, edit,
+  or only look something up) are never the same job, and the reply says which trail ran
+  whenever it was found by other words and could not start.
+- **`select` on a combobox that draws no options says what it drew instead.** A box whose
+  suggestions are plain buttons (launchit.site's "Built with" shows `JavaScript +`) got
+  "Its options are ." with nothing after it. The reply now says it typed the words and no
+  options appeared, and names the buttons and links that did appear, so the agent can fill
+  the box and click one.
+- **The first look at a client-side app shows the page it draws.** A `go` returned as soon as
+  the page's HTML had arrived, before the app's own code had loaded and drawn anything, so
+  launchit.site/submit showed only its header and footer and tinylaunch.com/dashboard a
+  signed-out shell. A `go` now waits, like a click that changes the address, until the
+  page's scripts and requests have finished and nothing has been redrawn for half a second.
+- **A task's steps never run on another site's page.** Every task in a profile shares one
+  tab, so steps sent for one site could run on a page a task for another site had left open
+  (a `js` line for agenticskills.io ran on saashub.com, and nothing said so). Dejo now goes
+  back to where the task left the tab first and says so in the reply; steps that name refs
+  from the old view do not run, and the task's page is shown again for fresh ones.
 - **A sign-in window behind a Cloudflare check no longer spins forever.** Between calls,
   Dejo's browser thread waited on its job queue and made no Playwright calls, and Playwright
   only handles the browser while a call runs. A page left alone that way stalled:

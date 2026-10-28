@@ -12,7 +12,7 @@ from pathlib import Path
 
 from dejo.browser import domain_of
 
-from helpers import TASK, call, result, teach_the_site
+from helpers import TASK, call, ref_named, result, teach_the_site
 
 
 def descriptions(server) -> dict[str, str]:
@@ -28,6 +28,13 @@ class TestAnUnknownSite:
         assert first.startswith(f'new task "{TASK}"')
         assert 'e10 button "Sign in"' in first or 'button "Sign in"' in first
         assert "send steps" in first
+
+    def test_the_first_look_waits_for_a_client_side_app_to_draw(self, mcp_server, demo_server):
+        """tinylaunch.com: the first look showed a signed-out shell; the next one, the page."""
+        said = call(
+            mcp_server, "dejo_run", site=demo_server, task="t", url=f"{demo_server}/app/dashboard"
+        )
+        assert "Dejo · Waiting for approval" in said, said
 
     def test_the_first_look_stays_cheap_to_read(self, mcp_server, demo_server):
         first = call(mcp_server, "dejo_run", site=demo_server, task=TASK, url=f"{demo_server}/")
@@ -572,3 +579,89 @@ def test_a_tab_a_click_opened_is_named_in_the_reply(mcp_server, demo_server):
     host = demo_server.split("://")[1]
     assert f"line 1 opened a new tab: {host}/books (Books · Acme Billing)" in said, said
     assert "tab latest" in said
+
+
+def test_a_task_goes_back_to_its_own_page_when_another_site_holds_the_tab(mcp_server, demo_server):
+    """28 Oct: one tab per profile. A step for one site's task ran its js on another site's
+    page, left open by a task for that site, and the reply did not say so."""
+    other = demo_server.replace("127.0.0.1", "localhost")
+    task = "read the next charge"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/payments")
+    call(mcp_server, "dejo_run", site=other, task="read the first book", url=f"{other}/books")
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, steps='js "location.href"')
+
+    assert f'js returned: "{demo_server}/payments"' in said, said
+    assert f"the tab showed {other.split('://')[1]}/books" in said, said
+
+
+def test_refs_from_before_another_site_used_the_tab_are_not_run(mcp_server, demo_server):
+    """The refs an agent sends came from its own last view. Once another site's task used the
+    tab they point at nothing, so nothing runs and the task's page is shown again."""
+    other = demo_server.replace("127.0.0.1", "localhost")
+    task = "read the next charge"
+    first = call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/payments")
+    change = ref_named(first, "Change card")
+    call(mcp_server, "dejo_run", site=other, task="read the first book", url=f"{other}/books")
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, steps=f"click {change}")
+
+    assert said.startswith("stopped at line 1 of 1"), said
+    assert f"the tab showed {other.split('://')[1]}/books" in said, said
+    assert ref_named(said, "Change card"), "the task's own page is shown again"
+
+
+def _a_sign_in_trail(mcp_server, demo_server: str, task: str) -> None:
+    """A sign-in trail whose page the demo site bounces, as a signed-in site does. It ends
+    in a read, so being bounced is not "already done"."""
+    from dejo.models import Locator, Playbook, Postcondition, Step
+
+    on_page = Postcondition("element_present", "#google")
+    found = [Locator("css", "#google")]
+    mcp_server.dejo_tools.store.save_playbook(
+        Playbook(
+            domain=domain_of(demo_server),
+            task=task,
+            steps=[
+                Step(
+                    1,
+                    "open the sign-in page",
+                    "goto",
+                    Postcondition("url_contains", "/admin"),
+                    value=f"{demo_server}/admin",
+                ),
+                Step(2, "click Continue with Google", "click", on_page, found, page="/admin"),
+                Step(3, "read who is signed in", "read", on_page, found, page="/admin"),
+            ],
+        )
+    )
+
+
+def test_a_new_task_that_does_another_thing_is_not_given_the_sign_in_trail(mcp_server, demo_server):
+    """28 Oct, launchit.site: the first call of a brand-new task to submit a product ran the
+    site's only trail, a sign-in, because both names said the product's name, and stopped
+    with "Step 2 belongs on /register" instead of answering "new task"."""
+    _a_sign_in_trail(mcp_server, demo_server, "sign in to the portal for Dejo")
+
+    said = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task="submit Dejo to the portal",
+        url=f"{demo_server}/payments",
+    )
+
+    assert said.startswith('new task "submit Dejo to the portal"'), said
+    assert '"sign in to the portal for Dejo"' in said, "the other trail is offered by name"
+    assert "belongs on" not in said
+
+
+def test_a_trail_picked_for_other_words_is_named_when_it_cannot_start(mcp_server, demo_server):
+    """When a trail found by other words stops before it could start, the reply says which
+    trail it was, or "the work is done" reads as an answer about the task that was asked."""
+    _a_sign_in_trail(mcp_server, demo_server, "sign in to the portal")
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task="sign in to the portal with Google")
+
+    assert said.startswith("stopped:"), said
+    assert 'this was the trail "sign in to the portal"' in said, said
