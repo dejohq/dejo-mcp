@@ -1328,6 +1328,22 @@ def test_select_says_which_options_a_combobox_offered(
     assert '"JavaScript", "TypeScript"' in outcome.reason
 
 
+def test_select_says_what_appeared_when_a_combobox_offers_no_options(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """launchit.site "Built with": the suggestions are plain buttons ("JavaScript +"), and the
+    reply said "Its options are ." with nothing after it."""
+    outcome = run(
+        runner_for(browser, store, "zz"),
+        f'go {demo_server}/stack\nselect combobox "Built with" "JavaScript"',
+    )
+    assert not outcome.ok
+    assert 'typed "JavaScript" into it, and no options appeared' in outcome.reason, outcome.reason
+    assert 'button "JavaScript +"' in outcome.reason
+    assert "TypeScript" not in outcome.reason
+    assert "Its options are" not in outcome.reason
+
+
 # ------------------------------------------------------------------- js and the trail
 
 SETS_CATEGORY = (

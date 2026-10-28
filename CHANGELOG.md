@@ -4,6 +4,11 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **`select` on a combobox that draws no options says what it drew instead.** A box whose
+  suggestions are plain buttons (launchit.site's "Built with" shows `JavaScript +`) got
+  "Its options are ." with nothing after it. The reply now says it typed the words and no
+  options appeared, and names the buttons and links that did appear, so the agent can fill
+  the box and click one.
 - **The first look at a client-side app shows the page it draws.** A `go` returned as soon as
   the page's HTML had arrived, before the app's own code had loaded and drawn anything, so
   launchit.site/submit showed only its header and footer and tinylaunch.com/dashboard a

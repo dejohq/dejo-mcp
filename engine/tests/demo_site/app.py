@@ -636,7 +636,8 @@ def down() -> HTMLResponse:
 @app.get("/stack", response_class=HTMLResponse)
 def stack(request: Request) -> HTMLResponse:
     """A type-ahead dropdown built the way react-select builds one: a text box that says it
-    is a combobox, and a list of options drawn only while something is typed in it."""
+    is a combobox, and a list of options drawn only while something is typed in it. And one
+    the way launchit.site's "Built with" is: its suggestions are plain buttons, no options."""
     return page(
         "Stack",
         """<h1>Your stack</h1>
@@ -645,6 +646,23 @@ def stack(request: Request) -> HTMLResponse:
                   autocomplete="off">
            <div id="langs" role="listbox"></div>
            <p>Chosen: <span id="chosen-lang">none</span></p>
+           <label for="built">Built with</label>
+           <input id="built" role="combobox" aria-expanded="false" autocomplete="off">
+           <div id="suggested"></div>
+           <script>
+             const built = document.getElementById("built");
+             built.addEventListener("input", () => {
+               const typed = built.value.toLowerCase();
+               suggested.innerHTML = "";
+               for (const name of ["JavaScript", "TypeScript"]) {
+                 if (!typed || !name.toLowerCase().includes(typed)) continue;
+                 const add = document.createElement("button");
+                 add.type = "button";
+                 add.textContent = `${name} +`;
+                 suggested.append(add);
+               }
+             });
+           </script>
            <script>
              const names = ["JavaScript", "Python", "TypeScript"];
              const box = document.getElementById("lang");

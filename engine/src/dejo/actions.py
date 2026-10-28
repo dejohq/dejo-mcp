@@ -109,6 +109,35 @@ _OPTION_JS = (
 }"""
 )
 _OPTIONS_SHOWN_JS = "(el) => {" + _OPTIONS_OF + "return optionsOf(el).map(said).filter(Boolean); }"
+# What a combobox may draw instead of options. launchit.site's "Built with" suggests plain
+# buttons ("JavaScript +"), so only what can be clicked, and only what was not on show
+# before the box was typed into, is what the box drew.
+_SHOWN_CLICKABLES = """
+const shown = (doc) => [...doc.querySelectorAll(
+  "button, a[href], [role=button], [role=link], [role=menuitem]"
+)].filter((c) => c.getClientRects().length);
+"""
+_NOTE_CLICKABLES_JS = (
+    "(el) => {"
+    + _SHOWN_CLICKABLES
+    + "el.ownerDocument.defaultView.__dejoShownBefore = new WeakSet(shown(el.ownerDocument)); }"
+)
+_NEW_CLICKABLES_JS = (
+    "(el) => {"
+    + _SHOWN_CLICKABLES
+    + """
+  const before = el.ownerDocument.defaultView.__dejoShownBefore || new WeakSet();
+  return shown(el.ownerDocument)
+    .filter((c) => c !== el && !before.has(c))
+    .map((c) => {
+      const kind = c.matches("a[href], [role=link]") ? "link" : "button";
+      const words = (c.getAttribute("aria-label") || c.innerText || c.textContent || "")
+        .replace(/\\s+/g, " ").trim().slice(0, 60);
+      return words ? `${kind} "${words}"` : "";
+    })
+    .filter(Boolean);
+}"""
+)
 
 # Options named when the one asked for is not there: enough to see what kind of list it is.
 OPTIONS_NAMED = 30
@@ -560,6 +589,7 @@ def _pick_from_a_combobox(t: _T, value: str) -> None:
             "this is not a dropdown Dejo can choose in: neither a <select> nor a combobox. "
             "Click it, then look at the page again and click the option you want."
         )
+    t.evaluate(_NOTE_CLICKABLES_JS)
     t.click()
     if how == "typed":
         t.fill("")
@@ -567,10 +597,13 @@ def _pick_from_a_combobox(t: _T, value: str) -> None:
     # Found from the box itself, never by searching the page, so a box in a frame finds the
     # options in its own frame.
     found = t.evaluate_handle(_OPTION_JS, [value, OPTION_WAIT_MS]).as_element()
-    if found is None:
-        shown = t.evaluate(_OPTIONS_SHOWN_JS)
+    if found is not None:
+        found.click()
+        return
+    shown = t.evaluate(_OPTIONS_SHOWN_JS)
+    if shown:
         raise ActionNeedsMore(_no_such_option([value], shown))
-    found.click()
+    raise ActionNeedsMore(_no_options_appeared(value, how, t.evaluate(_NEW_CLICKABLES_JS)))
 
 
 def _upload(page: Page, t: _T, value: str | None, second: _T | None) -> None:
@@ -895,6 +928,25 @@ def _no_such_option(missing: list[str | int], labels: list[str]) -> str:
     return (
         f"this dropdown has no option {asked}. Its options are {shown}{more}. "
         "Send the step again with one of them, written as it is shown."
+    )
+
+
+def _no_options_appeared(value: str, how: str, appeared: list[str]) -> str:
+    """Why a combobox chose nothing when it drew no options at all, and what it drew instead.
+
+    Its empty list of options was printed as "Its options are ." (launchit.site)."""
+    did = f'typed "{value}" into it' if how == "typed" else "opened it"
+    if not appeared:
+        return (
+            f"{did}, and no options appeared, nor anything else to click. Look at the page: "
+            "the box may want other words, or be filled another way."
+        )
+    listed = " · ".join(appeared[:OPTIONS_NAMED])
+    more = f" and {len(appeared) - OPTIONS_NAMED} more" if len(appeared) > OPTIONS_NAMED else ""
+    again = f'fill the box with "{value}"' if how == "typed" else "click the box"
+    return (
+        f"{did}, and no options appeared. What appeared instead: {listed}{more}. To choose "
+        f"with those, {again}, then click the one you want."
     )
 
 
