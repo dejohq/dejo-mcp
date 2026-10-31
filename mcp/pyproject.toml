@@ -31,7 +31,7 @@ dependencies = [
     # installing the built wheels into a clean virtualenv, 2026-09-04. The floor is the
     # version the low-level `Server` (hand-written tools with `_meta` and annotations,
     # `call_tool(validate_input=...)`) was tested on. Moving to 2.x is planned work.
-    "mcp>=1.30.0,<2",
+    "mcp>=1.30.0,<3",
     # Imported directly to run each tool call off the event loop. It also arrives with
     # `mcp`, but a package should never lean on a dependency of a dependency.
     "anyio>=4.5",
