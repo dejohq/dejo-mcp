@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dejo-mcp"
-version = "0.2.1"
+version = "0.3.0"
 description = "Dejo as MCP tools: a browser with a memory, for Claude Code, Cursor and Codex."
 requires-python = ">=3.11"
 license = "MIT"
@@ -25,7 +25,7 @@ dependencies = [
     # something new in the engine. Left too low, pip is free to pair this server with an
     # older engine and the import fails outright: the server never starts at all, which is
     # the worst shape of failure there is.
-    "dejo>=0.2.1",
+    "dejo>=0.3.0",
     # Capped at <2 deliberately, and it is not cosmetic: mcp 2.x renamed and changed the
     # server APIs, and an import that fails means the server never starts. Found once by
     # installing the built wheels into a clean virtualenv, 2026-09-04. The floor is the
