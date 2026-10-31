@@ -52,6 +52,8 @@ SPA_DATA_S = 0.8
 APP_CODE_S = 0.8
 # How long /slow takes: long enough for a page's own redirect to cut a `go` to it off.
 SLOW_PAGE_S = 1.0
+# The cookie /register sets, which is all "signed in" means on this site.
+MEMBER_COOKIE = "member"
 
 INVOICES = [
     {"id": "2026-09", "month": "September 2026", "amount": "48,200", "state": "due"},
@@ -508,6 +510,47 @@ def sign_up(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/register", response_class=HTMLResponse, response_model=None)
+def register(request: Request) -> Response:
+    """A sign-up page the way launchit.site has one: "Continue with Google" signs you in and
+    goes on to the submit form. Once you are signed in, the site sends this page there."""
+    if request.cookies.get(MEMBER_COOKIE):
+        return RedirectResponse("/new-product", status_code=303)
+    return page(
+        "Register",
+        f"""<h1>Create your account</h1>
+            <button type="button"
+                    onclick="document.cookie = '{MEMBER_COOKIE}=yes; path=/';
+                             location.href = '/new-product'">Continue with Google</button>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/sign-in", response_class=HTMLResponse, response_model=None)
+def sign_in(request: Request) -> Response:
+    """The same sign-in on a page that sends a signed-in member to the dashboard, as most
+    sites do, rather than on to the page they came for."""
+    if request.cookies.get(MEMBER_COOKIE):
+        return RedirectResponse("/invoices", status_code=303)
+    return register(request)
+
+
+@app.get("/new-product", response_class=HTMLResponse, response_model=None)
+def new_product(request: Request) -> Response:
+    """A submit form only a signed-in member sees. Anyone else is sent to /register."""
+    if not request.cookies.get(MEMBER_COOKIE):
+        return RedirectResponse("/register", status_code=303)
+    return page(
+        "Submit a product",
+        """<h1>Submit a product</h1>
+           <label for="product">Product name</label> <input id="product">
+           <button type="button" onclick="sent.textContent = 'Submitted ' + product.value">
+             Submit</button>
+           <p id="sent"></p>""",
+        variant=variant_of(request, None),
+    )
+
+
 @app.get("/logo", response_class=HTMLResponse)
 def logo(request: Request) -> HTMLResponse:
     """A logo picker the way devhunt.org has one: a "Select an image" button opens a hidden
@@ -683,6 +726,28 @@ def stack(request: Request) -> HTMLResponse:
                box.setAttribute("aria-expanded", String(langs.children.length > 0));
              });
            </script>""",
+        variant=variant_of(request, None),
+    )
+
+
+@app.get("/tech", response_class=HTMLResponse)
+def tech(request: Request) -> HTMLResponse:
+    """A combobox the way launchit.site drew one on 28 Oct: no name of its own, no options
+    when typed into, and its choices are buttons already shown beside it ("JavaScript +").
+    A link far from the box says "JavaScript" too, and is not one of its choices."""
+    return page(
+        "Tech stack",
+        """<h1>Tech stack</h1>
+           <div class="field">
+             <div><input role="combobox" aria-expanded="false" autocomplete="off"></div>
+             <div>
+               <button type="button" onclick="picked.textContent = 'JavaScript'">
+                 JavaScript +</button>
+               <button type="button" onclick="picked.textContent = 'Python'">Python +</button>
+             </div>
+           </div>
+           <p>Picked: <span id="picked">none</span></p>
+           <p><a href="/books">JavaScript books</a></p>""",
         variant=variant_of(request, None),
     )
 

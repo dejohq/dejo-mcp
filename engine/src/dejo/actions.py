@@ -113,9 +113,15 @@ _OPTIONS_SHOWN_JS = "(el) => {" + _OPTIONS_OF + "return optionsOf(el).map(said).
 # buttons ("JavaScript +"), so only what can be clicked, and only what was not on show
 # before the box was typed into, is what the box drew.
 _SHOWN_CLICKABLES = """
-const shown = (doc) => [...doc.querySelectorAll(
+const shown = (within) => [...within.querySelectorAll(
   "button, a[href], [role=button], [role=link], [role=menuitem]"
 )].filter((c) => c.getClientRects().length);
+const words = (c) => (c.getAttribute("aria-label") || c.innerText || c.textContent || "")
+  .replace(/\\s+/g, " ").trim().slice(0, 60);
+const described = (c) => {
+  const kind = c.matches("a[href], [role=link]") ? "link" : "button";
+  return words(c) ? `${kind} "${words(c)}"` : "";
+};
 """
 _NOTE_CLICKABLES_JS = (
     "(el) => {"
@@ -129,15 +135,39 @@ _NEW_CLICKABLES_JS = (
   const before = el.ownerDocument.defaultView.__dejoShownBefore || new WeakSet();
   return shown(el.ownerDocument)
     .filter((c) => c !== el && !before.has(c))
-    .map((c) => {
-      const kind = c.matches("a[href], [role=link]") ? "link" : "button";
-      const words = (c.getAttribute("aria-label") || c.innerText || c.textContent || "")
-        .replace(/\\s+/g, " ").trim().slice(0, 60);
-      return words ? `${kind} "${words}"` : "";
-    })
+    .map(described)
     .filter(Boolean);
 }"""
 )
+# What was on show beside the box all along and says the typed words: launchit.site drew
+# "JavaScript +" next to its box before anything was typed, so it never counted as having
+# appeared, and the reply said there was nothing to click (28 Oct). Looked for in the box's
+# nearest surroundings first, widening one parent at a time, so a link elsewhere on the page
+# that happens to say the same word is not offered as one of the box's choices.
+_BESIDE_JS = (
+    "(el, [value, levels]) => {"
+    + _SHOWN_CLICKABLES
+    + """
+  const wanted = value.toLowerCase().split(/\\s+/).filter(Boolean);
+  const says = (c) => {
+    const said = words(c).toLowerCase();
+    return wanted.length > 0 && wanted.every((word) => said.includes(word));
+  };
+  const doc = el.ownerDocument;
+  let near = el.parentElement;
+  for (let level = 0; near && near !== doc.body && level < levels; level += 1) {
+    const found = shown(near).filter((c) => c !== el && says(c)).map(described).filter(Boolean);
+    if (found.length) return found;
+    if (near.tagName === "FORM") break;
+    near = near.parentElement;
+  }
+  return [];
+}"""
+)
+# How many parents up from a combobox still count as next to it. A field's own wrapper,
+# the box's wrapper inside it and a row around both is three; React and Tailwind sites
+# nest a couple more. The climb stops at a form, which holds other fields' buttons too.
+BESIDE_LEVELS = 5
 
 # Options named when the one asked for is not there: enough to see what kind of list it is.
 OPTIONS_NAMED = 30
@@ -603,7 +633,11 @@ def _pick_from_a_combobox(t: _T, value: str) -> None:
     shown = t.evaluate(_OPTIONS_SHOWN_JS)
     if shown:
         raise ActionNeedsMore(_no_such_option([value], shown))
-    raise ActionNeedsMore(_no_options_appeared(value, how, t.evaluate(_NEW_CLICKABLES_JS)))
+    appeared = t.evaluate(_NEW_CLICKABLES_JS)
+    beside = [
+        found for found in t.evaluate(_BESIDE_JS, [value, BESIDE_LEVELS]) if found not in appeared
+    ]
+    raise ActionNeedsMore(_no_options_appeared(value, how, appeared, beside))
 
 
 def _upload(page: Page, t: _T, value: str | None, second: _T | None) -> None:
@@ -931,23 +965,36 @@ def _no_such_option(missing: list[str | int], labels: list[str]) -> str:
     )
 
 
-def _no_options_appeared(value: str, how: str, appeared: list[str]) -> str:
-    """Why a combobox chose nothing when it drew no options at all, and what it drew instead.
+def _no_options_appeared(
+    value: str, how: str, appeared: list[str], beside: list[str] | None = None
+) -> str:
+    """Why a combobox chose nothing when it drew no options at all, and what can be clicked
+    instead: what it drew, and what says the same words next to it.
 
     Its empty list of options was printed as "Its options are ." (launchit.site)."""
     did = f'typed "{value}" into it' if how == "typed" else "opened it"
-    if not appeared:
+    if not appeared and not beside:
         return (
             f"{did}, and no options appeared, nor anything else to click. Look at the page: "
             "the box may want other words, or be filled another way."
         )
-    listed = " · ".join(appeared[:OPTIONS_NAMED])
-    more = f" and {len(appeared) - OPTIONS_NAMED} more" if len(appeared) > OPTIONS_NAMED else ""
-    again = f'fill the box with "{value}"' if how == "typed" else "click the box"
-    return (
-        f"{did}, and no options appeared. What appeared instead: {listed}{more}. To choose "
-        f"with those, {again}, then click the one you want."
-    )
+    said = [f"{did}, and no options appeared."]
+    if appeared:
+        said.append(f"What appeared instead: {_listed(appeared)}.")
+    if beside:
+        said.append(f'Already shown with the words "{value}" next to the box: {_listed(beside)}.')
+    if appeared:
+        again = f'fill the box with "{value}"' if how == "typed" else "click the box"
+        said.append(f"To choose with what appeared, {again}, then click the one you want.")
+    else:
+        said.append("To choose one of those, click it.")
+    return " ".join(said)
+
+
+def _listed(found: list[str]) -> str:
+    """Up to `OPTIONS_NAMED` of what was found, and how many more there are."""
+    more = f" and {len(found) - OPTIONS_NAMED} more" if len(found) > OPTIONS_NAMED else ""
+    return " · ".join(found[:OPTIONS_NAMED]) + more
 
 
 def sanity_check() -> None:

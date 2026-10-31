@@ -665,3 +665,29 @@ def test_a_trail_picked_for_other_words_is_named_when_it_cannot_start(mcp_server
 
     assert said.startswith("stopped:"), said
     assert 'this was the trail "sign in to the portal"' in said, said
+
+
+def test_a_task_that_signs_in_on_the_way_runs_the_rest_when_signed_in(mcp_server, demo_server):
+    """28 Oct, launchit.site: "submit a product" was learned signed out, so it signs in on
+    /register first. Replayed signed in, the site went straight to the form, and the reply
+    said the work was done without submitting anything."""
+    task = "submit Dejo to the demo site"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=f"{demo_server}/new-product")
+    learned = call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click button "Continue with Google"\nfill label "Product name" "Dejo"\n'
+        'click! button "Submit"',
+        done=True,
+    )
+    assert f'saved "{task}"' in learned, learned
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task)
+
+    assert said.startswith(f'done: "{task}"'), said
+    assert 'skipped step 2 (click button "Continue with Google"): the trail\'s sign-in' in said
+    assert "work is done" not in said
+    page = mcp_server.dejo_tools.worker.submit(lambda browser: browser.page.inner_text("#sent"))
+    assert page == "Submitted Dejo"

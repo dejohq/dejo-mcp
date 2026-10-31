@@ -4,6 +4,16 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **`select` on a combobox names a matching button that was already beside it.** The reply
+  named only what appeared after typing, so on launchit.site `select combobox "" "JavaScript"`
+  said "nor anything else to click" while `button "JavaScript +"` sat next to the box. It
+  now also names the buttons and links next to the box that say the typed words.
+- **A task that signs in on the way to its work does the work when already signed in.** A
+  trail learned signed out signs in first. Replayed signed in, the site skipped its sign-in
+  page, and the replay stopped there and said the work was done: on launchit.site "submit a
+  product" stopped at "Continue with Google" on /register and submitted nothing. Now, when
+  the site shows it is past its sign-in page, the replay skips the trail's sign-in steps,
+  says so, and runs the rest. A trail that is only a sign-in is still "already done".
 - **A new task is never given a trail that does something else.** A request was matched to a
   site's only trail when the two names shared any one word, so on launchit.site a brand-new
   "submit" task, whose name shared the product's name with the saved sign-in trail, replayed
