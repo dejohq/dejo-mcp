@@ -2,7 +2,7 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
-## Unreleased
+## 0.3.0 — 2026-10-31
 
 - **`select` on a combobox names a matching button that was already beside it.** The reply
   named only what appeared after typing, so on launchit.site `select combobox "" "JavaScript"`
@@ -36,6 +36,59 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   (a `js` line for agenticskills.io ran on saashub.com, and nothing said so). Dejo now goes
   back to where the task left the tab first and says so in the reply; steps that name refs
   from the old view do not run, and the task's page is shown again for fresh ones.
+- **A sent form is shown after the site answers.** A `click!` on a submit that sends in the
+  background returned while the form was still sending (fields disabled, no result yet). A
+  sent step now waits until the page is still, and keeps any toast or status line that
+  appeared on the way, so the reply shows what the site said.
+- **Every sent step says whether the page answered:** its message, the requests that failed
+  (4xx/5xx), or that nothing appeared.
+- **A form the browser holds back is named.** When a submit is stopped by the browser's own
+  checks ("Please fill out this field"), the reply stops and names the fields instead of
+  looking like it worked.
+- **Plain words are not risky on things that cannot send.** A link only opens a page, a tab or
+  an option only switches what is shown, and removing a chip from an unsent form deletes
+  nothing, so none of them needs a `!` any more. A link sent as a POST or DELETE still does.
+- **Filled fields read as filled.** A box with a placeholder kept its value on a line of its
+  own and showed no `[filled]`. `read` on a field now gives what it holds: a box's value or a
+  dropdown's chosen option (never a password).
+- **More dropdowns and check boxes work.** `select` chooses in a dropdown the site hides behind
+  its own menu, and in a combobox that is not a `<select>` (it types, then clicks the option);
+  it says so when a dropdown is disabled. `check` ticks a styled box through its own label
+  when the label covers the real one.
+- **Any ref the page has can be used**, including folded rows, lines past the view's budget,
+  refs from a full view after a partial `look`, and refs spelt as `look raw` prints them.
+- **`\n` in a fill is a new line in a text area** (kept as written in a one-line box).
+- **`wait` waits** for its target to appear instead of failing because it is not there yet.
+- **One long text can be read by its parts:** `read passage "words" eN as name` gives the section or paragraph that
+  says some words, and `look <words>` shows where they are.
+- **Pages are shown drawn.** After any step that moves to another address, Dejo waits until a
+  single-page app is still.
+- **Sites get the machine's language and region,** not the browser's en-US. `DEJO_LOCALE`
+  chooses another.
+- **Nameless buttons and links are described:** the words they show, what their icon says, or
+  that they have no name. Such a button is saved by the words beside it, and every saved step
+  says truly how it is found.
+- **Uploads are checked:** the file must reach the page's file box, or the reply says why not.
+- **A tab a step opened is named** in the reply, with how to work in it.
+- **The view is clearer:** a disabled control with no ref stays in it, marked disabled; an open
+  modal dialog comes first; a block repeated word for word prints once with a count; a card
+  that is one nameless link is kept; `look raw from` stops at the end of its section; every
+  `look` in one call is shown, in order.
+- **One-time sign-in codes and magic-link tokens are hidden** in the view and in `look raw`; a
+  `read` of the element still gives them.
+- **Fewer false alarms.** reCAPTCHA's invisible badge is not a human check; Reddit's "Prove your
+  humanity" page is. A site that is down is never blamed on the profile, and nobody is told to
+  delete a profile for it.
+- **Slow pages and redirects are handled in words.** A heavy page that takes too long to
+  describe is looked at again, and a `go` cut off by the page's own redirect is retried,
+  instead of showing Playwright's raw error.
+- **Replays are safer.** A cookie-banner click is skipped when the banner is not shown. A trail
+  that needed a `js` change is not saved, with the reason. The page's own title comes back
+  after a `js` line writes to it. Every replay reply says how to replace a trail that gives
+  the wrong answer.
+- **A profile another Dejo session holds is refused, naming that session,** instead of falling
+  back to another browser.
+- **The MCP server reports Dejo's own version**, not the MCP library's.
 - **A sign-in window behind a Cloudflare check no longer spins forever.** Between calls,
   Dejo's browser thread waited on its job queue and made no Playwright calls, and Playwright
   only handles the browser while a call runs. A page left alone that way stalled:
