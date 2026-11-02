@@ -914,7 +914,7 @@ def framed(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
     demos do: a form in one frame, and a frame inside another frame."""
     return page(
         "Framed",
-        "<h1>Framed</h1><p>The form is in the frame below.</p>"
+        "<h1>Framed</h1><p>The form is in the frame below. Press Show the city list there.</p>"
         '<iframe id="form-frame" src="/framed/form" title="form"></iframe>'
         '<iframe id="outer-frame" src="/framed/outer" title="outer"></iframe>',
         variant=variant_of(request, variant),

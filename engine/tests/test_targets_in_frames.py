@@ -95,3 +95,20 @@ def test_the_page_itself_is_searched_before_its_frames(
     )
     assert outcome.ok, outcome.text()
     assert outcome.answers["title"] == "Framed"
+
+
+def test_an_exact_match_in_a_frame_beats_words_in_a_longer_text_on_the_page(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """The page says "Press Show the city list there." and the frame has the link itself. The
+    agent means the link: a text that is exactly the words, wherever it is, comes before a
+    longer text that only contains them. Seen on jqueryui.com's autocomplete demo, where
+    `click text "JavaScript"` matched the page's own description instead of the suggestion."""
+    outcome = run(
+        browser,
+        store,
+        f'go {demo_server}/framed\nclick text "Show the city list"\nread css "#cities" as cities\n',
+        "the cities by text",
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers["cities"] == "Lagos, Lima"

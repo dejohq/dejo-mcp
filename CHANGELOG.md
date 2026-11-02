@@ -21,6 +21,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 - **An old frameset page can be looked at.** A page made only of `<frameset>` and `<frame>`s
   has no body, and every look failed with "Selector body does not match any element". The
   look now starts from the page's root when there is no body, and shows what the frames hold.
+- **An exact match inside an iframe beats a longer text on the page that only contains the
+  words.** On jqueryui.com's autocomplete demo `click text "JavaScript"` matched the page's
+  own description ("a simple JavaScript array") instead of the suggestion in the demo's
+  iframe, and was refused as ambiguous.
 
 ## 0.3.0 — 2026-10-31
 

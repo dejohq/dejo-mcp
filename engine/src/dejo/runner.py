@@ -946,7 +946,8 @@ class Runner:
         The whole name first, and only when nothing is called exactly that, the words inside
         a name, in any case: Playwright's own default for `get_by_role(name=...)`, and what
         an agent means by `link "Belt Sander"` on a card whose link says "Belt Sander $73.59".
-        Exact first, so `link "5"` is still the page-5 link and not also the one for 15.
+        Exact first, so `link "5"` is still the page-5 link and not also the one for 15,
+        and exact inside an iframe before words in a longer name (`_other_ways`).
         Before this, 16 of the 50 real-site tasks in the reliability benchmark stopped with
         "nothing on this page is ..." while the element was right there (2 Nov 2026)."""
         base = _locator_for(target)
@@ -963,19 +964,23 @@ class Runner:
         return base, matched, count
 
     def _other_ways(self, base: Locator) -> Iterator[Locator]:
-        """Where else a target that matched nothing may be, nearest reading first: words in
-        a name on the page, then the whole name inside an iframe, then words inside one.
-        Each is only worked out when the one before it found nothing."""
-        loose = replace(base, exact=False) if _has_words(base) else None
-        if loose is not None:
-            yield loose
+        """Where else a target that matched nothing may be: the whole name inside an iframe,
+        then words in a name on the page, then words in a name inside an iframe. Each is
+        only worked out when the one before it found nothing.
+
+        Exact anywhere comes before words inside a longer name anywhere. On jqueryui.com's
+        autocomplete demo `click text "JavaScript"` meant the suggestion in the demo's
+        iframe, and words-on-the-page-first matched the page's own description of it."""
         framed = self.browser.in_frames(base)
         if framed is not None:
             yield framed
-        if loose is not None:
-            framed = self.browser.in_frames(loose)
-            if framed is not None:
-                yield framed
+        if not _has_words(base):
+            return
+        loose = replace(base, exact=False)
+        yield loose
+        framed = self.browser.in_frames(loose)
+        if framed is not None:
+            yield framed
 
     def _css_of(self, element: Element) -> str:
         if element.selector:
