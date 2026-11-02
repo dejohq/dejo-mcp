@@ -12,12 +12,18 @@ it. Anyone can rerun them.
 | `benchmark_tools.py` | the same steps through each MCP tool, driven by hand, counting calls and bytes | `benchmark-tools.json` |
 | `benchmark_sites.py` | real public sites, learned once and then replayed from memory | `benchmark-sites.json` |
 | `benchmark.py` | the demo site in `engine/tests/demo_site/`: learn, replay, a changed site, a second task | printed |
+| `reliability.py` | 50 fixed step programs on real public sites (iframes, shadow DOM, custom dropdowns, date pickers, hover menus, infinite scroll, tabs, suggestions, tables, long pages). No model anywhere: it measures how well Dejo finds and uses elements. `--reference` runs the same steps through plain Playwright | `reliability-<date>.json` |
 
 Run from the repo root, inside the project's virtualenv:
 
 ```bash
 python benchmarks/benchmark_agents.py --journeys --runs 10
 ```
+
+`reliability.py` runs on a schedule as it is: one command, exit code 0 whenever it finished,
+the score in the JSON (`score.dejo.passed`) and one last line, "Dejo passed N of M". Each
+failure carries its cause: element not found, wrong element, page not ready, site blocked or
+captcha, answer changed on the site, or other.
 
 `benchmark_agents.py` and `benchmark_learning.py` need the `claude` command signed in and Node
 for the `npx` servers they compare against. `test_transcript.py` checks the turn-by-turn reader
