@@ -924,6 +924,7 @@ class Runner:
                 name=target.value,
                 found_by=base,
                 exact_name=base.exact,
+                hidden_from_readers=base.include_hidden,
                 frame=base.frame,
             )
         wanted = _wanted_index(pick, count)
@@ -937,6 +938,7 @@ class Runner:
             found_by=base,
             by_place=True,
             exact_name=base.exact,
+            hidden_from_readers=base.include_hidden,
             frame=base.frame,
         )
 
@@ -981,6 +983,10 @@ class Runner:
         framed = self.browser.in_frames(loose)
         if framed is not None:
             yield framed
+        if base.kind == "role":
+            # Last, what a site hid from screen readers but shows on the screen.
+            yield replace(base, include_hidden=True)
+            yield replace(loose, include_hidden=True)
 
     def _css_of(self, element: Element) -> str:
         if element.selector:

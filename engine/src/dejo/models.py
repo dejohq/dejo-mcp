@@ -231,6 +231,12 @@ class Locator:
     card's link is called "Belt Sander $73.59", and the agent writes `link "Belt Sander"`.
     Kept loose on replay too, because the part the agent left out (a price, a count) is
     exactly the part that changes."""
+    include_hidden: bool = False
+    """For a role: also match elements a site hid from screen readers with `aria-hidden`,
+    as long as they are visible on the screen. Playwright's `get_by_role` skips them, while
+    the view, like Playwright MCP's snapshot, shows them: doververmont.com draws its whole
+    news carousel inside `aria-hidden="true"`, and every link in it was shown and then
+    "nothing on this page". Only tried when nothing else matched."""
     hits: int = 0
     misses: int = 0
     last_ok: str | None = None
@@ -266,6 +272,8 @@ class Locator:
             written = f"in frame {self.frame} {written}"
         if not self.exact:
             written += " (words in its name)"
+        if self.include_hidden:
+            written += " (hidden from screen readers)"
         if self.has_text:
             written += f" containing {self.has_text!r}"
         if self.nth is not None:
@@ -280,6 +288,7 @@ class Locator:
             **({"has_text": self.has_text} if self.has_text else {}),
             **({"frame": self.frame} if self.frame else {}),
             **({"exact": False} if not self.exact else {}),
+            **({"include_hidden": True} if self.include_hidden else {}),
             "hits": self.hits,
             "misses": self.misses,
             "last_ok": self.last_ok,
@@ -294,6 +303,7 @@ class Locator:
             has_text=raw.get("has_text"),
             frame=raw.get("frame"),
             exact=raw.get("exact", True),
+            include_hidden=raw.get("include_hidden", False),
             hits=raw.get("hits", 0),
             misses=raw.get("misses", 0),
             last_ok=raw.get("last_ok"),

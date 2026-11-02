@@ -153,6 +153,8 @@ class Element:
     exact_name: bool = True
     """False when `name` is only part of the element's real name: the words an agent wrote,
     which matched nothing exactly and one element loosely. See `Locator.exact`."""
+    hidden_from_readers: bool = False
+    """Found only by also looking at what `aria-hidden` hides. See `Locator.include_hidden`."""
     twins: int = 1
     """How many elements share this role and name. More than one means a bare role locator
     is ambiguous and needs `nth` pinned to it."""
@@ -212,7 +214,14 @@ class Element:
         # and `|Password` is a locator that can never match.
         if self.role and self.name:
             found.append(
-                self._pin(Locator("role", f"{self.role}|{self.name}", exact=self.exact_name))
+                self._pin(
+                    Locator(
+                        "role",
+                        f"{self.role}|{self.name}",
+                        exact=self.exact_name,
+                        include_hidden=self.hidden_from_readers,
+                    )
+                )
             )
         if self.placeholder:
             found.append(self._pin(Locator("placeholder", self.placeholder)))

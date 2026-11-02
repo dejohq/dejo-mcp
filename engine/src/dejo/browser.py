@@ -1889,6 +1889,10 @@ class Browser:
             return page.locator(f"[{name}={json.dumps(wanted)}]")
         if locator.kind == "role":
             role, _, name = locator.value.partition("|")
+            if locator.include_hidden:
+                named = {"name": name, "exact": exact} if name else {}
+                found = page.get_by_role(role, include_hidden=True, **named)  # type: ignore[arg-type]
+                return found.filter(visible=True)
             if not name:
                 return page.get_by_role(role)  # type: ignore[arg-type]
             return page.get_by_role(role, name=name, exact=exact)  # type: ignore[arg-type]

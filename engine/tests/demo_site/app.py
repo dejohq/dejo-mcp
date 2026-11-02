@@ -893,7 +893,12 @@ def tools(request: Request, late: int = 0, variant: str | None = Query(None)) ->
         "Tools",
         "<h1>Package: tools (1:1.0.51-13)</h1>"
         '<label><input type="checkbox" name="sanders"> Sander (2)</label>'
-        f'<div id="cards">{"" if late else cards}</div>{shown}<p class="pages">{pages}</p>',
+        f'<div id="cards">{"" if late else cards}</div>{shown}<p class="pages">{pages}</p>'
+        # A news strip a site hid from screen readers and still shows on the screen, beside
+        # an old copy that is hidden for everyone.
+        '<div class="news" aria-hidden="true"><a href="/tools/2">Hammer news: back in stock</a>'
+        '</div><div aria-hidden="true" style="display:none"><a href="/tools/1">Hammer news: '
+        "old</a></div>",
         variant=variant_of(request, variant),
     )
 

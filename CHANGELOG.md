@@ -25,6 +25,11 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   words.** On jqueryui.com's autocomplete demo `click text "JavaScript"` matched the page's
   own description ("a simple JavaScript array") instead of the suggestion in the demo's
   iframe, and was refused as ambiguous.
+- **A link a site hid from screen readers, but shows on the screen, can be clicked.**
+  doververmont.com draws its whole news carousel inside `aria-hidden="true"`. The view showed
+  its links, and `link "2026 Transfer Station Rates & Fees"` then found nothing, because a
+  role target skips what `aria-hidden` hides. When nothing else matches, a role target now
+  also looks there, and takes only what is really visible.
 
 ## 0.3.0 — 2026-10-31
 

@@ -129,3 +129,29 @@ def test_a_loose_locator_keeps_its_looseness_in_memory() -> None:
     assert Locator.from_dict(loose.to_dict()).exact is False
     assert "exact" not in Locator("role", "link|Belt Sander").to_dict()
     assert Locator.from_dict({"kind": "text", "value": "Sander"}).exact is True
+
+
+def test_a_link_a_site_hid_from_screen_readers_but_shows_is_still_found(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """doververmont.com draws its news carousel inside `aria-hidden="true"`. The view shows
+    those links, so a target must find them; the copy hidden for everyone stays out."""
+    task = "the hammer in the news"
+    outcome = run(
+        browser,
+        store,
+        f'go {demo_server}/tools\nclick link "Hammer news"\nread css "#title" as name\n',
+        task=task,
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers["name"] == "Claw Hammer"
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task=task)
+    assert replay.ok, replay
+    assert replay.answers["name"] == "Claw Hammer"
+
+
+def test_a_hidden_locator_keeps_its_rule_in_memory() -> None:
+    hidden = Locator("role", "link|Hammer news", exact=False, include_hidden=True)
+    assert Locator.from_dict(hidden.to_dict()).include_hidden is True
+    assert "include_hidden" not in Locator("role", "link|x").to_dict()
