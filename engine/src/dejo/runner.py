@@ -597,9 +597,12 @@ class Runner:
         A wait is for something that is not there yet. Looked up first, the way every other
         line is, `wait css "..."` failed at once with "nothing on this page matches" while
         saashub.com's list still said "Loading..."."""
-        found = self.browser.matches(
-            Locator("css", target.value) if target.kind == "css" else _locator_for(target)
-        )
+        wanted = Locator("css", target.value) if target.kind == "css" else _locator_for(target)
+        found = self.browser.matches(wanted)
+        if found is not None and _has_words(wanted):
+            # Whichever comes first: the whole name, or the words inside one (`_matching`).
+            loose = self.browser.matches(replace(wanted, exact=False))
+            found = found.or_(loose) if loose is not None else found
         try:
             if found is None:
                 raise PlaywrightError("not a target this page can be asked for")
@@ -870,10 +873,7 @@ class Runner:
         return element
 
     def _by_locator(self, target: language.Target, *, many: bool) -> Element:
-        base = _locator_for(target)
-        matched = self.browser.matches(base)
-        self.browser.resolve(base, visible=False)  # waits for a late element, briefly
-        count = matched.count() if matched is not None else 0
+        base, matched, count = self._matching(target)
         if count == 0:
             raise _Stopped(
                 f"nothing on this page is {_target_words(target)}",
@@ -891,7 +891,11 @@ class Runner:
             if count > 1 and not many:
                 raise _Stopped(_too_many(target, count, matched), "add first, last or nth N")
             return Element(
-                ref=_target_words(target), role=_role(target), name=target.value, found_by=base
+                ref=_target_words(target),
+                role=_role(target),
+                name=target.value,
+                found_by=base,
+                exact_name=base.exact,
             )
         wanted = _wanted_index(pick, count)
         if not 0 <= wanted < count:
@@ -903,7 +907,30 @@ class Runner:
             name=target.value,
             found_by=base,
             by_place=True,
+            exact_name=base.exact,
         )
+
+    def _matching(self, target: language.Target) -> tuple[Locator, Any, int]:
+        """The locator a target names, what it matches on the page, and how many.
+
+        The whole name first, and only when nothing is called exactly that, the words inside
+        a name, in any case: Playwright's own default for `get_by_role(name=...)`, and what
+        an agent means by `link "Belt Sander"` on a card whose link says "Belt Sander $73.59".
+        Exact first, so `link "5"` is still the page-5 link and not also the one for 15.
+        Before this, 16 of the 50 real-site tasks in the reliability benchmark stopped with
+        "nothing on this page is ..." while the element was right there (2 Nov 2026)."""
+        base = _locator_for(target)
+        matched = self.browser.matches(base)
+        self.browser.resolve(base, visible=False)  # waits for a late element, briefly
+        count = matched.count() if matched is not None else 0
+        if count or not _has_words(base):
+            return base, matched, count
+        loose = replace(base, exact=False)
+        found = self.browser.matches(loose)
+        loose_count = found.count() if found is not None else 0
+        if loose_count:
+            return loose, found, loose_count
+        return base, matched, count
 
     def _css_of(self, element: Element) -> str:
         if element.selector:
@@ -1350,6 +1377,14 @@ def _locator_for(target: language.Target) -> Locator:
     if target.kind in _LOCATOR_KIND:
         return Locator(_LOCATOR_KIND[target.kind], target.value)  # type: ignore[arg-type]
     return Locator("role", f"{target.kind}|{target.value}")
+
+
+def _has_words(locator: Locator) -> bool:
+    """Can this locator match words inside a longer name? Only the kinds that match words,
+    and a role only when it was given a name."""
+    if locator.kind == "role":
+        return bool(locator.value.partition("|")[2])
+    return locator.kind in _WORDED_LOCATORS
 
 
 def _role(target: language.Target) -> str:

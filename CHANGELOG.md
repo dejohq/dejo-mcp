@@ -2,6 +2,16 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **A target finds an element by words in its name, the way Playwright does.** A name had to
+  match exactly, so `link "Belt Sander"` found nothing on a shop card whose link says "Belt
+  Sander $73.59", and `checkbox "Best Current Practice"` missed the filter called "Best
+  Current Practice 337". The whole name is still tried first; only when nothing is called
+  exactly that does Dejo look for the words inside a name, in any case, like Playwright's
+  `get_by_role(name=...)`. Two such matches are refused, never guessed, and the trail keeps
+  the words so a changed price or count does not break it.
+
 ## 0.3.0 — 2026-10-31
 
 - **`select` on a combobox names a matching button that was already beside it.** The reply

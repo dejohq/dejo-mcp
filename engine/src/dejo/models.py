@@ -208,6 +208,15 @@ class Locator:
 
     Without it the locator is unresolvable: `page.locator` does not look inside iframes, so
     a selector recorded in one would simply find nothing on the next run."""
+    exact: bool = True
+    """Whether the words must be the element's whole name or text, or only appear in it.
+
+    Exact is tried first and is what nearly every step stores. A step is stored with
+    `exact=False` only when the words an agent wrote were part of the name and not all of
+    it, the way Playwright's own `get_by_role(name=...)` matches by default: a product
+    card's link is called "Belt Sander $73.59", and the agent writes `link "Belt Sander"`.
+    Kept loose on replay too, because the part the agent left out (a price, a count) is
+    exactly the part that changes."""
     hits: int = 0
     misses: int = 0
     last_ok: str | None = None
@@ -241,6 +250,8 @@ class Locator:
         written = f"{self.kind}={self.value}"
         if self.frame:
             written = f"in frame {self.frame} {written}"
+        if not self.exact:
+            written += " (words in its name)"
         if self.has_text:
             written += f" containing {self.has_text!r}"
         if self.nth is not None:
@@ -254,6 +265,7 @@ class Locator:
             **({"nth": self.nth} if self.nth is not None else {}),
             **({"has_text": self.has_text} if self.has_text else {}),
             **({"frame": self.frame} if self.frame else {}),
+            **({"exact": False} if not self.exact else {}),
             "hits": self.hits,
             "misses": self.misses,
             "last_ok": self.last_ok,
@@ -267,6 +279,7 @@ class Locator:
             nth=raw.get("nth"),
             has_text=raw.get("has_text"),
             frame=raw.get("frame"),
+            exact=raw.get("exact", True),
             hits=raw.get("hits", 0),
             misses=raw.get("misses", 0),
             last_ok=raw.get("last_ok"),

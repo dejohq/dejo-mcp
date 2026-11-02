@@ -1815,16 +1815,17 @@ class Browser:
         page: Any = self.page.frame_locator(locator.frame) if locator.frame else self.page
         if locator.kind == "css":
             return page.locator(locator.value)
+        exact = locator.exact
         if locator.kind == "text":
-            return page.get_by_text(locator.value, exact=True)
+            return page.get_by_text(locator.value, exact=exact)
         if locator.kind == "label":
-            return page.get_by_label(locator.value, exact=True)
+            return page.get_by_label(locator.value, exact=exact)
         if locator.kind == "placeholder":
-            return page.get_by_placeholder(locator.value, exact=True)
+            return page.get_by_placeholder(locator.value, exact=exact)
         if locator.kind == "title":
-            return page.get_by_title(locator.value, exact=True)
+            return page.get_by_title(locator.value, exact=exact)
         if locator.kind == "alt":
-            return page.get_by_alt_text(locator.value, exact=True)
+            return page.get_by_alt_text(locator.value, exact=exact)
         if locator.kind == "test_id":
             # Not `get_by_test_id`: that reads one globally configured attribute name, and
             # real sites use data-testid, data-test-id, data-test, data-qa and data-cy. The
@@ -1838,7 +1839,7 @@ class Browser:
             role, _, name = locator.value.partition("|")
             if not name:
                 return page.get_by_role(role)  # type: ignore[arg-type]
-            return page.get_by_role(role, name=name, exact=True)  # type: ignore[arg-type]
+            return page.get_by_role(role, name=name, exact=exact)  # type: ignore[arg-type]
         if locator.kind == "structural" and locator.value.startswith("href="):
             path = locator.value[len("href=") :].replace('"', "")
             # Exact path, optionally followed by a query string or fragment.

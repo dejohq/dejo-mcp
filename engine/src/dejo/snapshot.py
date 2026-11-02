@@ -150,6 +150,9 @@ class Element:
 
     nth: int = 0
     """Which of the look-alikes this is, among elements with the same role and name."""
+    exact_name: bool = True
+    """False when `name` is only part of the element's real name: the words an agent wrote,
+    which matched nothing exactly and one element loosely. See `Locator.exact`."""
     twins: int = 1
     """How many elements share this role and name. More than one means a bare role locator
     is ambiguous and needs `nth` pinned to it."""
@@ -208,7 +211,9 @@ class Element:
         # Only with a role: an element found by its label or text has none of its own,
         # and `|Password` is a locator that can never match.
         if self.role and self.name:
-            found.append(self._pin(Locator("role", f"{self.role}|{self.name}")))
+            found.append(
+                self._pin(Locator("role", f"{self.role}|{self.name}", exact=self.exact_name))
+            )
         if self.placeholder:
             found.append(self._pin(Locator("placeholder", self.placeholder)))
         if self.alt:
@@ -216,7 +221,7 @@ class Element:
         if self.title:
             found.append(self._pin(Locator("title", self.title)))
         if self.name and self._text_is_its_own:
-            found.append(self._pin(Locator("text", self.name)))
+            found.append(self._pin(Locator("text", self.name, exact=self.exact_name)))
         if self.beside_css and not self.name:
             # A nameless element by what sits beside it, ahead of its place in the page: the
             # cross of the "AI agents" chip, not the second chip's cross (launchit.site).
