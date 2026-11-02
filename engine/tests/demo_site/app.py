@@ -948,6 +948,15 @@ def framed_done() -> HTMLResponse:
     return HTMLResponse('<!doctype html><html><body><p id="cities">Lagos, Lima</p></body></html>')
 
 
+@app.get("/frameset", response_class=HTMLResponse)
+def frameset() -> HTMLResponse:
+    """An old frameset page: no body at all, only frames."""
+    return HTMLResponse(
+        '<!doctype html><html><frameset rows="50%,50%"><frame name="top" src="/framed/inner">'
+        '<frame name="bottom" src="/framed/form"></frameset></html>'
+    )
+
+
 @app.get("/tickets", response_class=HTMLResponse)
 def tickets(request: Request, open_count: int = Query(3, alias="open")) -> HTMLResponse:
     """GitHub's issue list in miniature: the count lives in a link NAMED by the count, under

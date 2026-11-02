@@ -18,6 +18,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   iframe in order, frames inside frames too, and the trail remembers which frame. A step's
   own check after it ran (that its element is still there) now looks inside the same frame,
   where before it looked at the page and called every framed step broken on replay.
+- **An old frameset page can be looked at.** A page made only of `<frameset>` and `<frame>`s
+  has no body, and every look failed with "Selector body does not match any element". The
+  look now starts from the page's root when there is no body, and shows what the frames hold.
 
 ## 0.3.0 — 2026-10-31
 

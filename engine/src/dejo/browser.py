@@ -1594,7 +1594,10 @@ class Browser:
         return raw, self._frame_selectors(raw)
 
     def _aria_snapshot(self) -> str:
-        return self.page.locator("body").aria_snapshot(mode="ai")
+        # A frameset page has no body at all, only frames off its root, and asking for the
+        # body failed every look at it ("Selector body does not match any element").
+        root = "body" if self.page.locator("body").count() else ":root"
+        return self.page.locator(root).aria_snapshot(mode="ai")
 
     def mark_view(self) -> str:
         """Leave a token in the page for the view just printed, and return it."""
