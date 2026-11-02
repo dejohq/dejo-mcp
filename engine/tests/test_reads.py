@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import pytest
 
-from dejo import reads
-from dejo.browser import Browser
+from dejo import program, reads
+from dejo.browser import Browser, domain_of
+from dejo.executor import Executor
 from dejo.models import Postcondition
-from dejo.operations import check_postcondition
+from dejo.operations import Session, check_postcondition
+from dejo.runner import Runner
+from dejo.store import DejoStore
 
 PAGE = """
 <!doctype html>
@@ -301,3 +304,23 @@ def test_a_passage_with_no_heading_is_its_paragraph() -> None:
 def test_every_read_is_exercised() -> None:
     untested = sorted(set(reads.READS) - EXERCISED)
     assert not untested, f"these reads have no test: {untested}"
+
+
+def test_a_read_picked_by_place_whose_words_are_its_answer_is_kept_by_its_path(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """`read heading "See America" first` is kept by its place, and the place is named by the
+    very words it reads. It was refused as a read nobody could find again (en.wikipedia.org,
+    2 Nov 2026); the heading's own path finds it, and replays."""
+    task = "the book title"
+    runner = Runner(Session(browser=browser, store=store), task=task, store=store)
+    outcome = runner.run(
+        program.parse(f'go {demo_server}/books/2\nread heading "See America" first as title\n')
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.saved is not None
+    assert outcome.answers["title"] == "See America"
+
+    replay = Executor(store, browser).run(domain_of(demo_server), task=task)
+    assert replay.ok, replay
+    assert replay.answers["title"] == "See America"

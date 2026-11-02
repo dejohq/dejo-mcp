@@ -30,6 +30,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   its links, and `link "2026 Transfer Station Rates & Fees"` then found nothing, because a
   role target skips what `aria-hidden` hides. When nothing else matches, a role target now
   also looks there, and takes only what is really visible.
+- **A read picked by its place, whose words are its own answer, is kept.** `read heading
+  "Ada Lovelace" first` was refused as "a read nobody could find again", because its place
+  is named by the very words it reads. Dejo now keeps it by the heading's own path on the
+  page when that path finds only it.
 
 ## 0.3.0 — 2026-10-31
 

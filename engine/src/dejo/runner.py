@@ -690,7 +690,7 @@ class Runner:
         entry = self.session.trace[-1] if self.session.trace else None
         kept = entry.element if entry is not None else None
         if entry is not None and kept is not None and step.kind not in _MANY_READS:
-            entry.locators = self._lasting(kept.locators(), answer)
+            entry.locators = self._lasting(kept.locators(), answer) or self._own_path(kept, answer)
         if (
             element is not None
             and kept is not None
@@ -711,6 +711,18 @@ class Runner:
         out.answers[step.name] = ", ".join(answer) if isinstance(answer, list) else str(answer)
         where = _css_hint(element) if element is not None else step.kind
         out.sources[step.name] = f'read from {where} on "{self.browser.page.title()}"'
+
+    def _own_path(self, element: Element, answer: Any) -> list[Locator]:
+        """For a read picked by its place whose words are its answer, the element's own path.
+
+        `read heading "Ada Lovelace" first` is kept by its place, and that place is named by
+        the very words it reads, so `_lasting` drops it and the read was refused as one
+        nobody could find again (en.wikipedia.org, 2 Nov 2026). The page's own path to the
+        element, when it finds only that element, is what a replay can follow."""
+        if not element.by_place or not element.css:
+            return []
+        own = replace(element, by_place=False).locators()
+        return self._lasting([locator for locator in own if locator.kind == "css"], answer)
 
     def _lasting(self, found: list[Locator], answer: Any) -> list[Locator]:
         """The ways of finding a read's element that will still find it tomorrow.
