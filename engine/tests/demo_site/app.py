@@ -908,6 +908,46 @@ def tool(request: Request, index: int, variant: str | None = Query(None)) -> HTM
     )
 
 
+@app.get("/framed", response_class=HTMLResponse)
+def framed(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    """A page whose working parts live in iframes, the way editors, date pickers and widget
+    demos do: a form in one frame, and a frame inside another frame."""
+    return page(
+        "Framed",
+        "<h1>Framed</h1><p>The form is in the frame below.</p>"
+        '<iframe id="form-frame" src="/framed/form" title="form"></iframe>'
+        '<iframe id="outer-frame" src="/framed/outer" title="outer"></iframe>',
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/framed/form", response_class=HTMLResponse)
+def framed_form() -> HTMLResponse:
+    return HTMLResponse(
+        "<!doctype html><html><body><h2>Inside the frame</h2>"
+        '<label>City <input id="city"></label>'
+        '<a href="/framed/done">Show the city list</a></body></html>'
+    )
+
+
+@app.get("/framed/outer", response_class=HTMLResponse)
+def framed_outer() -> HTMLResponse:
+    return HTMLResponse(
+        '<!doctype html><html><body><p>Outer</p><iframe id="inner-frame" '
+        'src="/framed/inner"></iframe></body></html>'
+    )
+
+
+@app.get("/framed/inner", response_class=HTMLResponse)
+def framed_inner() -> HTMLResponse:
+    return HTMLResponse('<!doctype html><html><body><p id="deep">Deep inside</p></body></html>')
+
+
+@app.get("/framed/done", response_class=HTMLResponse)
+def framed_done() -> HTMLResponse:
+    return HTMLResponse('<!doctype html><html><body><p id="cities">Lagos, Lima</p></body></html>')
+
+
 @app.get("/tickets", response_class=HTMLResponse)
 def tickets(request: Request, open_count: int = Query(3, alias="open")) -> HTMLResponse:
     """GitHub's issue list in miniature: the count lives in a link NAMED by the count, under

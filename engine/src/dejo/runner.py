@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import re
 import tempfile
+from collections.abc import Iterator
 from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
@@ -764,9 +765,36 @@ class Runner:
         if target.kind == "ref":
             return self._by_ref(target)
         if target.kind == "css" and target.pick is None:
+            framed = self._css_in_a_frame(target, many=many)
+            if framed is not None:
+                return framed
             self._one_css_match(target, many=many)
             return self.session.element_by_selector(target.value, one=not many)
         return self._by_locator(target, many=many)
+
+    def _css_in_a_frame(self, target: language.Target, *, many: bool) -> Element | None:
+        """A css target the page itself does not have, found inside one of its iframes."""
+        try:
+            if self.browser.page.locator(target.value).count():
+                return None
+        except PlaywrightError:
+            return None  # not a selector; `_one_css_match` says so in its own words
+        framed = self.browser.in_frames(Locator("css", target.value))
+        if framed is None:
+            return None
+        matched = self.browser.matches(framed)
+        count = matched.count() if matched is not None else 0
+        if count > 1 and not many:
+            raise _Stopped(_too_many(target, count, matched), "add first, last or nth N")
+        return Element(
+            ref=target.value,
+            role="",
+            name="",
+            selector=target.value,
+            css=target.value,
+            found_by=framed,
+            frame=framed.frame,
+        )
 
     def _one_css_match(self, target: language.Target, *, many: bool) -> None:
         """Refuse a css target that matches several elements, in this language's words.
@@ -896,6 +924,7 @@ class Runner:
                 name=target.value,
                 found_by=base,
                 exact_name=base.exact,
+                frame=base.frame,
             )
         wanted = _wanted_index(pick, count)
         if not 0 <= wanted < count:
@@ -908,6 +937,7 @@ class Runner:
             found_by=base,
             by_place=True,
             exact_name=base.exact,
+            frame=base.frame,
         )
 
     def _matching(self, target: language.Target) -> tuple[Locator, Any, int]:
@@ -923,14 +953,29 @@ class Runner:
         matched = self.browser.matches(base)
         self.browser.resolve(base, visible=False)  # waits for a late element, briefly
         count = matched.count() if matched is not None else 0
-        if count or not _has_words(base):
+        if count:
             return base, matched, count
-        loose = replace(base, exact=False)
-        found = self.browser.matches(loose)
-        loose_count = found.count() if found is not None else 0
-        if loose_count:
-            return loose, found, loose_count
+        for other in self._other_ways(base):
+            found = self.browser.matches(other)
+            other_count = found.count() if found is not None else 0
+            if other_count:
+                return other, found, other_count
         return base, matched, count
+
+    def _other_ways(self, base: Locator) -> Iterator[Locator]:
+        """Where else a target that matched nothing may be, nearest reading first: words in
+        a name on the page, then the whole name inside an iframe, then words inside one.
+        Each is only worked out when the one before it found nothing."""
+        loose = replace(base, exact=False) if _has_words(base) else None
+        if loose is not None:
+            yield loose
+        framed = self.browser.in_frames(base)
+        if framed is not None:
+            yield framed
+        if loose is not None:
+            framed = self.browser.in_frames(loose)
+            if framed is not None:
+                yield framed
 
     def _css_of(self, element: Element) -> str:
         if element.selector:

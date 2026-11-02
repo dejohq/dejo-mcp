@@ -16,7 +16,7 @@ from __future__ import annotations
 from urllib.parse import parse_qsl, urlencode, urlparse
 
 from .actions import PRESSES
-from .models import Locator, Playbook, Postcondition, Step, href_path
+from .models import Locator, Playbook, Postcondition, Step, href_path, in_frame
 from .operations import READ_ACTION, TraceEntry
 
 
@@ -55,7 +55,7 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
     if entry.action == READ_ACTION and entry.element is not None:
         # A read changes nothing. What has to still be true is that the thing being read
         # is there at all — if it is gone, the answer would be silently wrong.
-        return Postcondition("element_present", entry.element.css)
+        return Postcondition("element_present", _where(entry))
 
     if entry.download:
         return Postcondition("download", entry.download)
@@ -76,7 +76,7 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
 
     if entry.action == "fill" and entry.element is not None:
         # Nothing visibly changes when you type, so assert the field is still there.
-        return Postcondition("element_present", entry.element.css)
+        return Postcondition("element_present", _where(entry))
 
     if entry.text_gained:
         return Postcondition("text_present", entry.text_gained)
@@ -84,12 +84,18 @@ def postcondition_for(entry: TraceEntry) -> Postcondition:
     if entry.left == "removed" and entry.element is not None:
         # The press took its own element away, so "it is still there" would fail on every
         # replay that pressed it. That it is gone is the proof the press landed.
-        return Postcondition("element_gone", entry.element.css)
+        return Postcondition("element_gone", _where(entry))
 
     if entry.element is not None:
-        return Postcondition("element_present", entry.element.css)
+        return Postcondition("element_present", _where(entry))
 
     return Postcondition("url_contains", href_path(entry.url_after))
+
+
+def _where(entry: TraceEntry) -> str:
+    """The selector a check on this step's element uses, frame and all."""
+    assert entry.element is not None
+    return in_frame(entry.element.frame, entry.element.css)
 
 
 def _landing(entry: TraceEntry) -> str:

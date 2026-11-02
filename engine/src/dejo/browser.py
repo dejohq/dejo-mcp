@@ -33,6 +33,7 @@ import subprocess
 import sys
 import time
 from contextlib import suppress
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -45,7 +46,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeout
 from . import snapshot as aria
 from .home import HOME, PROFILE_OWNER, setting
 from .locks import ProfileHeld, ProfileLock
-from .models import Locator
+from .models import ENTER_FRAME, Locator
 from .snapshot import Element, Snapshot
 from .waits import DEFAULT_WAIT_MS, LOCATOR_WAIT_MS, QUIET_WAIT_MS
 
@@ -130,6 +131,7 @@ NOISY_DEFAULTS = ["--enable-automation"]
 # sight. The window is genuinely not being watched by anyone; that is a fact about the
 # screen, not about who is typing, and it is no business of the site's.
 HEADLESS_TELL = "HeadlessChrome"
+
 # The honest agent per browser (real Chrome or the bundled Chromium), read once per process:
 # finding it costs a whole browser launch.
 _HONEST_AGENTS: dict[str | None, str | None] = {}
@@ -1656,6 +1658,53 @@ class Browser:
     def matches(self, locator: Locator) -> PWLocator | None:
         """Everything on the page a stored locator matches, refinements applied."""
         return self._to_playwright(locator)
+
+    def in_frames(self, locator: Locator) -> Locator | None:
+        """The same locator, pointed into the first iframe where it matches something.
+
+        A `role`, `text` or `css` target only ever looked at the page itself, while the view
+        drew the inside of every iframe and Playwright MCP's refs reach into them. So an
+        editor, a date picker or a demo inside an iframe was drawn, and then "nothing on
+        this page" was everything a target found there: 6 of the 50 real-site tasks in the
+        reliability benchmark (2 Nov 2026). Frames are tried in page order, nested ones
+        too, and the frame is written into the locator so a replay looks in the same one."""
+        if locator.frame:
+            return None
+        for frame in self.page.frames[1:]:
+            path = self._frame_path(frame)
+            if not path:
+                continue
+            inside = replace(locator, frame=path)
+            try:
+                found = self._to_playwright(inside)
+                if found is not None and found.count() > 0:
+                    return inside
+            except PlaywrightError:
+                continue
+        return None
+
+    def _frame_path(self, frame: Any) -> str:
+        """A selector chain from the page down to this frame, or "" when there is none.
+
+        Each iframe is described inside its own parent document, the way `describe` does
+        for any element, and the links are joined with Playwright's own frame step."""
+        links: list[str] = []
+        try:
+            while frame.parent_frame is not None:
+                described = self._describe_locator_handle(frame.frame_element())
+                if not described or not described.get("css"):
+                    return ""
+                links.append(described["css"])
+                frame = frame.parent_frame
+        except PlaywrightError:
+            return ""
+        return ENTER_FRAME.join(reversed(links))
+
+    def _describe_locator_handle(self, handle: Any) -> dict[str, Any] | None:
+        try:
+            return handle.evaluate(_DESCRIBE_JS)
+        except PlaywrightError:
+            return None
 
     def _frame_selectors(self, raw: str) -> dict[str, str]:
         """Map each iframe's Playwright ref to a selector for that iframe.

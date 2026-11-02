@@ -11,6 +11,13 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   exactly that does Dejo look for the words inside a name, in any case, like Playwright's
   `get_by_role(name=...)`. Two such matches are refused, never guessed, and the trail keeps
   the words so a changed price or count does not break it.
+- **A target finds an element inside an iframe, and its replay does too.** `css`, `role` and
+  `text` targets only looked at the page itself, while the view drew the inside of every
+  iframe. A rich text editor, a date picker or a widget demo in an iframe was shown, and then
+  "nothing on this page" was all a target found. The page is searched first, then each
+  iframe in order, frames inside frames too, and the trail remembers which frame. A step's
+  own check after it ran (that its element is still there) now looks inside the same frame,
+  where before it looked at the page and called every framed step broken on replay.
 
 ## 0.3.0 — 2026-10-31
 

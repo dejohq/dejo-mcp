@@ -16,6 +16,20 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 from urllib.parse import urlparse, urlunparse
 
+# How Playwright itself writes "now look inside this frame" in a selector, between the
+# iframe's selector and what is inside it. A frame inside a frame is two of these, and both
+# `page.frame_locator` and `page.locator` take the whole chain as one selector.
+ENTER_FRAME = " >> internal:control=enter-frame >> "
+
+
+def in_frame(frame: str | None, selector: str) -> str:
+    """One selector for an element inside a frame, that `page.locator` can resolve alone.
+
+    A check after a step (`element_present "#deep"`) used to be looked for on the page
+    itself, so every step on an element inside an iframe failed its own check on replay."""
+    return f"{frame}{ENTER_FRAME}{selector}" if frame else selector
+
+
 LocatorKind = Literal[
     "test_id",
     "structural",
@@ -445,7 +459,12 @@ class Step:
             return self.postcondition
 
         where = self.postcondition.target or next(
-            (locator.value for locator in self.locators if locator.kind == "css"), ""
+            (
+                in_frame(locator.frame, locator.value)
+                for locator in self.locators
+                if locator.kind == "css"
+            ),
+            "",
         )
         if where:
             return Postcondition("element_present", where)
