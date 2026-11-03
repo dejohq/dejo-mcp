@@ -57,6 +57,15 @@ def setting(name: str) -> str | None:
     return None
 
 
+# What a person may write to switch a `DEJO_` setting on.
+ON_WORDS = frozenset({"1", "true", "yes", "on"})
+
+
+def switched_on(name: str) -> bool:
+    """A `DEJO_` setting that is a switch, such as DEJO_HEADED=1."""
+    return (setting(name) or "").strip().lower() in ON_WORDS
+
+
 def adopt_old_home(home: Path | None = None, old: Path | None = None) -> bool:
     """Move `~/.cairn` to `~/.dejo` the first time Dejo starts. True if it moved.
 

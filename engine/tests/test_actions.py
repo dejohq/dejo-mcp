@@ -475,8 +475,24 @@ EXERCISED = {
     "restart_trail",
     # Covered in tests/test_escape_hatch.py.
     "evaluate",
-    "screenshot",
     "set_time",
+    # Covered in tests/test_parity.py, learned and replayed on the parity page.
+    "dialog",
+    "mouse",
+    "keydown",
+    "keyup",
+    "scroll_in",
+    "close_tab",
+    "emulate",
+    "cookie",
+    "storage",
+    "state",
+    "record",
+    "block",
+    "header",
+    "allow",
+    "mock",
+    "script",
 }
 
 

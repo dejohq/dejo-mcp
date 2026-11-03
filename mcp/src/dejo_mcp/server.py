@@ -26,11 +26,12 @@ Never print to stdout: stdio is the MCP transport and a stray print corrupts it.
 
 from __future__ import annotations
 
+import base64
 import contextlib
 import functools
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -46,7 +47,7 @@ from dejo.browser import (
     profile_named,
 )
 from dejo.executor import Executor, NeedsTask, NoTrailError, ReplayResult
-from dejo.home import setting
+from dejo.home import setting, switched_on
 from dejo.models import SiteKnowledge
 from dejo.operations import Session
 from dejo.runner import Runner
@@ -105,8 +106,12 @@ RUN_DESCRIPTION = (
     "(in a multi-line box, \\n in the text starts a new line)\n"
     "read T as name   (the value you will report)\n"
     'expect url "part" | expect text "words" | expect see T\n'
-    "look words       (show the page, these words first)\n"
-    'Also: back, hover T, wait T, upload T "file", tab N.\n'
+    "look words       (show the page, these words first; look image: a picture)\n"
+    'Also: back, hover T, wait T, upload T "file", tab N|close, dialog dismiss,\n'
+    "screenshot [T], pdf, mouse click X Y, click T button=right, read table T,\n"
+    'read fields \'{"name": "css"}\' T, read response "/api", wait response:/api,\n'
+    'emulate device "iPhone 13"|timezone X, record video|trace.\n'
+    "help    (every other step)\n"
     'T is a ref, or role "name" (link "Travel"), text "...", label "...", css "...". '
     "Add first, last or nth 3 to mean that place in a list, not that item.\n"
     "Write click! (or fill! etc.) for a step that buys, pays, sends, deletes or "
@@ -236,6 +241,8 @@ class Reply:
 
     text: str
     error: bool = False
+    images: list[bytes] = field(default_factory=list)
+    """PNG pictures of the page, sent after the text, for `look image`."""
 
 
 class DejoTools:
@@ -256,8 +263,10 @@ class DejoTools:
         profile: str | None = None,
         profiles_dir: str | None = None,
         agent: str | None = None,
+        cdp_url: str | None = None,
     ):
         self.store = DejoStore(db_path=db_path, agent=agent)
+        self.cdp_url = cdp_url
         # What `default` means on this machine: whatever was already in use, so naming
         # profiles never moves an existing sign-in.
         self.profile = profile if profile is not None else str(DEFAULT_PROFILE)
@@ -284,6 +293,7 @@ class DejoTools:
                 headless=self.headless,
                 downloads=self.downloads,
                 profile=self.path_for(self.active),
+                cdp_url=self.cdp_url,
             )
             self._workers[self.active] = running
         return running
@@ -470,7 +480,7 @@ def _run_steps(
         # The fix held and the rest of the trail stopped later on. Why it stopped is said
         # exactly as for any replay, including a second "broke at step".
         said += "\n" + _after_replay(tools, key, task, outcome.tail).text
-    return Reply(_with_header(tools, said, resumed))
+    return Reply(_with_header(tools, said, resumed), images=outcome.images)
 
 
 def _replay_or_look(
@@ -642,6 +652,7 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
         )
     lines.extend(f"{name} = {value}" for name, value in result.answers.items())
     lines.extend(f"saved file: {path}" for path in result.saved_files)
+    lines.extend(f"recorded: {path}" for path in result.recordings)
     if playbook is not None:
         risky = [f"step {s.index} ({s.intent})" for s in playbook.steps if s.risky]
         if risky:
@@ -682,6 +693,8 @@ def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply
     lines = [f"broke at step {at} of {total}: {broken.intent}{tried}"]
     if at > 1:
         lines.append(f"steps 1-{at - 1} passed and are kept.")
+    # A recording of a run that broke is the one most worth watching.
+    lines.extend(f"recorded: {path}" for path in result.recordings)
     rest = f"runs steps {at + 1}-{total} itself" if at < total else "saves the trail with the fix"
     lines += [
         shown,
@@ -967,9 +980,12 @@ class DejoServer:
 
 
 def _result(reply: Reply) -> types.CallToolResult:
-    return types.CallToolResult(
-        content=[types.TextContent(type="text", text=reply.text)], isError=reply.error
+    content: list[Any] = [types.TextContent(type="text", text=reply.text)]
+    content.extend(
+        types.ImageContent(type="image", data=base64.b64encode(png).decode(), mimeType="image/png")
+        for png in reply.images
     )
+    return types.CallToolResult(content=content, isError=reply.error)
 
 
 def build_server(
@@ -980,6 +996,7 @@ def build_server(
     profile: str | None = None,
     profiles_dir: str | None = None,
     agent: str | None = None,
+    cdp_url: str | None = None,
 ) -> DejoServer:
     """Wire the tools. Kept in a function so tests can build a server without running it."""
     return DejoServer(
@@ -990,8 +1007,23 @@ def build_server(
             downloads=downloads,
             profile=profile,
             agent=agent,
+            cdp_url=cdp_url,
         )
     )
+
+
+def from_environment() -> dict[str, Any]:
+    """How the server is set up, read from its `DEJO_` settings."""
+    return {
+        "agent": setting("DEJO_AGENT"),
+        "profile": setting("DEJO_PROFILE"),
+        "profiles_dir": setting("DEJO_PROFILES_DIR"),
+        "db_path": setting("DEJO_DB"),
+        # Headless unless asked: a window that opens on every task is in the way of the
+        # person whose machine it is. Asked for, it shows each run as it happens.
+        "headless": not switched_on("DEJO_HEADED"),
+        "cdp_url": setting("DEJO_CDP_URL"),
+    }
 
 
 def run_stdio() -> None:
@@ -1006,15 +1038,14 @@ def run_stdio() -> None:
         DEJO_PROFILES_DIR  where named profiles live. Default ~/.dejo/profiles.
         DEJO_DB       which memory database. Agents share this on purpose; it is how a
                       trail gets from one to the other.
+        DEJO_HEADED   1 to show the browser window, to watch a run live. Headless otherwise.
+        DEJO_RECORD   video, trace or both (video,trace): record every replay.
+        DEJO_CDP_URL  drive a browser that is already running, such as a cloud browser or
+                      Chrome started with --remote-debugging-port=9222.
 
     The old CAIRN_ names are still read when the DEJO_ one is not set.
     """
-    server = build_server(
-        agent=setting("DEJO_AGENT"),
-        profile=setting("DEJO_PROFILE"),
-        profiles_dir=setting("DEJO_PROFILES_DIR"),
-        db_path=setting("DEJO_DB"),
-    )
+    server = build_server(**from_environment())
     who = setting("DEJO_AGENT") or "the default agent"
     log(f"ready as {who}, profile {server.dejo_tools.active!r}")
     try:

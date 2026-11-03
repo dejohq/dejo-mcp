@@ -106,6 +106,20 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "wait_for": "wait element:#total",
         "switch_tab": "tab latest",
         "new_tab": "tab new https://example.com/",
+        "dialog": "dialog dismiss",
+        "mouse": "mouse click 120 40",
+        "scroll_in": "scroll e4 down",
+        "close_tab": "tab close",
+        "emulate": "emulate color dark",
+        "cookie": "cookie clear",
+        "storage": "storage clear",
+        "state": "state save team",
+        "record": "record video",
+        "block": 'block "**/*.png"',
+        "allow": "allow notifications",
+        "mock": 'mock "**/api" 200 "{}"',
+        "script": 'script "window.tour = false"',
+        "header": "header clear",
     }
     if name in special:
         return special[name]
@@ -129,10 +143,30 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
 @pytest.mark.parametrize(
     ("line", "action", "value", "target"),
     [
+        ("dialog dismiss", "dialog", "dismiss", None),
+        ("tab close", "close_tab", None, None),
+        ("tab close 1", "close_tab", "1", None),
+        ('emulate device "iPhone 13"', "emulate", "device iPhone 13", None),
+        ("emulate timezone off", "emulate", "timezone off", None),
+        ('cookie set theme "dark mode"', "cookie", "set theme dark mode", None),
+        ("storage clear token", "storage", "clear token", None),
+        ("state load team", "state", "load team", None),
+        ("record video trace", "record", "video trace", None),
+        ("record stop", "record", "stop", None),
+        ("record performance", "record", "performance", None),
+        ('block "**/*.png"', "block", "**/*.png", None),
+        ('block off "**/*.png"', "block", "off **/*.png", None),
+        ('header set X-Team "blue"', "header", "set X-Team blue", None),
+        ("allow notifications clipboard-read", "allow", "notifications clipboard-read", None),
+        ("dialog accept", "dialog", "accept", None),
+        ('dialog accept "Rohit"', "dialog", "answer:Rohit", None),
         ("go /issues", "goto", "/issues", None),
         ("press Enter e4", "press", "Enter", Target("ref", "e4")),
         ("press Escape", "press", "Escape", None),
         ("scroll bottom", "scroll", "bottom", None),
+        ("scroll right", "scroll", "right", None),
+        ('scroll css "#list" down 300', "scroll_in", "down 300", Target("css", "#list")),
+        ("scroll e4 left", "scroll_in", "left", Target("ref", "e4")),
         ("scroll 400", "scroll", "400", None),
         ('wait css "#x"', "wait_for", None, Target("css", "#x")),
         ("wait 0.5", "wait", "0.5", None),
@@ -330,7 +364,6 @@ def test_a_whole_line_comment_is_skipped() -> None:
     ("text", "says"),
     [
         ('js "1"\nclick e1', "js must be the only line"),
-        ("screenshot\nclick e1", "screenshot must be the only line"),
         ('expect url "x"', "expect checks the action on the line just before it"),
         ('click e1\nread e2 as x\nexpect url "y"', "expect checks the action"),
         ('click e1\nexpect url "a"\nexpect url "b"', "expect checks the action"),
@@ -461,3 +494,90 @@ def test_lines_agents_really_wrote_get_the_right_hint(line: str, says: str) -> N
     """Each of these was sent by Claude in the 21 Oct benchmark and got a misleading error."""
     with pytest.raises(ProgramError, match=says):
         program.parse(line)
+
+
+# ------------------------------------------------------------------------ help
+
+
+def test_look_image_asks_for_a_picture() -> None:
+    assert only("look image").mode == "image"
+    assert only("look image prices").mode == "words", "two words are words to look for"
+
+
+def test_help_is_a_line_of_its_own() -> None:
+    assert only("help").mode == "help"
+
+
+def test_help_lists_every_action_and_every_read() -> None:
+    """The tool description only has room for the common steps, so `help` is where every
+    other step is found. Built from the registries, it cannot miss one."""
+    written = program.reference()
+    for spec in actions.ACTIONS.values():
+        assert program.usage_of(spec) in written, spec.name
+    for name in reads.READS:
+        assert f"  {name} — " in written, name
+
+
+@pytest.mark.parametrize(
+    ("line", "kind", "name", "attribute", "target"),
+    [
+        ("screenshot", "screenshot", "screenshot", None, None),
+        ("screenshot full as page", "screenshot", "page", "full", None),
+        ('screenshot css "#chart" as chart', "screenshot", "chart", None, Target("css", "#chart")),
+        ("read screenshot e4 as box", "screenshot", "box", None, Target("ref", "e4")),
+        ("pdf", "pdf", "pdf", None, None),
+        ("pdf as invoice", "pdf", "invoice", None, None),
+    ],
+)
+def test_a_picture_or_a_pdf_is_a_read_that_answers_a_file(
+    line: str, kind: str, name: str, attribute: str | None, target: Target | None
+) -> None:
+    step = only(line)
+    assert isinstance(step, Read)
+    assert (step.kind, step.name, step.attribute, step.target) == (kind, name, attribute, target)
+
+
+@pytest.mark.parametrize(
+    ("line", "value", "options"),
+    [
+        ("mouse click 120 40", "click 120 40", ()),
+        ("mouse drag 10 10 to 200 220", "drag 10 10 200 220", ()),
+        ("mouse wheel 0 -300", "wheel 0 -300", ()),
+        ("mouse down", "down", ()),
+        ("click e4 button=right", None, (("button", "right"),)),
+        ('click css "canvas" at=120,40 keys=Shift', None, (("at", "120,40"), ("keys", "Shift"))),
+        ('type e3 "hello" delay=100', "hello", (("delay", "100"),)),
+    ],
+)
+def test_exact_mouse_and_keyboard_lines(line: str, value: str | None, options: tuple) -> None:
+    step = only(line)
+    assert isinstance(step, Action)
+    assert (step.value, step.options) == (value, options)
+
+
+@pytest.mark.parametrize(
+    ("line", "says"),
+    [
+        ("mouse click 120", "takes 2 numbers"),
+        ("mouse fly 1 2", "mouse takes click"),
+        ('fill e4 "x" delay=100', "fill takes nothing, not delay="),
+        ("click e4 speed=3", "click takes at=, button=, keys=, not speed="),
+        ("emulate weather sunny", "cannot emulate 'weather'"),
+        ("emulate timezone", "emulate timezone needs a setting"),
+    ],
+)
+def test_a_wrong_mouse_line_or_option_is_refused(line: str, says: str) -> None:
+    with pytest.raises(ProgramError, match=says):
+        program.parse(line)
+
+
+def test_many_fields_are_named_before_the_element_they_are_read_from() -> None:
+    step = only("""read fields '{"name": "h3", "link": "a@href"}' css "article" as items""")
+    assert isinstance(step, Read)
+    assert (step.kind, step.attribute, step.target) == (
+        "fields",
+        '{"name": "h3", "link": "a@href"}',
+        Target("css", "article"),
+    )
+    whole_page = only("""read fields '{"title": "h1"}' as page""")
+    assert (whole_page.target, whole_page.attribute) == (None, '{"title": "h1"}')

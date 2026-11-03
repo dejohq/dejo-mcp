@@ -6,6 +6,16 @@ Written 2026-09-01, after a test proved the browsing layer was far weaker than a
 (`engine/src/dejo/program.py`), and the tools named `dejo_act` and `dejo_read` are gone.
 The capability list is current; the decision notes keep the tool names of their time.
 
+**Since November 2026 (branch `feat/parity`)** Dejo set out to do everything the major browser
+tools do. Much of what this document left out on purpose is now built, each as a step line:
+video, Playwright traces, performance traces, PDF, screenshots kept in a trail, mouse
+coordinates, cookies and storage, saved sign-in state, request logs and response bodies,
+blocking and mocking requests, init scripts, emulation, and connecting to a running browser.
+Steps that change the browser rather than the site (cookies, headers, mocks, scripts,
+recordings) run but are not kept in a trail, and the reply says why. The capability-by-
+capability comparison, with sources, is [`CAPABILITIES.md`](CAPABILITIES.md); `help` in a
+`dejo_run` call lists every step. The decisions below are kept as they were made.
+
 ## Why this document exists
 
 Dejo was tested against a page containing a React-style dropdown, a shadow DOM, an iframe,

@@ -1,0 +1,21 @@
+Dejo
+Copyright (c) 2026 Rohit Kashyap. Released under the MIT license (see LICENSE).
+
+Dejo uses values taken from other open-source projects. Their notices are kept here, and a
+comment at each place in the code names the project, its license and its copyright line.
+
+------------------------------------------------------------------------------------------
+Puppeteer (https://github.com/puppeteer/puppeteer)
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+Used in Dejo:
+- engine/src/dejo/emulation.py, NETWORKS: the network speeds of Puppeteer's
+  PredefinedNetworkConditions (Slow 3G, Fast 3G, Slow 4G, Fast 4G), the presets Chrome
+  DevTools MCP also uses.
+- engine/src/dejo/browser.py, PERFORMANCE_CATEGORIES: the trace categories Puppeteer's
+  page.tracing records by default, so a Dejo performance trace opens in Chrome DevTools
+  like one it made itself.
+
+No other code from another project is copied into Dejo. Playwright (Apache-2.0, Copyright
+(c) Microsoft Corporation) is a dependency and is called, not copied.

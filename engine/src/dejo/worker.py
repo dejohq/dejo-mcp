@@ -42,8 +42,10 @@ class BrowserWorker:
         headless: bool = True,
         downloads: str | None = None,
         profile: str | None = None,
+        cdp_url: str | None = None,
     ):
         self._headless = headless
+        self._cdp_url = cdp_url
         self._downloads = downloads
         self._profile = profile
         self._jobs: queue.Queue[Any] = queue.Queue()
@@ -94,6 +96,7 @@ class BrowserWorker:
                 headless=self._headless,
                 downloads=Path(self._downloads) if self._downloads else None,
                 profile=Path(self._profile) if self._profile else None,
+                cdp_url=self._cdp_url,
             ).start()
         except BaseException as failure:  # noqa: BLE001 - surfaced to start()
             self._failure = failure

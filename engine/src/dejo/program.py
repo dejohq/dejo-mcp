@@ -28,7 +28,7 @@ import shlex
 from dataclasses import dataclass, field, replace
 from typing import Literal
 
-from . import actions, reads, waits
+from . import actions, emulation, reads, waits
 from .snapshot import INTERACTIVE_ROLES
 
 # Limits on one program. Thirty lines is several times the longest task measured on 20 Oct
@@ -53,7 +53,7 @@ ALIASES = {
 # Verbs whose arguments do not follow the plain `VERB [T] [VALUE] [to T]` shape, so each has
 # its own reader below. `scroll` takes a target OR a direction, `wait` a target, seconds or a
 # `kind:subject`, `tab` a number or `new`, `press` a key first and then maybe a target.
-SHAPED_VERBS = frozenset({"press", "scroll", "wait", "tab"})
+SHAPED_VERBS = frozenset({"press", "scroll", "wait", "tab", "dialog"})
 
 # Registry actions the help line already shows in their own words, so the plain list after
 # it does not repeat them.
@@ -65,20 +65,28 @@ DESCRIBED = frozenset(
         "press",
         "scroll",
         "scroll_to",
+        "scroll_in",
         "wait",
         "wait_for",
         "back",
         "switch_tab",
         "new_tab",
+        "close_tab",
+        "dialog",
     }
 )
 
 # Actions that must be the only line of a program. They are never recorded, so mixing them
 # into a trail would leave a step that silently does nothing on replay.
-ALONE = frozenset({"evaluate", "screenshot"})
+ALONE = frozenset({"evaluate"})
 
 # Registry actions that take a value only sometimes.
-OPTIONAL_VALUE = frozenset({"new_tab", "screenshot"})
+OPTIONAL_VALUE = frozenset({"new_tab"})
+
+# Reads written as a verb of their own, because what they make is a file, not words:
+# `screenshot [T] [full] [as NAME]` and `pdf [as NAME]`. Each is kept in a trail as a read,
+# so a replay takes a fresh one, and its answer is the path of the file.
+CAPTURE_VERBS = frozenset({"screenshot", "pdf"})
 
 # Words that name how to find an element, besides an ARIA role. They match the locator kinds
 # Dejo already stores (`models.Locator`), so a target written by an agent can be kept as it
@@ -125,16 +133,33 @@ ROLES = INTERACTIVE_ROLES | frozenset(
     }
 )
 
+# Verbs whose value is a sub-command and its words, and how many words each may take.
+SETTING_VERBS: dict[str, dict[str, int]] = {
+    "cookie": {"set": 2, "clear": 1},
+    "storage": {"set": 2, "clear": 1},
+    "state": {"save": 1, "load": 1},
+    "record": {"video": 2, "trace": 2, "performance": 2, "stop": 0},
+    "header": {"set": 2, "clear": 0},
+}
+
+# What `record` can make.
+RECORDINGS = frozenset({"video", "trace", "performance"})
+
+# The words that scroll the page itself rather than name an element.
+PAGE_SCROLLS = frozenset({"down", "up", "left", "right", "top", "bottom"})
+
 # Short read kinds, as the design names them, for registry entries with longer names.
 READ_ALIASES = {"all": "all_text", "attr": "attribute"}
 
 # A Dejo ref as views print it: `e16` on the main page, `f1e3` inside the first iframe.
 REF = re.compile(r"^(?:f\d+)?e\d+$")
+# An option at the end of a line: `button=right`, `at=120,40`, `delay=100`.
+OPTION = re.compile(r"^[a-z]+=\S+$")
 GROUP = re.compile(r"^g\d+$")
 NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 PickKind = Literal["first", "last", "nth", "has"]
-LookMode = Literal["page", "words", "from", "group", "all", "raw"]
+LookMode = Literal["page", "words", "from", "group", "all", "raw", "help", "image"]
 
 
 class ProgramError(ValueError):
@@ -174,6 +199,8 @@ class Action:
     target: Target | None = None
     value: str | None = None
     second: Target | None = None
+    options: tuple[tuple[str, str], ...] = ()
+    """`KEY=VALUE` words at the end of the line, such as `button=right` or `delay=100`."""
     risky: bool = False
     """Written with `!`: the agent says this buys, pays, sends, deletes or submits."""
     reason: str = ""
@@ -256,12 +283,95 @@ def verbs_help() -> str:
     plain = sorted(set(actions.ACTIONS) - DESCRIBED - set(ALIASES.values()) - ALONE)
     return (
         "Verbs: go URL, click T, fill T TEXT, select T OPTION, press KEY [T], scroll T|down, "
-        "wait T|SECONDS, tab N|new [URL], back, " + ", ".join(plain) + "; "
+        "wait T|SECONDS, tab N|new [URL]|close [N], dialog accept [ANSWER]|dismiss, back, "
+        + ", ".join(plain)
+        + "; "
         "read [KIND] [T] as NAME; expect url|text|see|gone|count|value ...; "
-        "look [WORDS|from REF|gN|all|raw]; note TEXT; js CODE (alone). "
+        "screenshot [T|full] [as NAME]; pdf [as NAME]; "
+        "look [WORDS|from REF|gN|all|raw]; note TEXT; js CODE (alone); help (every step). "
         'T is a ref like e12, or KIND "string" with KIND a role, text, label, placeholder, '
         'alt, title, testid or css, then optionally first, last, nth N or has "text".'
     )
+
+
+# How a line writes the registry actions whose verb or arguments differ from their name.
+USAGE = {
+    "press": "press KEY [T]",
+    "scroll": "scroll down|up|left|right|top|bottom|PIXELS",
+    "scroll_to": "scroll T",
+    "scroll_in": "scroll T down|up|left|right [PIXELS]",
+    "wait": "wait SECONDS",
+    "wait_for": "wait T | wait KIND:SUBJECT",
+    "switch_tab": "tab N|latest|main",
+    "new_tab": "tab new [URL]",
+    "close_tab": "tab close [N|latest]",
+    "cookie": 'cookie set NAME "VALUE" | cookie clear [NAME]',
+    "storage": 'storage set KEY "VALUE" | storage clear [KEY]',
+    "state": 'state save NAME | state load NAME|"/path/state.json"',
+    "record": "record video|trace|performance (one or more) | record stop",
+    "block": 'block "**/*.png" | block off [PATTERN]',
+    "header": 'header set NAME "VALUE" | header clear',
+    "mock": 'mock "PATTERN" STATUS "BODY" | mock off [PATTERN]',
+    "script": 'script "JAVASCRIPT"',
+    "emulate": "emulate KIND SETTING  (see EMULATE below)",
+    "dialog": 'dialog dismiss | dialog accept ["answer"]',
+    "dismiss_when_seen": 'dismiss css "SELECTOR"',
+    "restart_trail": "restart",
+    "evaluate": "js CODE  (alone)",
+    "mouse": "mouse click|dblclick|right|move X Y | mouse down|up | mouse wheel DX DY | "
+    "mouse drag X Y to X2 Y2",
+    "goto": "go URL",
+}
+
+
+def usage_of(spec: actions.ActionSpec) -> str:
+    """How one action is written as a line: `fill T "VALUE"`, `drag T to T`."""
+    if spec.name in USAGE:
+        return USAGE[spec.name]
+    words = [spec.name, "T" if spec.needs_target else "", '"VALUE"' if spec.value_means else ""]
+    if spec.needs_second_target:
+        words.append("to T")
+    shown = " ".join(word for word in words if word)
+    if spec.options:
+        shown += " [" + " ".join(f"{name}=..." for name in sorted(spec.options)) + "]"
+    return f"{shown}  (VALUE = {spec.value_means})" if spec.value_means else shown
+
+
+def reference() -> str:
+    """Every step Dejo understands, for the `help` line. Built from the registries, so a
+    new action or read is listed the moment it exists. The tool's own description has room
+    for the common steps only: every tool definition is re-read on every turn."""
+    shapes = "\n".join(
+        [
+            "Each line is one step. T is a ref from the page (e12, f1e3 in an iframe), or a "
+            'KIND "string" with KIND a role (link, button, ...), text, label, placeholder, '
+            'alt, title, testid or css; then optionally first, last, nth N or has "words".',
+            "Write VERB! (click!, fill!) for a step that buys, pays, sends, deletes or submits.",
+            "Options go at the end: at=X,Y (a spot on the element, from its top left), "
+            "keys=Shift+Control (held while it runs), button=right|middle, delay=MS (between "
+            "typed keys).",
+            "",
+            "ACTIONS:",
+            *(f"  {usage_of(spec)} — {spec.summary}" for spec in actions.ACTIONS.values()),
+            "",
+            "READS (read KIND [T] as NAME; KIND defaults to text):",
+            reads.catalogue(),
+            "",
+            "WAITS (wait KIND:SUBJECT, or wait T, or wait SECONDS):",
+            waits.catalogue(),
+            "",
+            "FILES: screenshot [T | full] [as NAME] and pdf [as NAME] save a picture or a PDF and "
+            "answer its path. Kept in a trail, so every replay saves a new one.",
+            "EMULATE (emulate KIND SETTING; emulate KIND off undoes it):",
+            emulation.catalogue(),
+            "",
+            "CHECKS: expect url|text|see|gone|count|value ... checks the action just before.",
+            "LOOK: look [WORDS | from REF | gN | all | raw | image]. look image sends a picture "
+            "of the screen, for a page with nothing inside to name (a chart, a map, a canvas).",
+            'NOTE: note "a fact about the site".',
+        ]
+    )
+    return shapes
 
 
 def _split_comment(raw: str, number: int) -> tuple[str, str]:
@@ -307,6 +417,10 @@ def _parse_line(body: str, number: int, reason: str) -> Step:
         step = _expect(reader, number, body, reason)
     elif head == "look":
         step = _look(reader, number, body, reason)
+    elif head in CAPTURE_VERBS:
+        step = _capture(head, reader, number, body, reason)
+    elif head == "help":
+        step = Look(number, body, "help", reason=reason)
     elif head == "note":
         step = Note(number, body, reader.string("note needs the fact, in quotes"), reason)
     else:
@@ -346,7 +460,89 @@ def _action(head: str, reader: _Words, number: int, body: str, reason: str) -> A
 
     if name == "goto":
         value = _checked_address(value or "", number)
-    return Action(number, body, name, target, value, second, risky, reason)
+    if name == "mouse":
+        value = _mouse_value(value or "", reader, number)
+    if name == "block" and value == "off" and reader.more():
+        value = f"off {reader.take()}"
+    if name == "mock":
+        value = _mock_value(value or "", reader, number)
+    if name == "allow":
+        while reader.more() and not OPTION.match(reader.peek() or ""):
+            value = f"{value} {reader.take()}"
+    if name == "emulate":
+        value = _emulate_value(value or "", reader, number)
+    if name in SETTING_VERBS:
+        value = _setting_value(name, value or "", reader, number)
+    options = _options(reader, spec, number)
+    return Action(number, body, name, target, value, second, options, risky, reason)
+
+
+def _mouse_value(first: str, reader: _Words, number: int) -> str:
+    """`mouse click 120 40`, `mouse drag 10 10 to 200 200`: the move and its numbers, as one
+    value. `to` in a drag only reads well; it is not kept."""
+    words = [first]
+    while reader.more() and (_is_signed_number(reader.peek() or "") or reader.peek() == "to"):
+        word = reader.take()
+        if word != "to":
+            words.append(word)
+    counts = actions.MOUSE_MOVES.get(first)
+    if counts is None:
+        raise ProgramError(number, f"mouse takes {', '.join(actions.MOUSE_MOVES)}, not {first!r}")
+    if len(words) - 1 != counts:
+        raise ProgramError(
+            number, f"mouse {first} takes {counts} numbers, like: mouse click 120 40"
+        )
+    return " ".join(words)
+
+
+def _setting_value(name: str, how: str, reader: _Words, number: int) -> str:
+    """`cookie set NAME VALUE`, `storage clear`, `state save NAME`: the words as one value."""
+    shapes = SETTING_VERBS[name]
+    if how not in shapes:
+        raise ProgramError(number, f"{name} takes {' or '.join(shapes)}, not {how!r}")
+    words = [how]
+    for _ in range(shapes[how]):
+        if not reader.more() or OPTION.match(reader.peek() or ""):
+            break
+        words.append(reader.take())
+    wrong = [word for word in words[1:] if word not in RECORDINGS]
+    if name == "record" and wrong:
+        raise ProgramError(number, f"record takes video, trace and performance, not {wrong[0]!r}")
+    if how in ("set", "save", "load") and len(words) - 1 < shapes[how]:
+        raise ProgramError(number, f"{name} {how} needs {shapes[how]} more words, in quotes")
+    return " ".join(words)
+
+
+def _mock_value(pattern: str, reader: _Words, number: int) -> str:
+    """`mock "**/api/user" 200 '{"name": "Asha"}'`, or `mock off [PATTERN]`."""
+    if pattern == "off":
+        return f"off {reader.take()}" if reader.more() else "off"
+    status = reader.string('mock needs a status after the address, like: mock "**/api" 200 "{}"')
+    if not status.isdigit():
+        raise ProgramError(number, f"mock needs a status number like 200, not {status!r}")
+    body = reader.string("mock needs a body after the status, in quotes")
+    return "\t".join([pattern, status, body])
+
+
+def _emulate_value(kind: str, reader: _Words, number: int) -> str:
+    """`emulate timezone Asia/Tokyo`: the kind, then its setting, checked before anything runs."""
+    value = f"{kind} {reader.string(f'emulate {kind} needs a setting, or off')}"
+    try:
+        emulation.parse(value)
+    except emulation.EmulationError as wrong:
+        raise ProgramError(number, str(wrong)) from None
+    return value
+
+
+def _options(reader: _Words, spec: actions.ActionSpec, number: int) -> tuple[tuple[str, str], ...]:
+    found: list[tuple[str, str]] = []
+    while reader.more() and OPTION.match(reader.peek() or ""):
+        key, _, value = reader.take().partition("=")
+        if key not in spec.options:
+            takes = ", ".join(f"{name}=" for name in sorted(spec.options)) or "nothing"
+            raise ProgramError(number, f"{spec.name} takes {takes}, not {key}=")
+        found.append((key, value))
+    return tuple(found)
 
 
 def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> Action:
@@ -358,9 +554,16 @@ def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> A
 
     if verb == "scroll":
         word = reader.peek()
-        if word in ("down", "up", "top", "bottom") or (word or "").isdigit():
+        if word in PAGE_SCROLLS or (word or "").isdigit():
             return Action(number, body, "scroll", None, reader.take(), reason=reason)
-        return Action(number, body, "scroll_to", reader.target(), reason=reason)
+        target = reader.target()
+        if reader.peek() in actions.SCROLL_WAYS:
+            # `scroll css "#list" down 300`: inside the element, not the page to it.
+            way = reader.take()
+            amount = reader.take() if (reader.peek() or "").isdigit() else ""
+            value = f"{way} {amount}".strip()
+            return Action(number, body, "scroll_in", target, value, reason=reason)
+        return Action(number, body, "scroll_to", target, reason=reason)
 
     if verb == "wait":
         word = reader.peek() or ""
@@ -379,8 +582,18 @@ def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> A
             return Action(number, body, "wait_for", None, reader.take(), reason=reason)
         return Action(number, body, "wait_for", reader.target(), reason=reason)
 
+    if verb == "dialog":
+        return _dialog(reader, number, body, reason)
+
     # tab N | tab latest | tab main | tab new [URL]
-    word = reader.string('tab needs a number, "latest", "main" or "new"')
+    word = reader.string('tab needs a number, "latest", "main", "new" or "close"')
+    if word == "close":
+        which = reader.optional_string() or ""
+        if which and which not in ("latest", "main") and not which.isdigit():
+            raise ProgramError(
+                number, f'tab close takes a number, "latest" or "main", not {which!r}'
+            )
+        return Action(number, body, "close_tab", None, which or None, reason=reason)
     if word == "new":
         url = reader.optional_string()
         return Action(
@@ -394,6 +607,19 @@ def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> A
     if word not in ("latest", "main") and not word.isdigit():
         raise ProgramError(number, f'tab takes a number, "latest", "main" or "new", not {word!r}')
     return Action(number, body, "switch_tab", None, word, reason=reason)
+
+
+def _dialog(reader: _Words, number: int, body: str, reason: str) -> Action:
+    """`dialog accept`, `dialog accept "Rohit"` (typed into a prompt) or `dialog dismiss`.
+    Said BEFORE the step that opens the box, which is when the browser must know."""
+    choice = reader.string("dialog needs accept or dismiss, like: dialog dismiss")
+    if choice == "dismiss":
+        return Action(number, body, "dialog", None, "dismiss", reason=reason)
+    if choice != "accept":
+        raise ProgramError(number, f"dialog takes accept or dismiss, not {choice!r}")
+    answer = reader.optional_string()
+    value = "accept" if answer is None else f"answer:{answer}"
+    return Action(number, body, "dialog", None, value, reason=reason)
 
 
 def _checked_address(url: str, number: int) -> str:
@@ -445,8 +671,26 @@ def _read_with_kind(reader: _Words, number: int, body: str, reason: str) -> Read
     attribute = None
     if spec.needs_attribute:
         attribute = reader.string(f"read {word} needs {spec.attribute_means}")
+    elif spec.optional_attribute and reader.peek() != "as":
+        attribute = reader.take()
     target = reader.target() if spec.needs_target else None
+    if spec.optional_target and reader.peek() == reads.FULL_PAGE:
+        attribute = reader.take()
+    elif spec.optional_target and reader.peek() != "as":
+        target = reader.target()
     return Read(number, body, kind, _named(reader, number), target, attribute, reason)
+
+
+def _capture(kind: str, reader: _Words, number: int, body: str, reason: str) -> Read:
+    target = None
+    attribute = None
+    if kind == "screenshot" and reader.peek() == reads.FULL_PAGE:
+        reader.take()
+        attribute = reads.FULL_PAGE
+    elif kind == "screenshot" and reader.more() and reader.peek() != "as":
+        target = reader.target()
+    name = _named(reader, number) if reader.more() else kind
+    return Read(number, body, kind, name, target, attribute, reason)
 
 
 def _named(reader: _Words, number: int) -> str:
@@ -509,6 +753,9 @@ def _look(reader: _Words, number: int, body: str, reason: str) -> Look:
     if word == "all" and not reader.more(2):
         reader.take()
         return Look(number, body, "all", reason=reason)
+    if word == "image" and not reader.more(2):
+        reader.take()
+        return Look(number, body, "image", reason=reason)
     if word == "raw":
         reader.take()
         if reader.more():
@@ -559,6 +806,10 @@ def _check_after_risky(steps: list[Step]) -> None:
 
 
 # --------------------------------------------------------------------------- words
+
+
+def _is_signed_number(word: str) -> bool:
+    return bool(re.match(r"^-?\d+(\.\d+)?$", word))
 
 
 def _is_number(word: str) -> bool:

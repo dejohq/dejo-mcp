@@ -269,7 +269,10 @@ def run_with_playwright(task: Task) -> Result:
         browser = Browser(headless=True, downloads=Path(scratch)).start()
         context = browser.page.context
         context.set_default_timeout(REFERENCE_TIMEOUT_MS)
-        state = _Reference(browser.page, context)
+        # Dejo's browser answers dialogs on its own; the reference answers its own, as a
+        # Playwright script does.
+        browser.page.remove_listener("dialog", browser._answer_dialog)  # noqa: SLF001
+        state = _Reference(browser.page, context, devices=browser._devices())  # noqa: SLF001
         try:
             for step in written.steps:
                 try:
@@ -300,10 +303,32 @@ def _reference_top(page: Any) -> str:
 class _Reference:
     """Plain Playwright for each kind of step line. Only what the tasks use."""
 
-    def __init__(self, page: Any, context: Any) -> None:
+    def __init__(self, page: Any, context: Any, devices: Any = None) -> None:
         self.page = page
         self.context = context
+        self.devices = devices or {}
         self.answer = ""
+        self.dialog_said = ""
+        self.dialog_answer: tuple[str, str | None] = ("accept", None)
+        self.responses: list[Any] = []
+        self._watch(page)
+
+    def _watch(self, page: Any) -> None:
+        """What a Playwright script listens for: every dialog, answered as told, and every
+        response, so one that came back before the script asked can still be found."""
+        page.on("dialog", self._answer)
+        page.on("response", lambda response: self.responses.append(response))
+
+    def _answer(self, dialog: Any) -> None:
+        self.dialog_said = dialog.message
+        choice, typed = self.dialog_answer
+        self.dialog_answer = ("accept", None)
+        if choice == "dismiss":
+            dialog.dismiss()
+        elif typed is not None:
+            dialog.accept(typed)
+        else:
+            dialog.accept()
 
     def run(self, step: Any) -> None:
         kind = type(step).__name__
@@ -340,9 +365,25 @@ class _Reference:
         if name == "press" and step.target is None:
             self.page.keyboard.press(value)
             return
+        if name == "dialog":
+            typed = value[len("answer:") :] if value.startswith("answer:") else None
+            self.dialog_answer = ("dismiss" if value == "dismiss" else "accept", typed)
+            return
+        if name == "close_tab":
+            self.page.close()
+            self.page = self.context.pages[-1]
+            return
+        if name == "wait_for" and value and value.startswith("response:"):
+            wanted = value[len("response:") :]
+            if not any(wanted in response.url for response in self.responses):
+                self.page.wait_for_event("response", lambda r: wanted in r.url)
+            return
+        if name == "emulate":
+            self._emulate(value)
+            return
         target = self._locate(step.target)
         if name == "click":
-            target.click()
+            target.click(button=dict(step.options).get("button", "left"))
         elif name == "fill":
             target.fill(value)
         elif name == "type":
@@ -362,7 +403,43 @@ class _Reference:
         else:
             raise RuntimeError(f"the reference run has no {name}")
 
+    def _emulate(self, value: str) -> None:
+        """A Playwright script sets these when it makes its context, so the reference makes
+        a new one with them and carries on there, at the same address."""
+        kind, _, setting = value.partition(" ")
+        browser = self.context.browser
+        options = {"locale": setting} if kind == "locale" else dict(self.devices[setting])
+        options.pop("default_browser_type", None)
+        here = self.page.url
+        self.context = browser.new_context(**options)
+        self.page = self.context.new_page()
+        self._watch(self.page)
+        self.page.goto(here)
+
     def _read(self, step: Any) -> None:
+        if step.kind == "dialog":
+            self.answer = self.dialog_said
+            return
+        if step.kind == "response":
+            found = [r for r in self.responses if step.attribute in r.url]
+            self.answer = found[-1].text() if found else ""
+            return
+        if step.kind == "cookies":
+            self.answer = str(
+                [
+                    f"{c['name']}={c['value']} ({c['domain']})"
+                    for c in self.context.cookies()
+                    if step.attribute in c["name"]
+                ]
+            )
+            return
+        if step.kind == "pdf":
+            self.answer = str(Path(tempfile.mkdtemp()) / "page.pdf")
+            self.page.pdf(path=self.answer)
+            return
+        if step.kind in ("table", "fields"):
+            self.answer = json.dumps(self._json(step), ensure_ascii=False)
+            return
         if step.kind == "title":
             self.answer = self.page.title()
         elif step.kind == "url":
@@ -375,6 +452,24 @@ class _Reference:
             self.answer = str(self._locate(step.target, many=True).count())
         else:
             self.answer = self._locate(step.target).inner_text()
+
+    def _json(self, step: Any) -> Any:
+        """What a Playwright script does for a table or a list of cards: read each one."""
+        found = self._locate(step.target, many=True)
+        if step.kind == "table":
+            rows = found.first.locator("tr").all()
+            names = [cell.inner_text().strip() for cell in rows[0].locator("th").all()]
+            return [dict(zip(names, _cells(row), strict=False)) for row in rows[1:]]
+        fields = json.loads(step.attribute)
+        cards = []
+        for card in found.all():
+            one = {}
+            for name, written in fields.items():
+                where, _, attr = written.partition("@")
+                part = card.locator(where).first
+                one[name] = part.get_attribute(attr) if attr else part.inner_text().strip()
+            cards.append(one)
+        return cards
 
     def _expect(self, step: Any) -> None:
         if step.kind == "url_contains":
@@ -395,6 +490,10 @@ class _Reference:
             if many or found.count() > 0:
                 return found
         return _picked(_base(self.page, target), target)
+
+
+def _cells(row: Any) -> list[str]:
+    return [cell.inner_text().strip() for cell in row.locator("td").all()]
 
 
 def _base(scope: Any, target: Any) -> Any:

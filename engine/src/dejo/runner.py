@@ -35,12 +35,13 @@ from urllib.parse import urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
+from . import actions, waits
 from . import program as language
 from . import view as pageview
-from . import waits
 from .actions import PRESSES
 from .browser import NoSuchElement, domain_of, on_site
 from .distill import distill, locators_for, postcondition_for
+from .events import RunFinished, RunStarted, StepFailed, StepPassed
 from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, href_path, utc_now
 from .operations import (
     READ_ACTION,
@@ -103,11 +104,29 @@ _PATH_MARKS = re.compile(r"[#.\[]")
 # Locator kinds that find an element by what it is called, not where it is.
 _NAMING_LOCATORS = _WORDED_LOCATORS | {"test_id", "structural"}
 
+# Reads whose answer is a whole document by design: an API's JSON answer is long, and it is
+# the answer itself, not a page with the answer buried in it (quotes.toscrape.com/scroll).
+_DOCUMENT_READS = frozenset({"response", "html"})
+
 # Reads that hand back only a part of their element, so the element may be the whole page.
 _PART_READS = frozenset({"passage"})
 
 # Reads that answer about many elements at once, so several matches are the point.
-_MANY_READS = {"count", "all_text"}
+_MANY_READS = {
+    "count",
+    "all_text",
+    "console",
+    "requests",
+    "console_errors",
+    "failed_requests",
+    "tabs",
+    "cookies",
+    "storage",
+    "fields",
+    "table",
+    "downloads",
+    "workers",
+}
 
 # A read is one value the user asked for: a price, a date, a name, a short note. Past this it
 # is a section or the whole page, and every replay would hand all of it back. Seen 23 Oct:
@@ -176,6 +195,8 @@ class Outcome:
     after_sending: list[str] = field(default_factory=list)
     """For each `!` line, what the page said while it settled, which may be gone by now; and
     for any line that opened a tab, which tab."""
+    images: list[bytes] = field(default_factory=list)
+    """Pictures of the screen from `look image`, sent to the agent beside the text."""
     js_result: str | None = None
     """What a `js` line returned, as JSON. Not an answer: it is never saved or replayed."""
     trail_total: int = 0
@@ -305,6 +326,8 @@ class Runner:
         """The `js` lines that changed the page since the trail began. See `_code_in_the_way`."""
         self._stood = ""
         """The address this task left the tab at. See `_back_to_its_page`."""
+        self._image: bytes | None = None
+        """The picture the latest `look image` took, until the reply takes it."""
 
     # ------------------------------------------------------------------- looking
 
@@ -315,6 +338,10 @@ class Runner:
 
         Returns a View, or for `raw` Playwright's own snapshot text. Every look also goes
         into the site's map, exactly as `Session.look` does."""
+        if mode == "help":
+            return language.reference()
+        if mode == "image":
+            return self._picture()
         raw, frames = self.browser.raw_snapshot()
         url, title = self.browser.page.url, self.browser.page.title()
         self._stood = url
@@ -347,11 +374,32 @@ class Runner:
         )
         return self._view
 
+    def _picture(self) -> str:
+        """The screen as a picture for the reply, and what its numbers mean.
+
+        For a page whose content is drawn rather than built (a chart, a map, a canvas game),
+        the list of controls has nothing in it to name, and a picture is the only way to see
+        it. The picture is in the page's own pixels, so a spot read off it is the spot
+        `mouse click X Y` clicks."""
+        page = self.browser.page
+        self._image = page.screenshot(type="png", scale="css")
+        size = page.viewport_size or {"width": 0, "height": 0}
+        return (
+            f"picture of the screen sent: {size['width']}x{size['height']} pixels, "
+            f'"{page.title()}" {page.url}. A spot in it, counted from the top left, is '
+            "clicked with: mouse click X Y"
+        )
+
     # ------------------------------------------------------------------- running
 
     def run(self, written: Program, *, done: bool = False) -> Outcome:
         """Run every line in order. Stop at the first that fails. Save when finished."""
         outcome = Outcome(task=self.task, domain=self.domain, total=len(written.steps))
+        events = self.session.events
+        first = written.steps[0] if written.steps else None
+        going = first.value if isinstance(first, Action) and first.action == "goto" else ""
+        site = self.domain or domain_of(going or "") or "a new site"
+        events.emit(RunStarted(domain=site, task=self.task, mode="learn"))
         steps = list(written.steps)
         fixing = self._fix_for(written)
         read_something = False
@@ -373,7 +421,7 @@ class Runner:
                     # that asks for something (`look g2`, `look raw from e5`) is shown where
                     # it stands: only the last one used to be.
                     if step.mode != "page":
-                        outcome.looks.append(self._shown(step))
+                        outcome.looks.append(self._shown_in(step, outcome))
                     outcome.passed.append(step)
                     continue
                 if isinstance(step, Look):
@@ -386,15 +434,23 @@ class Runner:
                     self._refuse_a_human_check(written)
                 read_something = read_something or isinstance(step, Read)
                 outcome.passed.append(step)
+                events.emit(StepPassed(index=step.line, intent=_short(step)))
             except _Stopped as stop:
                 self._stop(outcome, step, stop, steps[at + 1 :])
+                events.emit(StepFailed(index=step.line, intent=_short(step), reason=outcome.reason))
                 break
             except (ActionFailed, NoSuchElement, PlaywrightError, ValueError) as failed:
                 self._stop(outcome, step, self._explain(failed), steps[at + 1 :])
+                events.emit(StepFailed(index=step.line, intent=_short(step), reason=outcome.reason))
                 break
 
         outcome.domain = self.domain
         self._stood = self.browser.page.url
+        events.emit(
+            RunFinished(
+                domain=self.domain, succeeded=outcome.ok, steps_replayed=len(outcome.passed)
+            )
+        )
         # Only what THIS program did. A download from an earlier program has already been
         # saved, and counting it again saved a later look as a new step.
         downloaded = any(entry.download for entry in self.session.trace[trace_before:])
@@ -541,6 +597,7 @@ class Runner:
             value=value,
             second=second,
             risky=step.risky,
+            options=dict(step.options),
         )
         self._last_entry = self.session.trace[-1] if len(self.session.trace) > written else None
         if step.action == "evaluate":
@@ -551,6 +608,15 @@ class Runner:
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
             out.after_sending.append(_after_sending(step, did))
+        spec = actions.spec_for(step.action)
+        if spec.not_kept:
+            done = f": {did['result']}" if did.get("result") else ""
+            out.after_sending.append(
+                f"line {step.line} ({step.action}{done}) is not kept in the trail, because "
+                f"{spec.not_kept}"
+            )
+        if did.get("dialog"):
+            out.after_sending.append(_answered(step, did["dialog"]))
         for tab in did.get("opened") or []:
             out.after_sending.append(
                 f"line {step.line} opened a new tab: {tab}. This call stayed in the tab it was "
@@ -670,7 +736,9 @@ class Runner:
                 "the read found nothing there",
                 "the value may sit in another element; look at the page below",
             )
-        if step.kind not in _MANY_READS and _whole_page(element, answer, part=step.kind):
+        if step.kind not in _MANY_READS | _DOCUMENT_READS and _whole_page(
+            element, answer, part=step.kind
+        ):
             if self.session.trace:
                 self.session.trace.pop()
             if step.kind in _PART_READS:
@@ -760,6 +828,12 @@ class Runner:
             out.raw = shown
         else:
             out.view = shown
+        self._hand_over_picture(out)
+
+    def _hand_over_picture(self, out: Outcome) -> None:
+        if self._image is not None:
+            out.images.append(self._image)
+            self._image = None
 
     def _shown(self, step: Look) -> str:
         """What a look in the middle of a program shows, as text."""
@@ -768,6 +842,11 @@ class Runner:
         except pageview.ViewError as wrong:
             raise _Stopped(str(wrong)) from None
         return shown if isinstance(shown, str) else shown.text
+
+    def _shown_in(self, step: Look, out: Outcome) -> str:
+        shown = self._shown(step)
+        self._hand_over_picture(out)
+        return shown
 
     # ------------------------------------------------------------------- finding
 
@@ -1369,6 +1448,17 @@ def _after_sending(step: Action, did: dict[str, Any]) -> str:
     elif not said:
         told[0] += " and no request failed; the page below shows where it stands"
     return f"after line {step.line} ({_short(step)}): " + "; ".join(told)
+
+
+def _answered(step: Action, dialog: dict[str, str]) -> str:
+    """One line on the box a step opened, so the agent knows it was there at all: an alert
+    leaves nothing on the page, and the step would otherwise look like it did nothing."""
+    typed = f', typing "{dialog["answer"]}"' if dialog.get("answer") else ""
+    done = "accepted" if dialog["choice"] == "accept" else "dismissed"
+    return (
+        f'line {step.line} opened a {dialog["type"]} box saying "{dialog["message"]}"; Dejo '
+        f"{done} it{typed}. To answer it another way, put a dialog line before the step"
+    )
 
 
 def _whole_page(element: Element | None, answer: Any, *, part: str = "") -> bool:

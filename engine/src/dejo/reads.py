@@ -14,18 +14,37 @@ What is deliberately absent — `inner_html`, `bounding_box`, `evaluate` — and
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator as PWLocator
 from playwright.sync_api import Page
+
+from .home import HOME
 
 # Reads should answer or give up quickly. The default 30 seconds is right for an action
 # that is waiting for a page to settle, but a question about the current page either has an
 # answer now or does not.
 READ_TIMEOUT_MS = 5000
 
+
+# The word after `screenshot` that asks for the whole length of the page, not just the
+# part on screen.
+FULL_PAGE = "full"
+
+# Where pictures and PDFs go when a page was never told: the browser tells each page its own
+# folder (see `Browser._watch`), and this is only for a page Dejo did not open.
+CAPTURES = HOME / "captures"
+
+# The most of a response body handed back. An API answer can be megabytes; past this it
+# is no longer one answer, and it would crowd the reply.
+LONGEST_BODY = 20_000
 
 # A markdown heading: `## Pricing`.
 _HEADING = re.compile(r"^(#{1,6})\s")
@@ -56,6 +75,10 @@ class ReadSpec:
     needs_attribute: bool = False
     attribute_means: str = "the attribute name, like: read attr href e4"
     """What the extra word a read needs is, for a message about it missing."""
+    optional_target: bool = False
+    """Takes an element when one is named, and the whole page when not."""
+    optional_attribute: bool = False
+    """Takes the extra word when one is given, and reads everything when not."""
     many: bool = False
     """Does this read WANT more than one match?
 
@@ -128,6 +151,58 @@ READS: dict[str, ReadSpec] = {
         needs_attribute=True,
         attribute_means='the words, like: read passage "Pricing" e1 as pricing',
     ),
+    "fields": ReadSpec(
+        "fields",
+        "several fields of every matching element at once, as JSON: one object per element. "
+        "The fields are a JSON object of NAME: CSS inside the element, @attr for an "
+        "attribute and . for the element itself. Without an element, one object for the page",
+        "JSON",
+        needs_target=False,
+        optional_target=True,
+        needs_attribute=True,
+        attribute_means=(
+            'the fields, like: read fields \'{"name": "h3", "price": ".price", "link": '
+            '"a@href"}\' css "article" as products'
+        ),
+        many=True,
+    ),
+    "table": ReadSpec(
+        "table",
+        "a whole table as JSON: one object per row, named by the table's headings",
+        "JSON",
+        many=True,
+    ),
+    "metrics": ReadSpec(
+        "metrics",
+        "how fast this page loaded, as the browser measured it: first byte, first and "
+        "largest paint, page ready, layout shift, requests and bytes. For a speed check; "
+        "record performance gives the whole trace",
+        "text",
+        needs_target=False,
+    ),
+    "downloads": ReadSpec(
+        "downloads",
+        "the files this tab has downloaded, where they were saved",
+        "a list of paths",
+        needs_target=False,
+    ),
+    "workers": ReadSpec(
+        "workers",
+        "the scripts the page runs in the background (web workers), by address",
+        "a list of addresses",
+        needs_target=False,
+    ),
+    "box": ReadSpec(
+        "box",
+        "where an element is on the screen and how big: X Y WIDTH HEIGHT in pixels from the top "
+        "left, the numbers mouse click X Y uses",
+        "text",
+    ),
+    "html": ReadSpec(
+        "html",
+        "the HTML of one element, for markup no other read shows. Long markup is cut",
+        "text",
+    ),
     "count": ReadSpec(
         "count",
         'how many elements match — "there are 3 unpaid invoices"',
@@ -154,11 +229,75 @@ READS: dict[str, ReadSpec] = {
         "a list of messages",
         needs_target=False,
     ),
+    "console": ReadSpec(
+        "console",
+        "every message the page wrote to its console, newest last, not only the errors",
+        "a list of messages",
+        needs_target=False,
+    ),
+    "requests": ReadSpec(
+        "requests",
+        "every request the page made, as METHOD STATUS ADDRESS. With words, only those whose "
+        'address has them: read requests "/api/" as calls',
+        "a list of requests",
+        needs_target=False,
+        optional_attribute=True,
+    ),
+    "response": ReadSpec(
+        "response",
+        "the body of the latest answer to an address with these words in it, such as the "
+        "JSON a page draws its table from",
+        "text",
+        needs_target=False,
+        needs_attribute=True,
+        attribute_means='words in the address, like: read response "/api/orders" as orders',
+    ),
     "failed_requests": ReadSpec(
         "failed_requests",
         "the requests the page made that came back broken. A dashboard that stays empty "
         "is usually one failed request, not a missing element",
         "a list of urls with their status",
+        needs_target=False,
+    ),
+    "cookies": ReadSpec(
+        "cookies",
+        "this page's cookies, as NAME=VALUE (site). With words, only cookies whose name or "
+        "site has them. A cookie the page itself cannot read (httpOnly) shows no value",
+        "a list of cookies",
+        needs_target=False,
+        optional_attribute=True,
+    ),
+    "storage": ReadSpec(
+        "storage",
+        "this page's local storage, as KEY=VALUE; with a key, only its value",
+        "a list, or text for one key",
+        needs_target=False,
+        optional_attribute=True,
+    ),
+    "tabs": ReadSpec(
+        "tabs",
+        "every open tab: its number for `tab N`, its title and address, and which is in use",
+        "a list of tabs",
+        needs_target=False,
+    ),
+    "dialog": ReadSpec(
+        "dialog",
+        "the words of the last alert, confirm or prompt box this page showed",
+        "text",
+        needs_target=False,
+    ),
+    "screenshot": ReadSpec(
+        "screenshot",
+        "a picture of what is on screen, of one element, or with full of the whole page. "
+        "Saved as a file, and taken again on every replay",
+        "the path of the picture",
+        needs_target=False,
+        optional_target=True,
+    ),
+    "pdf": ReadSpec(
+        "pdf",
+        "the page saved as a PDF, as it would print. Taken again on every replay",
+        "the path of the PDF",
         needs_target=False,
     ),
     "page_text": ReadSpec(
@@ -325,6 +464,233 @@ def _failed_requests(page: Page, t: PWLocator | None, attribute: str | None) -> 
     return list(getattr(page, "_dejo_failures", []))
 
 
+def _cookies(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    said = []
+    # Only the cookies this page's address would send: a task on one site never sees, or
+    # keeps in its trail, the cookies another site left in the same profile.
+    for cookie in page.context.cookies(page.url):
+        if attribute and attribute not in cookie["name"] and attribute not in cookie["domain"]:
+            continue
+        # A cookie the site marked httpOnly is one its own page cannot read: a sign-in. Its
+        # value stays in the browser, here as there.
+        value = "(hidden: httpOnly)" if cookie.get("httpOnly") else cookie["value"]
+        said.append(f"{cookie['name']}={value} ({cookie['domain']})")
+    return said
+
+
+def _storage(page: Page, t: PWLocator | None, attribute: str | None) -> list[str] | str:
+    if attribute:
+        return page.evaluate("(k) => localStorage.getItem(k) || ''", attribute)
+    return page.evaluate(
+        "() => Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k))"
+    )
+
+
+def _tabs(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    live = [tab for tab in page.context.pages if not tab.is_closed()]
+    return [
+        f"{at} {tab.title() or '(no title)'} {tab.url}" + (" (in use)" if tab is page else "")
+        for at, tab in enumerate(live)
+    ]
+
+
+# One element's fields: each a CSS selector inside it, `@attr` for an attribute of what it
+# finds, `.` for the element itself. A field that finds nothing is null, not an error: a
+# card with no sale price is a real answer.
+_FIELDS_JS = """
+(el, fields) => {
+  const one = {};
+  for (const [name, written] of Object.entries(fields)) {
+    const [where, attr] = written.split("@");
+    const found = !where.trim() || where.trim() === "." ? el : el.querySelector(where);
+    if (!found) { one[name] = null; continue; }
+    const said = attr ? found.getAttribute(attr) : (found.innerText ?? found.textContent ?? "");
+    one[name] = said === null ? null : said.replace(/\\s+/g, " ").trim();
+  }
+  return one;
+}
+"""
+
+# A table's rows as objects named by its headings: the <th> of its head, or of its first row.
+_TABLE_JS = """
+(table) => {
+  const text = (cell) => (cell.innerText || cell.textContent || "").replace(/\\s+/g, " ").trim();
+  const rows = [...table.querySelectorAll("tr")];
+  const headRow = table.querySelector("thead tr") || rows.find((r) => r.querySelector("th"));
+  const names = headRow ? [...headRow.children].map(text) : [];
+  return rows.filter((r) => r !== headRow).map((r) => {
+    const cells = [...r.children].map(text);
+    const row = {};
+    cells.forEach((cell, at) => { row[names[at] || `column ${at + 1}`] = cell; });
+    return row;
+  }).filter((row) => Object.values(row).some(Boolean));
+}
+"""
+
+
+def _fields(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    try:
+        fields = json.loads(attribute or "")
+    except json.JSONDecodeError:
+        fields = None
+    if not isinstance(fields, dict) or not all(isinstance(v, str) for v in fields.values()):
+        raise ReadNeedsMore(
+            'the fields are a JSON object of NAME: CSS, like {"name": "h3", "link": "a@href"}'
+        )
+    if t is None:
+        # The page as a whole is the document itself; nothing is searched for.
+        whole = page.evaluate(
+            f"(fields) => ({_FIELDS_JS})(document.documentElement, fields)", fields
+        )
+        return json.dumps(whole, ensure_ascii=False)
+    found = [one.evaluate(_FIELDS_JS, fields) for one in t.all()]
+    return json.dumps(found, ensure_ascii=False)
+
+
+def _table(page: Page, t: PWLocator, attribute: str | None) -> str:
+    return json.dumps(t.first.evaluate(_TABLE_JS), ensure_ascii=False)
+
+
+# The browser's own measurements of this page's load. Largest paint and layout shift come
+# only from an observer, so it is asked for what it already buffered and given one frame.
+_METRICS_JS = """
+() => new Promise((done) => {
+  const nav = performance.getEntriesByType("navigation")[0] || {};
+  const paints = Object.fromEntries(
+    performance.getEntriesByType("paint").map((p) => [p.name, p.startTime]));
+  const resources = performance.getEntriesByType("resource");
+  const seen = {lcp: 0, cls: 0};
+  const watch = (type, take) => {
+    try {
+      new PerformanceObserver((list) => list.getEntries().forEach(take))
+        .observe({type, buffered: true});
+    } catch (e) {}
+  };
+  watch("largest-contentful-paint", (e) => { seen.lcp = Math.max(seen.lcp, e.startTime); });
+  watch("layout-shift", (e) => { if (!e.hadRecentInput) seen.cls += e.value; });
+  requestAnimationFrame(() => setTimeout(() => done({
+    first_byte_ms: nav.responseStart || 0,
+    first_paint_ms: paints["first-paint"] || 0,
+    first_contentful_paint_ms: paints["first-contentful-paint"] || 0,
+    largest_contentful_paint_ms: seen.lcp,
+    dom_ready_ms: nav.domContentLoadedEventEnd || 0,
+    load_ms: nav.loadEventEnd || 0,
+    layout_shift: seen.cls,
+    requests: resources.length + 1,
+    bytes: resources.reduce((all, r) => all + (r.transferSize || 0), nav.transferSize || 0),
+  }), 0));
+})
+"""
+
+
+def _metrics(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    measured = page.evaluate(_METRICS_JS)
+    parts = [
+        f"{name.removesuffix('_ms').replace('_', ' ')} {round(value)} ms"
+        for name, value in measured.items()
+        if name.endswith("_ms") and value
+    ]
+    parts.append(f"layout shift {measured['layout_shift']:.3f}")
+    parts.append(f"{measured['requests']} requests, {measured['bytes'] / 1024:.0f} KB")
+    return ", ".join(parts)
+
+
+def _downloads(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    return list(getattr(page, "_dejo_downloads", []))
+
+
+def _workers(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    return [worker.url for worker in page.workers]
+
+
+def _box(page: Page, t: PWLocator, attribute: str | None) -> str:
+    found = t.bounding_box(timeout=READ_TIMEOUT_MS)
+    if found is None:
+        return ""
+    return " ".join(str(round(found[side])) for side in ("x", "y", "width", "height"))
+
+
+def _html(page: Page, t: PWLocator, attribute: str | None) -> str:
+    markup = t.evaluate("el => el.outerHTML", timeout=READ_TIMEOUT_MS)
+    if len(markup) > LONGEST_BODY:
+        return markup[:LONGEST_BODY] + f" ... ({len(markup):,} characters in all)"
+    return markup
+
+
+def _dialog(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    return getattr(page, "_dejo_dialog", "")
+
+
+def _screenshot(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    where = _capture_path(page, "png")
+    if t is not None:
+        t.screenshot(path=where, timeout=READ_TIMEOUT_MS)
+    else:
+        page.screenshot(path=where, full_page=attribute == FULL_PAGE)
+    return str(where)
+
+
+def _pdf(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    where = _capture_path(page, "pdf")
+    try:
+        page.pdf(path=where)
+    except PlaywrightError as refused:
+        if "headless" not in str(refused).lower():
+            raise
+        # Chromium prints to PDF only when it has no window. Said plainly, with the fix.
+        raise ReadNeedsMore(
+            "a PDF can only be made by a browser with no window, and this one has a window. "
+            "Run it without DEJO_HEADED, or take a screenshot instead."
+        ) from refused
+    return str(where)
+
+
+def _capture_path(page: Page, suffix: str) -> Path:
+    """A new file for a picture or PDF of this page: the site and the moment, never reused,
+    so a trail replayed every morning keeps every morning's picture."""
+    folder = Path(getattr(page, "_dejo_captures", CAPTURES))
+    folder.mkdir(parents=True, exist_ok=True)
+    site = (urlparse(page.url).hostname or "page").replace(":", "-")
+    moment = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    return folder / f"{site}-{moment}.{suffix}"
+
+
+def _console(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    return list(getattr(page, "_dejo_messages", []))
+
+
+def _requests(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    said = []
+    for entry in getattr(page, "_dejo_requests", []):
+        request = entry["request"]
+        if attribute and attribute not in request.url:
+            continue
+        response = entry["response"]
+        status = str(response.status) if response is not None else entry["failed"] or "waiting"
+        said.append(f"{request.method} {status} {request.url}")
+    return said
+
+
+def _response(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    for entry in reversed(getattr(page, "_dejo_requests", [])):
+        response = entry["response"]
+        if response is None or (attribute or "") not in entry["request"].url:
+            continue
+        try:
+            body = response.text()
+        except PlaywrightError:
+            # A body is gone once its page has moved on. Said plainly: the fix is to read it
+            # straight after the step that fetched it.
+            raise ReadNeedsMore(
+                f"the answer from {response.url} can no longer be read: the page has moved on "
+                "since. Read it in the line right after the step that fetched it."
+            ) from None
+        if len(body) > LONGEST_BODY:
+            return body[:LONGEST_BODY] + f" ... ({len(body):,} characters in all)"
+        return body
+    return ""
+
+
 _READERS: dict[str, Any] = {
     "text": _text,
     "all_text": _all_text,
@@ -341,6 +707,22 @@ _READERS: dict[str, Any] = {
     "page_text": _page_text,
     "console_errors": _console_errors,
     "failed_requests": _failed_requests,
+    "console": _console,
+    "requests": _requests,
+    "response": _response,
+    "dialog": _dialog,
+    "tabs": _tabs,
+    "box": _box,
+    "downloads": _downloads,
+    "workers": _workers,
+    "html": _html,
+    "metrics": _metrics,
+    "fields": _fields,
+    "table": _table,
+    "cookies": _cookies,
+    "storage": _storage,
+    "screenshot": _screenshot,
+    "pdf": _pdf,
 }
 
 

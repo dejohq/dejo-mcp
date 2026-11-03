@@ -2,6 +2,110 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **Reliability after this work: Dejo 47 of the 50 week-on-week tasks, and 11 of the 11 new
+  ones.** On the same day, before any of it, Dejo passed 46 of 50; plain Playwright passed 45
+  of 50 and 10 of 11. Dejo's three misses are a college catalog that blocked the test machine
+  (twice) and one page whose wording moved (`benchmarks/reliability-2026-11-03-before.json`,
+  `benchmarks/reliability-2026-11-03.json`).
+- **`read downloads` and `read workers`.** The files a tab downloaded, where they were saved,
+  and the web workers a page runs in the background.
+- **Made-up answers and init scripts, for testing.** `mock "**/api/user" 200 '{...}'`
+  answers the page's requests to an address with a response you write, and `script "..."`
+  runs your JavaScript in every page before its own. Both are done and never kept in a
+  trail, and the reply says why: a trail replays the real site.
+- **An element's place and markup, and permissions.** `read box T` gives where an element is
+  on the screen and its size, in the numbers `mouse click X Y` uses; `read html T` its HTML.
+  `allow notifications clipboard-read` grants permissions to every site (Dejo grants none
+  unasked) and is kept in the trail; `allow off` takes them back.
+- **The reliability benchmark covers the new steps.** R51-R61 run dialogs, a right click, a
+  whole table and many fields as JSON, closing a tab, a page's own API answer, another
+  language, a phone, a cookie and a PDF on practice sites and test services, through Dejo and
+  through plain Playwright. R01-R50 stay the score compared week on week.
+- **Control what the page loads and how it is asked.** `block "**/*.png"` stops the page
+  loading what matches (kept in the trail, and a replay starts with nothing blocked), `header
+  set NAME "VALUE"` sends a header with every request (not kept), `DEJO_PROXY` sends every
+  request through a company proxy and `DEJO_IGNORE_HTTPS_ERRORS=1` accepts an intranet's own
+  certificate. `wait "text:Saved|Error"` waits for whichever words come first, and
+  `wait response:...` also ends when the request failed.
+- **How fast a page is.** `read metrics` gives the browser's own load numbers (first byte,
+  first and largest paint, ready, load, layout shift, requests, bytes) and replays like any
+  read; `record performance` ... `record stop` saves a Chrome performance trace that opens in
+  DevTools' Performance panel.
+- **Read many fields at once, as JSON.** `read fields '{"name": "h3", "price": ".price",
+  "link": "a@href"}' css "article" as products` gives one object per matching element, and
+  `read table css "#prices" as rows` a whole table keyed by its headings: the model-free
+  version of Stagehand's and browser-use's `extract`, and it replays like any read.
+- **A count or a list read replays over every match.** Replay handed `count` and `all_text`
+  only the first element, so a saved count answered 1 on every later run.
+- **Drive a browser that is already running.** `DEJO_CDP_URL=http://127.0.0.1:9222` (or
+  `dejo run --cdp URL`) connects over the Chrome DevTools Protocol to a cloud browser, or to
+  your own Chrome started with `--remote-debugging-port`, instead of starting one. Its sign-ins
+  are used as they are; trails learn and replay there the same way. Dejo works in a tab of its
+  own, never one you have open, and at the end closes that tab and disconnects, leaving the
+  browser running.
+- **A plain step log.** Every line learned and every step replayed is written to
+  `~/.dejo/logs/DATE.log`, in words: what it did, how it found its element, how long it took,
+  and why a run stopped. A person can see what their agent did without asking it.
+  `DEJO_LOG=off` turns it off.
+- **Watch a run live in a visible window.** `DEJO_HEADED=1` in the MCP server's environment
+  shows the browser for every run; headless stays the default. The README now lists every
+  `DEJO_` setting in one table.
+- **Record a video or a trace of a run.** `record video`, `record trace` (or both) and then
+  `record stop` save a video of every tab and a trace that opens in Playwright's trace viewer,
+  with each step, the page before and after it, and its network, under `~/.dejo/recordings`.
+  `DEJO_RECORD=video,trace` records every replay, and the reply names the files, also when a
+  replay broke.
+- **Cookies, local storage and saved sign-in state.** `read cookies` and `read storage` read
+  them, for the page Dejo is on only (a cookie the page itself cannot read keeps its value
+  hidden); `cookie set`/`clear` and
+  `storage set`/`clear` change them; `state save team` writes every cookie and the local
+  storage to `~/.dejo/states/team.json`, Playwright's own storage-state file, and `state load`
+  puts one back, by name or by path. These change the browser, not the site, so they are not
+  kept in a trail, and the reply says so.
+- **Emulate another browser.** `emulate viewport 390x844`, `emulate device "iPhone 13"`,
+  `emulate timezone Asia/Tokyo`, `emulate locale de-DE`, `emulate color dark`, `emulate media
+  print`, `emulate motion reduce`, `emulate offline on`, `emulate network slow3g` (also
+  `fast3g`, `slow4g`, `fast4g`), `emulate cpu 4` and `emulate geolocation 18.52,73.85`, each
+  undone with `off`. The settings reach every tab, are kept in the trail, and a replay starts
+  from the browser as it is, so one task's phone never leaks into the next.
+- **Close a tab and list the open ones.** `tab close` closes the tab in use (or `tab close
+  1` another) and carries on in the newest tab left; a page that asks "leave this page?" gets
+  its dialog. `read tabs` lists every tab with its number, title and address.
+- **Scroll inside one element.** `scroll css "#messages" down 300` (or `up`, `left`,
+  `right`) turns the wheel over that box, for a list, table or chat that scrolls on its own
+  while the page stays still. The page itself now scrolls `left` and `right` too.
+- **`look image` shows the agent the screen as a picture.** The reply carries a PNG of what
+  is on screen, in the page's own pixels, for a chart, a map or a canvas that has nothing in
+  it to name; a spot read off the picture is clicked with `mouse click X Y`.
+- **Exact mouse and keyboard control.** `mouse click 120 40` (also `dblclick`, `right`,
+  `move`, `down`, `up`, `wheel DX DY`, `drag X Y to X2 Y2`) uses the mouse at a place on the
+  screen, for a chart, map or canvas that has nothing inside it to name. `keydown Shift` and
+  `keyup Shift` hold a key across steps. A line can end with options: `at=10,20` clicks a
+  spot on the element, `keys=Shift+Control` holds keys while it clicks, `button=right` right
+  clicks, and `delay=100` types at that many milliseconds a key. All of it is kept in a trail
+  and replayed exactly.
+- **Dejo sees the page's network and console.** `read requests` lists every request the page
+  made since it loaded (method, status, address; `read requests "/api/"` only those),
+  `read response "/api/orders"` gives the body of the latest answer from that address, and
+  `read console` every console message, not only errors. `wait response:/api/orders` and
+  `wait request:...` wait for the page's own calls, counting one that already came back
+  after the step before. All of them are kept in a trail and replayed.
+- **Screenshots and PDFs are steps a trail keeps.** `screenshot` (what is on screen),
+  `screenshot full`, `screenshot css "#chart"` and `pdf` save a file under `~/.dejo/captures`
+  and answer its path; a trail that ends in one is saved, and every replay saves a new one,
+  so "a picture of my dashboard every morning" is one call. A screenshot used to be allowed
+  only as the single line of a call, was never kept, and was saved in the working folder.
+- **Dejo can cancel a dialog, type an answer into a prompt, and read what a box said.**
+  `dialog dismiss` or `dialog accept "Rohit"` before the step that opens the box says how to
+  answer it; the choice and the words are kept with that step and used again on replay.
+  `read dialog as said` reads the last box's words, and every reply names a box a step opened.
+- **A saved drag and a saved switch to another tab replay.** A drag kept what it picked up
+  but not where it dropped it, and `tab latest` could not be done on replay at all, so both
+  failed every later run. The drop target is now kept with the step, and replay waits for a
+  tab that is still opening.
+
 ## 0.3.1 — 2026-11-03
 
 - **Dejo now finds and uses the right element on 47 of 50 real websites, up from 25.** A new

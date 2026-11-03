@@ -36,6 +36,12 @@ QUIET_WAIT_MS = 5000
 
 MS_PER_SECOND = 1000
 
+# How often a network wait looks at what the page asked for.
+NETWORK_POLL_MS = 50
+
+# Between words in `text:Saved|Error`: wait for any one of them.
+ANY_OF = "|"
+
 # The tags that hold a page of their own. Waiting for one of these is waiting for a page.
 FRAME_TAGS = ("IFRAME", "FRAME")
 
@@ -79,12 +85,23 @@ WAITS: dict[str, WaitSpec] = {
     ),
     "text": WaitSpec(
         "text",
-        "wait until some words appear anywhere on the page",
+        "wait until some words appear anywhere on the page; text:Saved|Error waits for "
+        "whichever comes first",
     ),
     "url": WaitSpec(
         "url",
         "wait until the address contains this. Single-page apps change the address without "
         "loading a new page, so this is often the only signal that a move happened",
+    ),
+    "request": WaitSpec(
+        "request",
+        "wait until the page has asked for an address with these words in it, since the "
+        "step before. For a click whose only sign of working is a call to the server",
+    ),
+    "response": WaitSpec(
+        "response",
+        "wait until an answer has come back for an address with these words in it, since "
+        "the step before. The right wait for a page that fills itself in from its own API",
     ),
     "idle": WaitSpec(
         "idle",
@@ -181,11 +198,46 @@ def _wait_gone(page: Page, subject: str, timeout_ms: int) -> None:
 
 
 def _wait_text(page: Page, subject: str, timeout_ms: int) -> None:
-    page.get_by_text(subject).first.wait_for(state="visible", timeout=timeout_ms)
+    # `text:Saved|Error` waits for whichever comes first, as a person watches for either.
+    words = [part.strip() for part in subject.split(ANY_OF) if part.strip()]
+    found = page.get_by_text(words[0])
+    for other in words[1:]:
+        found = found.or_(page.get_by_text(other))
+    found.first.wait_for(state="visible", timeout=timeout_ms)
 
 
 def _wait_url(page: Page, subject: str, timeout_ms: int) -> None:
     page.wait_for_url(f"**{subject}**", timeout=timeout_ms)
+
+
+def _wait_request(page: Page, subject: str, timeout_ms: int) -> None:
+    _wait_network(page, subject, timeout_ms, answered=False)
+
+
+def _wait_response(page: Page, subject: str, timeout_ms: int) -> None:
+    _wait_network(page, subject, timeout_ms, answered=True)
+
+
+def _wait_network(page: Page, subject: str, timeout_ms: int, *, answered: bool) -> None:
+    """Done when the page made (or, for a response, got an answer to) a request with these
+    words in its address since the step before this wait began. A request that failed was
+    answered too: by the failure, which `read requests` then shows.
+
+    Looked for in what the page already did, and not with Playwright's `expect_response`:
+    that must be set up BEFORE the click, which a line written after the click cannot do,
+    and a click that fetches data is usually answered before the next line starts."""
+    since = getattr(page, "_dejo_since_before", 0.0)
+    began = time.monotonic()
+    while True:
+        for entry in getattr(page, "_dejo_requests", []):
+            if subject not in entry["request"].url or entry["at"] < since:
+                continue
+            if not answered or entry["response"] is not None or entry["failed"]:
+                return
+        if (time.monotonic() - began) * MS_PER_SECOND > timeout_ms:
+            raise PWTimeout(f"no {'answer' if answered else 'request'} for {subject}")
+        # Through Playwright, so the page's events are delivered while this waits.
+        page.wait_for_timeout(NETWORK_POLL_MS)
 
 
 def _wait_idle(page: Page, subject: str, timeout_ms: int) -> None:
@@ -198,6 +250,8 @@ _WAITERS: dict[str, Any] = {
     "gone": _wait_gone,
     "text": _wait_text,
     "url": _wait_url,
+    "request": _wait_request,
+    "response": _wait_response,
     "idle": _wait_idle,
 }
 

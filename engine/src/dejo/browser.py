@@ -43,8 +43,9 @@ from playwright.sync_api import Locator as PWLocator
 from playwright.sync_api import Page, sync_playwright
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
+from . import emulation
 from . import snapshot as aria
-from .home import HOME, PROFILE_OWNER, setting
+from .home import HOME, PROFILE_OWNER, setting, switched_on
 from .locks import ProfileHeld, ProfileLock
 from .models import ENTER_FRAME, Locator
 from .snapshot import Element, Snapshot
@@ -141,9 +142,95 @@ _HONEST_AGENTS: dict[str | None, str | None] = {}
 ACCEPT = "accept"
 DISMISS = "dismiss"
 
+# How many requests one tab remembers for `read requests`. A dashboard that polls makes
+# thousands an hour; the newest few hundred hold anything a step just caused.
+REQUESTS_KEPT = 500
+
+# How many console messages one tab remembers for `read console`, for the same reason.
+CONSOLE_KEPT = 500
+
 # Which tab to continue in.
 LATEST_TAB = "latest"
 MAIN_TAB = "main"
+
+# Registry actions done to the browser as a whole rather than to one page, so `Browser.do`
+# carries them out, the same way while learning and on replay. Replay used to hand them to
+# the page-level registry, which could not do them: a saved `tab latest` failed every time.
+BROWSER_ACTIONS = frozenset(
+    {
+        "switch_tab",
+        "new_tab",
+        "close_tab",
+        "set_time",
+        "dialog",
+        "emulate",
+        "cookie",
+        "storage",
+        "block",
+        "header",
+        "allow",
+        "mock",
+        "script",
+    }
+)
+
+# Between the address, the status and the body of a `mock` line, as one value.
+MOCK_SPLIT = "\t"
+
+# How a `block` line lets things through again.
+OFF_WORD = "off"
+
+# A proxy every request goes through, as a company network asks: http://proxy.corp:8080.
+PROXY_SETTING = "DEJO_PROXY"
+
+# Accept a site's own (self-signed) certificate, for an intranet or a test server.
+SELF_SIGNED_SETTING = "DEJO_IGNORE_HTTPS_ERRORS"
+
+# What can be recorded while a run happens. A video is what a person watching would have
+# seen; a trace opens in Playwright's trace viewer (npx playwright show-trace FILE, or
+# trace.playwright.dev) with every step, the page before and after it, and its network.
+RECORDINGS = ("video", "trace", "performance")
+
+# What a performance recording traces: the categories Chrome DevTools' Performance panel
+# records, as Puppeteer lists them for `page.tracing` (Apache-2.0, Copyright 2017 Google
+# Inc.): names, not code, so the file opens in DevTools like one it made itself.
+PERFORMANCE_CATEGORIES = [
+    "-*",
+    "devtools.timeline",
+    "v8.execute",
+    "disabled-by-default-devtools.timeline",
+    "disabled-by-default-devtools.timeline.frame",
+    "toplevel",
+    "blink.console",
+    "blink.user_timing",
+    "latencyInfo",
+    "disabled-by-default-devtools.timeline.stack",
+    "disabled-by-default-v8.cpu_profiler",
+]
+
+# How long Chrome gets to hand over a finished performance trace.
+TRACE_END_MS = 30_000
+
+# How much of a trace one read of Chrome's stream asks for.
+TRACE_CHUNK = 1 << 20
+
+# What `state save NAME` writes, one JSON file each, beside the profiles: Playwright's own
+# storage-state format, so the same file loads into Playwright, Playwright MCP or Dejo.
+STATE_SUFFIX = ".json"
+
+# Sets the saved local storage of one origin whenever a page of it loads, for `state load`.
+_LOAD_STORAGE_JS = """
+(saved) => {
+  for (const origin of saved) {
+    if (origin.origin !== location.origin) continue;
+    for (const item of origin.localStorage) localStorage.setItem(item.name, item.value);
+  }
+}
+"""
+
+
+# How a `dialog` line writes "accept and type this into the prompt".
+ANSWER_PREFIX = "answer:"
 
 # A tab opened by the SITE arrives on an event, not on the call that caused it, so there is
 # a gap between `window.open` returning and Dejo knowing the tab exists. Poll for it
@@ -662,6 +749,40 @@ def _keep(kept: list[str], line: str) -> None:
         del kept[0]
 
 
+def _log_request(page: Page, request: Any) -> None:
+    """Write down every request the page makes, with when, for `read requests` and for
+    `wait response:...`. Bounded: a page that polls would otherwise grow without end."""
+    log = page._dejo_requests  # type: ignore[attr-defined]
+    if request.is_navigation_request() and request.frame == page.main_frame:
+        # A new page in this tab: what the old one asked for is not this page's.
+        log.clear()
+        page._dejo_by_request.clear()  # type: ignore[attr-defined]
+    log.append({"at": time.monotonic(), "request": request, "response": None, "failed": ""})
+    page._dejo_by_request[request] = log[-1]  # type: ignore[attr-defined]
+    if len(log) > REQUESTS_KEPT:
+        gone = log.pop(0)
+        page._dejo_by_request.pop(gone["request"], None)  # type: ignore[attr-defined]
+
+
+def _log_response(page: Page, response: Any) -> None:
+    entry = page._dejo_by_request.get(response.request)  # type: ignore[attr-defined]
+    if entry is not None:
+        entry["response"] = response
+        entry["answered"] = time.monotonic()
+
+
+def _log_failure(page: Page, request: Any) -> None:
+    entry = page._dejo_by_request.get(request)  # type: ignore[attr-defined]
+    if entry is not None:
+        entry["failed"] = request.failure or "failed"
+        entry["answered"] = time.monotonic()
+
+
+def _file_name(name: str) -> str:
+    """A name a person chose, made safe to be a file name on every system."""
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", name).strip("-.") or "state"
+
+
 def _track_work(page: Page, request: Any, *, started: bool) -> None:
     """Keep the page's own requests in flight, for `settle_until_still`."""
     if request.resource_type not in WORK_REQUESTS:
@@ -924,8 +1045,13 @@ class Browser:
         permissions: list[str] | None = None,
         geolocation: tuple[float, float] | None = None,
         timeout_ms: int = DEFAULT_WAIT_MS,
+        cdp_url: str | None = None,
     ):
         """`profile=None` means a clean browser every time. Pass a path to stay signed in.
+
+        `cdp_url` drives a browser that is already running instead of starting one: a cloud
+        browser, or a Chrome started with --remote-debugging-port. Its own window, profile
+        and sign-ins are used as they are, and stopping Dejo leaves it running.
 
         `touch=True` makes this a touch device, which is what the `tap` action needs. It is
         off by default on purpose: some sites serve a different, mobile layout the moment
@@ -952,6 +1078,7 @@ class Browser:
             self._permissions.append(GEOLOCATION)
         self._downloads = Path(downloads) if downloads is not None else DEFAULT_DOWNLOADS
         self._profile = Path(profile) if profile is not None else None
+        self._cdp_url = cdp_url
         self._playwright = None
         self._browser = None
         self._context = None
@@ -968,6 +1095,10 @@ class Browser:
         appears to succeed while nothing happened. Whatever is chosen, the message and the
         choice are both recorded, and replay stops if the message has changed."""
         self.last_dialog: dict[str, str] | None = None
+        self._next_dialog: tuple[str, str | None] | None = None
+        """How to answer the NEXT dialog only, set by a `dialog` line or by replay: the
+        choice, and the words to type into a prompt. Used once, then the policy rules again,
+        so one cancelled box never cancels every box after it."""
         self.last_status: int | None = None
         """The HTTP status the last `goto` was answered with. None when there was no
         response to read, which happens for a jump within the same page."""
@@ -980,6 +1111,11 @@ class Browser:
         self._cookies_kept_at = 0.0
         self._hold: ProfileLock | None = None
         self._failed_while_watching: list[str] | None = None
+        self._emulation: dict[str, str] = {}
+        self._blocked: list[str] = []
+        self._headers: dict[str, str] = {}
+        self._recording: dict[str, Any] = {}
+        """What is being recorded: "video" maps each tab to its file, "trace" to its file."""
 
     # ------------------------------------------------------------- lifecycle
 
@@ -1005,7 +1141,14 @@ class Browser:
 
     def _open(self) -> Browser:
         """Everything after the driver is up. Never called except through `start`."""
-        if self._profile is not None:
+        if self._cdp_url:
+            self._browser = self._connect()
+            contexts = self._browser.contexts
+            self._context = contexts[0] if contexts else self._browser.new_context()
+            # A tab of its own: the tabs already open are the owner's. On 3 Nov Dejo took the
+            # first one and moved it to another site, losing what the person had open there.
+            self._page = self._context.new_page()
+        elif self._profile is not None:
             self._profile.mkdir(parents=True, exist_ok=True)
             self._hold_profile()
             self._context = self._open_profile()
@@ -1037,6 +1180,23 @@ class Browser:
         self._context.on("page", self._remember_tab)
         return self
 
+    def _connect(self) -> Any:
+        """Attach to the browser at `cdp_url`, or say plainly why not and what to do."""
+        try:
+            return self._playwright.chromium.connect_over_cdp(self._cdp_url)
+        except PlaywrightError as refused:
+            said = str(refused).splitlines()[0]
+            raise ProfileUnavailable(
+                f"Dejo could not reach a browser at {self._cdp_url} ({said}). Start Chrome with "
+                "--remote-debugging-port=9222 (or start the cloud browser) and check the "
+                "address, or unset DEJO_CDP_URL to let Dejo start its own browser."
+            ) from refused
+
+    @property
+    def remote(self) -> bool:
+        """Driving a browser Dejo did not start, over CDP."""
+        return bool(self._cdp_url)
+
     def _launch_options(self) -> dict[str, Any]:
         """How every browser Dejo starts is launched."""
         options: dict[str, Any] = {
@@ -1046,6 +1206,11 @@ class Browser:
         }
         if self._channel:
             options["channel"] = self._channel
+        proxy = setting(PROXY_SETTING)
+        if proxy:
+            # A company network's own proxy. Not a way round a site's block: Dejo stops at a
+            # block and hands over to the person, whatever the proxy.
+            options["proxy"] = {"server": proxy}
         return options
 
     def _launch(self) -> Any:
@@ -1187,13 +1352,21 @@ class Browser:
     def _context_options(self) -> dict[str, Any]:
         """The context settings that are the same however the browser was launched."""
         options: dict[str, Any] = {"permissions": self._permissions}
-        here = machine_locale()
-        if here:
-            options["locale"] = here
         if self._geolocation is not None:
             latitude, longitude = self._geolocation
             options["geolocation"] = {"latitude": latitude, "longitude": longitude}
+        if switched_on(SELF_SIGNED_SETTING):
+            # An intranet or a test server with its own certificate, which a person would
+            # click through. Off unless asked: a wrong certificate on the open web is a warning
+            # worth keeping.
+            options["ignore_https_errors"] = True
         return options
+
+    @property
+    def captures(self) -> Path:
+        """Where screenshots and PDFs are saved: beside the downloads, under ~/.dejo unless
+        the caller moved the downloads somewhere else."""
+        return self._downloads.parent / "captures"
 
     @property
     def permissions(self) -> list[str]:
@@ -1242,7 +1415,16 @@ class Browser:
 
         # Diagnostics. Kept on the page itself so every tab has its own, and so `reads`
         # can find them without knowing anything about Dejo.
+        page._dejo_captures = self.captures  # type: ignore[attr-defined]
+        page._dejo_downloads = []  # type: ignore[attr-defined]
         page._dejo_console = []  # type: ignore[attr-defined]
+        page._dejo_messages = []  # type: ignore[attr-defined]
+        page._dejo_requests = []  # type: ignore[attr-defined]
+        page._dejo_by_request = {}  # type: ignore[attr-defined]
+        page._dejo_since = time.monotonic()  # type: ignore[attr-defined]
+        page.on("request", lambda request: _log_request(page, request))
+        page.on("response", lambda response: _log_response(page, response))
+        page.on("requestfailed", lambda request: _log_failure(page, request))
         page._dejo_failures = []  # type: ignore[attr-defined]
         page.on("console", lambda message: self._remember_console(page, message))
         page.on("pageerror", lambda error: _keep(page._dejo_console, f"error: {error}"))  # type: ignore[attr-defined]
@@ -1256,8 +1438,37 @@ class Browser:
         for selector in self._overlays:
             self._arm_overlay(page, selector)
 
+        # A video being made films every tab, including the ones opened during it.
+        if "video" in self._recording:
+            with suppress(PlaywrightError):
+                self._film(page)
+
+        # And whatever the browser is emulating: a CDP setting belongs to one page.
+        for kind, chosen in self._settings().items():
+            with suppress(PlaywrightError, emulation.EmulationError):
+                emulation.apply(page, self._context, kind, chosen, self._devices())
+
+    def _settings(self) -> dict[str, str]:
+        """What every tab is set to: the machine's own language, then what is emulated.
+
+        The machine's language is set through the same DevTools session as `emulate locale`,
+        not as Playwright's `locale` option. Chrome lets only one session override the
+        locale, so with that option `emulate locale` failed on every machine that names its
+        language (all of Windows and macOS: "Another locale override is already in effect").
+        A device is set before the language, because it replaces the user agent override
+        that carries the language the sites are told."""
+        settings = {kind: chosen for kind, chosen in self._emulation.items() if kind != "locale"}
+        language = self._emulation.get("locale") or machine_locale()
+        if language:
+            settings["locale"] = language
+        return settings
+
     def _remember_console(self, page: Page, message: Any) -> None:
-        """Only the errors and warnings. A chatty site logs hundreds of ordinary lines."""
+        """Every message for `read console`, and the errors and warnings apart from the rest
+        for `read console_errors`: a chatty site logs hundreds of ordinary lines."""
+        messages = page._dejo_messages  # type: ignore[attr-defined]
+        messages.append(f"{message.type}: {message.text}")
+        del messages[:-CONSOLE_KEPT]
         if message.type in ("error", "warning"):
             _keep(page._dejo_console, f"{message.type}: {message.text}")  # type: ignore[attr-defined]
 
@@ -1267,6 +1478,16 @@ class Browser:
             if self._failed_while_watching is not None:
                 failed = f"{response.status} {response.request.method} {response.url}"
                 _keep(self._failed_while_watching, failed)
+
+    def step_begins(self) -> None:
+        """Mark the moment a step starts, on every tab. `wait response:...` after a click
+        counts what that click caused, even a response that came back before the wait began.
+
+        The wait is itself a step, so the moment of the step BEFORE it is kept too."""
+        now = time.monotonic()
+        for page in self.tabs:
+            page._dejo_since_before = getattr(page, "_dejo_since", now)  # type: ignore[attr-defined]
+            page._dejo_since = now  # type: ignore[attr-defined]
 
     def set_time(self, when: str) -> None:
         """Tell every page it is a different date.
@@ -1289,15 +1510,64 @@ class Browser:
         An unanswered dialog blocks every later step: the browser simply stops. So one of
         these must always run — doing nothing is not a neutral option.
         """
-        self.last_dialog = {
-            "type": dialog.type,
-            "message": dialog.message,
-            "choice": self.dialog_policy,
-        }
-        if self.dialog_policy == ACCEPT:
-            dialog.accept()
-        else:
+        choice, answer = self._next_dialog or (self.dialog_policy, None)
+        self._next_dialog = None
+        self.last_dialog = {"type": dialog.type, "message": dialog.message, "choice": choice}
+        if answer is not None and dialog.type == "prompt":
+            self.last_dialog["answer"] = answer
+        if dialog.page is not None:
+            dialog.page._dejo_dialog = dialog.message  # type: ignore[attr-defined]
+        if choice != ACCEPT:
             dialog.dismiss()
+        elif answer is not None and dialog.type == "prompt":
+            dialog.accept(answer)
+        else:
+            dialog.accept()
+
+    def expect_dialog(self, choice: str, answer: str | None = None) -> None:
+        """Answer the next dialog this way: accept or dismiss, and for a prompt, these
+        words. A prompt accepted with no words keeps the default the site wrote in it."""
+        self._next_dialog = (choice, answer)
+
+    def do(self, action: str, value: str | None) -> None:
+        """One of `BROWSER_ACTIONS`. Raises ValueError, in words a person can act on, when
+        the value it needs is missing."""
+        if action == "switch_tab":
+            self.switch_tab(value or LATEST_TAB)
+        elif action == "new_tab":
+            self.new_tab(value or None)
+        elif action == "close_tab":
+            self.close_tab(value or "")
+        elif action == "emulate":
+            self.emulate(value or "")
+        elif action == "cookie":
+            self.cookie(value or "")
+        elif action == "storage":
+            self.storage(value or "")
+        elif action == "block":
+            self.block(value or "")
+        elif action == "header":
+            self.header(value or "")
+        elif action == "allow":
+            self.allow(value or "")
+        elif action == "mock":
+            self.mock(value or "")
+        elif action == "script":
+            self.script(value or "")
+        elif action == "set_time":
+            if not value:
+                raise ValueError('set_time needs a date, such as "2026-09-15"')
+            self.set_time(value)
+        elif action == "dialog":
+            choice = value or ACCEPT
+            if choice.startswith(ANSWER_PREFIX):
+                self.expect_dialog(ACCEPT, choice[len(ANSWER_PREFIX) :])
+            elif choice in (ACCEPT, DISMISS):
+                self.expect_dialog(choice)
+            else:
+                raise ValueError('dialog takes accept, dismiss, or accept "the answer to type"')
+        else:
+            raise ValueError(f"{action} is not something done to the whole browser")
 
     # ------------------------------------------------------------------ tabs
 
@@ -1309,6 +1579,12 @@ class Browser:
         if which not in (LATEST_TAB, MAIN_TAB):
             with suppress(ValueError):
                 self._await_tab(int(which) + 1)
+        live = [page for page in self.tabs if not page.is_closed()]
+        if which == LATEST_TAB and live and live[-1] is self._page:
+            # Already in the newest tab, so the one meant is still opening. On replay the
+            # click that opens it returns before the tab exists, and `latest` used to pick
+            # the tab the click was made in.
+            self._await_tab(len(live) + 1)
 
         self.tabs = [page for page in self.tabs if not page.is_closed()]
         if not self.tabs:
@@ -1329,6 +1605,312 @@ class Browser:
         self._page = chosen
         chosen.bring_to_front()
         return chosen
+
+    def emulate(self, value: str) -> None:
+        """Look like another browser from now on, in every tab: `timezone Asia/Tokyo`.
+        Raises ValueError, in words, for a line that cannot be done."""
+        kind, setting = emulation.parse(value)
+        if self._context is None:
+            raise RuntimeError("the browser is not running")
+        live = [page for page in self.tabs if not page.is_closed()]
+        for page in live:
+            emulation.apply(page, self._context, kind, setting, self._devices())
+        if setting.lower() == emulation.OFF:
+            self._emulation.pop(kind, None)
+        else:
+            self._emulation[kind] = setting
+        # Off means back to this machine, and a device brings its own user agent: either way
+        # the language every tab is set to goes back on top.
+        language = self._settings().get("locale")
+        if language and kind in ("locale", "device"):
+            for page in live:
+                emulation.apply(page, self._context, "locale", language, self._devices())
+
+    def cookie(self, value: str) -> None:
+        """`set NAME VALUE` for this page's site, or `clear [NAME]`."""
+        assert self._context is not None
+        how, _, rest = value.partition(" ")
+        name, _, said = rest.strip().partition(" ")
+        if how == "set" and name and said:
+            self._context.add_cookies([{"name": name, "value": said, "url": self.page.url}])
+        elif how == "clear":
+            self._context.clear_cookies(**({"name": name} if name else {}))
+        else:
+            raise ValueError('cookie takes: set NAME "VALUE", or clear [NAME]')
+
+    def storage(self, value: str) -> None:
+        """`set KEY VALUE` in this page's local storage, or `clear [KEY]`."""
+        how, _, rest = value.partition(" ")
+        key, _, said = rest.strip().partition(" ")
+        if how == "set" and key and said:
+            self.page.evaluate("([k, v]) => localStorage.setItem(k, v)", [key, said])
+        elif how == "clear" and key:
+            self.page.evaluate("(k) => localStorage.removeItem(k)", key)
+        elif how == "clear":
+            self.page.evaluate("() => localStorage.clear()")
+        else:
+            raise ValueError('storage takes: set KEY "VALUE", or clear [KEY]')
+
+    def block(self, value: str) -> None:
+        """Stop the page from loading what matches a pattern (`**/*.png`, `*ads.example*`),
+        or let it through again with `off PATTERN`, or everything with `off`."""
+        assert self._context is not None
+        words = value.split()
+        if words[:1] == [OFF_WORD]:
+            for pattern in words[1:] or list(self._blocked):
+                with suppress(PlaywrightError):
+                    self._context.unroute(pattern)
+                if pattern in self._blocked:
+                    self._blocked.remove(pattern)
+            return
+        if not value.strip():
+            raise ValueError('block takes an address pattern, like: block "**/*.png"')
+        self._context.route(value, lambda route: route.abort("blockedbyclient"))
+        self._blocked.append(value)
+
+    def allow(self, value: str) -> None:
+        """Grant permissions (`notifications`, `clipboard-read`, `camera`...) to every site in
+        this browser, or take every grant back with `off`. Dejo grants nothing unasked: a
+        permission prompt covers the page and blocks every step behind it."""
+        assert self._context is not None
+        if value.strip() == OFF_WORD:
+            self._context.clear_permissions()
+            return
+        wanted = [name for name in value.replace(",", " ").split() if name]
+        if not wanted:
+            raise ValueError("allow takes permissions, like: allow notifications clipboard-read")
+        try:
+            self._context.grant_permissions(wanted)
+        except PlaywrightError as refused:
+            raise ValueError(
+                f"the browser does not know {' or '.join(wanted)}: {refused}"
+            ) from None
+
+    def mock(self, value: str) -> None:
+        """Answer requests to an address with a made-up response: `PATTERN<tab>STATUS<tab>BODY`,
+        or stop with `off [PATTERN]`. For testing a page against an answer its server would
+        give; a JSON body is sent as JSON."""
+        assert self._context is not None
+        if value.split()[:1] == [OFF_WORD]:
+            self.block(value)
+            return
+        pattern, _, rest = value.partition(MOCK_SPLIT)
+        status, _, body = rest.partition(MOCK_SPLIT)
+        if not pattern or not status.isdigit():
+            raise ValueError('mock takes an address, a status and a body: mock "**/api" 200 "{}"')
+        kind = "application/json" if body.lstrip()[:1] in ("{", "[") else "text/plain"
+        self._context.route(
+            pattern,
+            lambda route: route.fulfill(status=int(status), body=body, content_type=kind),
+        )
+        self._blocked.append(pattern)
+
+    def script(self, code: str) -> None:
+        """Run this JavaScript in every page from now on, before the page's own scripts."""
+        assert self._context is not None
+        if not code.strip():
+            raise ValueError('script takes JavaScript, like: script "window.tour = false"')
+        self._context.add_init_script(code)
+
+    def clear_blocks(self) -> None:
+        """Let everything load again, before a trail sets its own blocks."""
+        self.block(OFF_WORD)
+
+    def header(self, value: str) -> None:
+        """`set NAME VALUE` sends that header with every request from now on; `clear` stops
+        every header set this way."""
+        assert self._context is not None
+        how, _, rest = value.partition(" ")
+        name, _, said = rest.strip().partition(" ")
+        if how == "set" and name and said:
+            self._headers[name] = said
+        elif how == "clear":
+            self._headers.clear()
+        else:
+            raise ValueError('header takes: set NAME "VALUE", or clear')
+        self._context.set_extra_http_headers(self._headers)
+
+    def save_state(self, name: str) -> Path:
+        """Write this browser's cookies and local storage to a file: a sign-in to keep, to
+        move to another machine, or to hand to another tool."""
+        assert self._context is not None
+        where = self.states / f"{_file_name(name)}{STATE_SUFFIX}"
+        where.parent.mkdir(parents=True, exist_ok=True)
+        self._context.storage_state(path=where)
+        return where
+
+    def load_state(self, name: str) -> Path:
+        """Put a saved state's cookies and local storage into this browser. A name means a
+        file `state save` wrote; a path ending in .json is any storage-state file."""
+        assert self._context is not None
+        where = (
+            Path(name)
+            if name.endswith(STATE_SUFFIX)
+            else self.states / f"{_file_name(name)}{STATE_SUFFIX}"
+        )
+        if not where.is_file():
+            saved = sorted(path.stem for path in self.states.glob(f"*{STATE_SUFFIX}"))
+            known = f" Saved states: {', '.join(saved)}." if saved else ""
+            raise ValueError(f"no saved state at {where}.{known}")
+        state = json.loads(where.read_text(encoding="utf-8"))
+        if state.get("cookies"):
+            self._context.add_cookies(state["cookies"])
+        origins = state.get("origins") or []
+        if origins:
+            self._context.add_init_script(f"({_LOAD_STORAGE_JS})({json.dumps(origins)})")
+            for page in self.tabs:
+                with suppress(PlaywrightError):
+                    page.evaluate(_LOAD_STORAGE_JS, origins)
+        return where
+
+    @property
+    def states(self) -> Path:
+        """Where saved sign-in states are kept: beside the downloads, under ~/.dejo."""
+        return self._downloads.parent / "states"
+
+    def start_recording(self, kinds: list[str], name: str = "run") -> list[str]:
+        """Record a video of every tab, a trace of everything, or both, until
+        `stop_recording`. Returns the files that will be written."""
+        assert self._context is not None
+        unknown = sorted(set(kinds) - set(RECORDINGS))
+        if unknown or not kinds:
+            raise ValueError(f"record takes {' or '.join(RECORDINGS)}, not {', '.join(unknown)}")
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        base = self.recordings / f"{stamp}-{_file_name(name)}"
+        base.parent.mkdir(parents=True, exist_ok=True)
+        if "trace" in kinds and "trace" not in self._recording:
+            self._context.tracing.start(screenshots=True, snapshots=True, title=name)
+            self._recording["trace"] = base.with_suffix(".trace.zip")
+        if "performance" in kinds and "performance" not in self._recording:
+            session = self._context.new_cdp_session(self.page)
+            session.send(
+                "Tracing.start",
+                {
+                    "transferMode": "ReturnAsStream",
+                    "traceConfig": {"includedCategories": PERFORMANCE_CATEGORIES},
+                },
+            )
+            self._recording["performance"] = (session, base.with_suffix(".performance.json"))
+        if "video" in kinds and "video" not in self._recording:
+            self._recording["video"] = {}
+            self._recording["video_base"] = base
+            for page in [page for page in self.tabs if not page.is_closed()]:
+                self._film(page)
+        return self.recording_files()
+
+    def _film(self, page: Page) -> None:
+        films: dict[Page, Path] = self._recording["video"]
+        if page in films:
+            return
+        where = Path(f"{self._recording['video_base']}-tab{len(films)}.webm")
+        page.screencast.start(path=where)
+        films[page] = where
+
+    def recording_files(self) -> list[str]:
+        files = [str(path) for path in self._recording.get("video", {}).values()]
+        if "trace" in self._recording:
+            files.append(str(self._recording["trace"]))
+        if "performance" in self._recording:
+            files.append(str(self._recording["performance"][1]))
+        return files
+
+    def stop_recording(self) -> list[str]:
+        """Stop every recording and write its files. Returns the files written."""
+        written = []
+        for page, where in self._recording.get("video", {}).items():
+            if not page.is_closed():
+                with suppress(PlaywrightError):
+                    page.screencast.stop()
+            if Path(where).is_file():
+                written.append(str(where))
+        if "trace" in self._recording and self._context is not None:
+            self._context.tracing.stop(path=self._recording["trace"])
+            written.append(str(self._recording["trace"]))
+        if "performance" in self._recording:
+            session, where = self._recording["performance"]
+            with suppress(PlaywrightError):
+                self._end_performance(session, where)
+                written.append(str(where))
+        self._recording = {}
+        return written
+
+    def _end_performance(self, session: Any, where: Path) -> None:
+        """Stop Chrome's tracing and copy its trace, which it hands over as a stream, into
+        a file that opens in DevTools' Performance panel."""
+        ended: dict[str, Any] = {}
+        session.on("Tracing.tracingComplete", lambda said: ended.update(said))
+        session.send("Tracing.end")
+        waited = 0
+        while "stream" not in ended and waited < TRACE_END_MS:
+            self.page.wait_for_timeout(TAB_POLL_MS)
+            waited += TAB_POLL_MS
+        if "stream" not in ended:
+            raise PlaywrightError("Chrome never handed over the performance trace")
+        with where.open("w", encoding="utf-8") as trace:
+            while True:
+                chunk = session.send("IO.read", {"handle": ended["stream"], "size": TRACE_CHUNK})
+                trace.write(chunk.get("data", ""))
+                if chunk.get("eof"):
+                    break
+        session.send("IO.close", {"handle": ended["stream"]})
+        session.detach()
+
+    @property
+    def recordings(self) -> Path:
+        """Where videos and traces are saved: beside the downloads, under ~/.dejo."""
+        return self._downloads.parent / "recordings"
+
+    def clear_emulation(self) -> None:
+        """Back to this browser as it is, before a trail sets its own. A replay of a task that
+        emulated a phone must not leave the next task on a phone."""
+        for kind in list(self._emulation):
+            self.emulate(f"{kind} {emulation.OFF}")
+
+    @property
+    def emulating(self) -> dict[str, str]:
+        """What this browser is pretending to be right now, kind by kind."""
+        return dict(self._emulation)
+
+    def _devices(self) -> Any:
+        return self._playwright.devices if self._playwright is not None else {}
+
+    def close_tab(self, which: str = "") -> None:
+        """Close a tab, the one in use when none is named, and carry on in the newest left.
+
+        Closed the way a person closes one, so a page that asks "leave this page?" gets its
+        dialog, answered as any other is."""
+        live = [page for page in self.tabs if not page.is_closed()]
+        closing = self._page if which in ("", "current") else self._tab_named(which, live)
+        if len(live) <= 1:
+            raise ValueError("this is the only tab, so it stays open; open another first")
+        assert closing is not None
+        closing.close(run_before_unload=True)
+        self._await_close(closing)
+        self.tabs = [page for page in self.tabs if not page.is_closed()]
+        if self._page is closing or self._page is None or self._page.is_closed():
+            self._page = self.tabs[-1]
+            self._page.bring_to_front()
+
+    def _await_close(self, closing: Page) -> None:
+        """A page with a "leave this page?" box closes only once the box is answered, which
+        happens on an event a moment after `close` returns."""
+        waited = 0
+        while not closing.is_closed() and waited < TAB_GRACE_MS:
+            with suppress(PlaywrightError):
+                self.tabs[0 if self.tabs[0] is not closing else -1].wait_for_timeout(TAB_POLL_MS)
+            waited += TAB_POLL_MS
+
+    def _tab_named(self, which: str, live: list[Page]) -> Page:
+        if which == LATEST_TAB:
+            return live[-1]
+        if which == MAIN_TAB:
+            return live[0]
+        try:
+            return live[int(which)]
+        except (ValueError, IndexError):
+            raise NoSuchTab(
+                f"no tab {which!r}. There are {len(live)} open, numbered from 0"
+            ) from None
 
     def _await_tab(self, count: int) -> None:
         """Give a tab that is still opening its moment to arrive.
@@ -1391,8 +1973,18 @@ class Browser:
         return list(self._overlays)
 
     def stop(self) -> None:
+        if self._recording:
+            with suppress(PlaywrightError):
+                self.stop_recording()
         self.keep_session_cookies()
-        for closer in (self._context, self._browser):
+        # A browser Dejo only connected to is someone else's: close the tabs Dejo worked in,
+        # then disconnect and leave the browser, and every tab of its owner, running.
+        if self._cdp_url:
+            for tab in self.tabs:
+                with suppress(PlaywrightError):
+                    tab.close()
+        closers = (self._browser,) if self._cdp_url else (self._context, self._browser)
+        for closer in closers:
             if closer is not None:
                 closer.close()
         if self._playwright is not None:
@@ -1441,6 +2033,9 @@ class Browser:
             download.save_as(destination)
             self.last_download_path = str(destination)
             self.saved_files.append(str(destination))
+            # Kept on the page that downloaded it too, for `read downloads`.
+            if download.page is not None:
+                download.page._dejo_downloads.append(str(destination))  # type: ignore[attr-defined]
 
     # ----------------------------------------------------------------- doing
 
@@ -1822,6 +2417,7 @@ class Browser:
         *,
         timeout_ms: int = LOCATOR_WAIT_MS,
         visible: bool = True,
+        every: bool = False,
     ) -> PWLocator | None:
         """Turn a stored locator back into something on the page, or None if it misses.
 
@@ -1843,7 +2439,8 @@ class Browser:
             # into place and cannot yet receive a click. Visible also waits for it to
             # stop moving.
             found.first.wait_for(state="visible" if visible else "attached", timeout=timeout_ms)
-            return found.first
+            # Every match, for a read that is about all of them (a count, every row).
+            return found if every else found.first
         except PlaywrightError:
             # Playwright's own base error, which a timeout is a subclass of. This used to
             # read `(PWTimeout, Exception)`, where the second clause swallowed everything —

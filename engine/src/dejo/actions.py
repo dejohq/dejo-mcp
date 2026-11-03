@@ -18,7 +18,7 @@ Two rules hold throughout:
 
 from __future__ import annotations
 
-import time
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -172,12 +172,44 @@ BESIDE_LEVELS = 5
 # Options named when the one asked for is not there: enough to see what kind of list it is.
 OPTIONS_NAMED = 30
 
+# The options every pointer action takes: where on the element (`at=10,20`, pixels from its
+# top left corner) and which keys are held (`keys=Shift+Control`).
+POINTER_OPTIONS = frozenset({"at", "keys"})
+
+# The mouse buttons a click can use.
+BUTTONS = frozenset({"left", "right", "middle"})
+
+# The longest pause between two typed keys. A slower typist than this is a mistake, and
+# every millisecond is paid again on every replay.
+MAX_KEY_DELAY_MS = 1000
+
 # Actions that press something, so they can buy, send or delete. The rest only move, type
 # or look.
-PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event"})
+PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event", "mouse"})
 
 # How long a click gets to open the file chooser. A site opens it at once, or never.
 CHOOSER_WAIT_MS = 5000
+
+# What `mouse` can do, and how many numbers each takes.
+MOUSE_MOVES = {
+    "click": 2,
+    "dblclick": 2,
+    "right": 2,
+    "move": 2,
+    "down": 0,
+    "up": 0,
+    "wheel": 2,
+    "drag": 4,
+}
+
+# How many moves a mouse drag is made of. Enough that a page tracking the pointer (a slider,
+# a map, a signature box) sees it travel rather than jump.
+DRAG_STEPS = 10
+
+Options = dict[str, str]
+
+# Which way the wheel turns for each written direction, as (across, down).
+SCROLL_WAYS = {"down": (0, 1), "up": (0, -1), "left": (-1, 0), "right": (1, 0)}
 
 # Resolves once the browser has drawn twice, which is when a scroll has been committed.
 _TWO_FRAMES = "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
@@ -194,6 +226,12 @@ class ActionSpec:
     needs_second_target: bool = False
     recordable: bool = True
     verifies_with: str = OBSERVED
+    options: frozenset[str] = frozenset()
+    """The `KEY=VALUE` words a line may add, such as `button=right` or `delay=100`. Kept with
+    the step, so a replay presses the same button at the same spot at the same speed."""
+    not_kept: str = ""
+    """Why a line of this action is never written into a trail, said in the reply. Empty
+    for actions that are kept, and for those whose reason needs no saying."""
     session_handled: bool = False
     """Carried out by the Session rather than here, because it needs something Playwright
     alone does not have — the list of tabs Dejo is keeping track of. Declared in the
@@ -208,6 +246,8 @@ class ActionSpec:
             parts.append("needs `to` as well as `ref`")
         if not self.needs_target:
             parts.append("no ref needed")
+        if self.options:
+            parts.append("options " + ", ".join(f"{name}=" for name in sorted(self.options)))
         return "; ".join(parts)
 
 
@@ -217,14 +257,17 @@ ACTIONS: dict[str, ActionSpec] = {
     "click": ActionSpec(
         "click",
         "click a link, button or anything clickable",
+        options=POINTER_OPTIONS | {"button"},
     ),
     "double_click": ActionSpec(
         "double_click",
         "double click, for grids and file lists that open on two clicks",
+        options=POINTER_OPTIONS,
     ),
     "hover": ActionSpec(
         "hover",
         "move the pointer over something, for menus that only open on hover",
+        options=POINTER_OPTIONS,
     ),
     "fill": ActionSpec(
         "fill",
@@ -238,6 +281,7 @@ ACTIONS: dict[str, ActionSpec] = {
         "which ignore a value that appears all at once because they listen for keystrokes",
         value_means="the text to type",
         verifies_with="value_is",
+        options=frozenset({"delay"}),
     ),
     "clear": ActionSpec(
         "clear",
@@ -288,6 +332,12 @@ ACTIONS: dict[str, ActionSpec] = {
         "scroll until something is on screen, for long or lazily loaded lists",
         verifies_with="element_visible",
     ),
+    "scroll_in": ActionSpec(
+        "scroll_in",
+        "scroll inside one element: a list, a table or a chat that scrolls in its own box "
+        "while the page stays still",
+        value_means='"down", "up", "left" or "right", then pixels if not most of the box',
+    ),
     "drag": ActionSpec(
         "drag",
         "drag one element onto another, for reordering and kanban boards",
@@ -329,6 +379,29 @@ ACTIONS: dict[str, ActionSpec] = {
         recordable=False,
     ),
     # ---- page level: these act on the whole page, so they take no element -------
+    "mouse": ActionSpec(
+        "mouse",
+        "the mouse itself, at a place on the screen counted in pixels from the top left. "
+        "For a chart, a map or a canvas, which has nothing inside it to name. Find the "
+        "place with look image",
+        needs_target=False,
+        value_means=(
+            '"click X Y", "dblclick X Y", "right X Y", "move X Y", "down", "up", '
+            '"wheel DX DY" or "drag X Y X2 Y2"'
+        ),
+    ),
+    "keydown": ActionSpec(
+        "keydown",
+        "hold a key down until keyup, so the clicks in between are made with it held",
+        needs_target=False,
+        value_means='a key such as "Shift" or "Control"',
+    ),
+    "keyup": ActionSpec(
+        "keyup",
+        "let go of a key held by keydown",
+        needs_target=False,
+        value_means='a key such as "Shift" or "Control"',
+    ),
     "goto": ActionSpec(
         "goto",
         "open a web address",
@@ -357,7 +430,7 @@ ACTIONS: dict[str, ActionSpec] = {
         "scroll",
         "scroll the page itself, for feeds that load more as you go",
         needs_target=False,
-        value_means='"down", "up", "top", "bottom", or a number of pixels',
+        value_means='"down", "up", "left", "right", "top", "bottom", or a number of pixels',
     ),
     "evaluate": ActionSpec(
         "evaluate",
@@ -371,13 +444,6 @@ ACTIONS: dict[str, ActionSpec] = {
         value_means="the JavaScript, e.g. `() => document.title` or `el => el.dataset.id`",
         recordable=False,
     ),
-    "screenshot": ActionSpec(
-        "screenshot",
-        "save a picture of the page, or of one element. For showing a human what happened",
-        needs_target=False,
-        value_means="where to save it. Leave empty for an automatic name",
-        recordable=False,
-    ),
     "set_time": ActionSpec(
         "set_time",
         "tell the page it is a different date and time. For a dashboard whose numbers "
@@ -385,6 +451,16 @@ ACTIONS: dict[str, ActionSpec] = {
         "in October",
         needs_target=False,
         value_means='a date such as "2026-09-15" or "2026-09-15T10:00:00"',
+        session_handled=True,
+    ),
+    "dialog": ActionSpec(
+        "dialog",
+        "say how to answer the NEXT alert, confirm or prompt box. Dejo accepts every box "
+        "unless told otherwise. Kept with the step that opens the box, so replay answers it "
+        "the same way",
+        needs_target=False,
+        value_means='"accept", "dismiss", or "answer:the words to type into a prompt"',
+        recordable=False,
         session_handled=True,
     ),
     "restart_trail": ActionSpec(
@@ -413,6 +489,116 @@ ACTIONS: dict[str, ActionSpec] = {
         "open a new empty tab and continue in it",
         needs_target=False,
         value_means="a url to open in it, or nothing for a blank tab",
+        session_handled=True,
+    ),
+    "cookie": ActionSpec(
+        "cookie",
+        "set a cookie for this site, or clear cookies",
+        needs_target=False,
+        value_means='"set NAME VALUE", "clear NAME", or "clear" for every cookie',
+        recordable=False,
+        not_kept="a cookie's value is often a sign-in, and a trail is shared and stored",
+        session_handled=True,
+    ),
+    "storage": ActionSpec(
+        "storage",
+        "set or clear a value in this page's local storage",
+        needs_target=False,
+        value_means='"set KEY VALUE", "clear KEY", or "clear" for all of it',
+        recordable=False,
+        not_kept="what a site keeps in its storage is often a sign-in token",
+        session_handled=True,
+    ),
+    "state": ActionSpec(
+        "state",
+        "save this browser's cookies and local storage to a file, or load one: to keep a "
+        "sign-in, move it to another machine, or take it from another tool",
+        needs_target=False,
+        value_means='"save NAME", "load NAME", or "load /path/to/state.json"',
+        recordable=False,
+        not_kept="a sign-in belongs to the profile, not to a task; dejo_profile keeps it",
+        session_handled=True,
+    ),
+    "record": ActionSpec(
+        "record",
+        "record what happens next, until record stop: a video of every tab, a trace that "
+        "opens in Playwright's trace viewer with each step, the page before and after it, "
+        "and its network, or a performance trace that opens in Chrome DevTools",
+        needs_target=False,
+        value_means='"video", "trace", "performance", several of them, or "stop"',
+        recordable=False,
+        not_kept=(
+            "a recording is of one run. To record every replay, set DEJO_RECORD=video,trace "
+            "in the MCP server's environment"
+        ),
+        session_handled=True,
+    ),
+    "allow": ActionSpec(
+        "allow",
+        "grant permissions to every site from now on: notifications, clipboard-read, "
+        "clipboard-write, camera, microphone, geolocation, midi. `allow off` takes them back. "
+        "Kept in the trail",
+        needs_target=False,
+        value_means='permission names, like "notifications clipboard-read", or "off"',
+        session_handled=True,
+    ),
+    "mock": ActionSpec(
+        "mock",
+        "answer the page's requests to an address with a made-up response, to test a page "
+        "against an answer its server could give. `mock off` stops it",
+        needs_target=False,
+        value_means='an address pattern, a status and a body: mock "**/api/user" 200 "{}"',
+        recordable=False,
+        not_kept="a made-up answer changes what the site is; a trail replays the real site",
+        session_handled=True,
+    ),
+    "script": ActionSpec(
+        "script",
+        "run your own JavaScript in every page from now on, before the page's own scripts",
+        needs_target=False,
+        value_means="the JavaScript",
+        recordable=False,
+        not_kept="a step made of code cannot be repaired when the site changes",
+        session_handled=True,
+    ),
+    "block": ActionSpec(
+        "block",
+        "stop the page loading anything whose address matches a pattern: images, fonts, an "
+        "ad or a chat widget that slows every run. `block off` lets everything through. "
+        "Kept in the trail",
+        needs_target=False,
+        value_means='a pattern like "**/*.png" or "*ads.example.com*", or "off [PATTERN]"',
+        session_handled=True,
+    ),
+    "header": ActionSpec(
+        "header",
+        "send a header with every request from now on, such as an API key a test server "
+        "wants, or stop: header clear",
+        needs_target=False,
+        value_means='"set NAME VALUE" or "clear"',
+        recordable=False,
+        not_kept="a header is often a key or a sign-in, and a trail is shared and stored",
+        session_handled=True,
+    ),
+    "emulate": ActionSpec(
+        "emulate",
+        "make the browser look like another one from now on: a phone, a window size, another "
+        "time zone or language, dark mode, print, offline, a slow network or a slow computer. "
+        "Kept in the trail, so replay does the same; `emulate KIND off` undoes one",
+        needs_target=False,
+        value_means=(
+            'KIND SETTING: viewport 390x844, device "iPhone 13", timezone Asia/Tokyo, locale '
+            "de-DE, color dark, media print, motion reduce, offline on, network slow3g, cpu 4, "
+            "geolocation 18.52,73.85"
+        ),
+        session_handled=True,
+    ),
+    "close_tab": ActionSpec(
+        "close_tab",
+        "close a tab, the one in use unless another is named, and carry on in the newest "
+        "tab left. A page that asks to leave gets its dialog",
+        needs_target=False,
+        value_means='a tab number from 0, "latest", or nothing for the tab in use',
         session_handled=True,
     ),
     "switch_tab": ActionSpec(
@@ -481,6 +667,7 @@ def perform(
     target: PWLocator | None = None,
     value: str | None = None,
     second: PWLocator | None = None,
+    options: dict[str, str] | None = None,
 ) -> Any:
     """Do one thing, and hand back whatever it answered.
 
@@ -497,7 +684,12 @@ def perform(
     if spec.value_means and value is None and action not in _VALUE_OPTIONAL:
         raise ActionNeedsMore(f"{action} needs a value: {spec.value_means}")
 
-    # Most actions answer nothing. `evaluate` and `screenshot` do, so the return travels.
+    unknown = sorted(set(options or {}) - spec.options)
+    if unknown:
+        raise ActionNeedsMore(f"{action} takes no {', '.join(unknown)}=")
+    if spec.options:
+        return _RUNNERS[action](page, target, value, second, dict(options or {}))
+    # Most actions answer nothing. `evaluate` does, so the return travels.
     return _RUNNERS[action](page, target, value, second)
 
 
@@ -506,26 +698,56 @@ def perform(
 _T = PWLocator
 
 
-def _click(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.click()
+def _click(page: Page, t: _T, value: str | None, second: _T | None, options: Options) -> None:
+    button = options.get("button", "left")
+    if button not in BUTTONS:
+        raise ActionNeedsMore(f"button= takes left, right or middle, not {button!r}")
+    t.click(button=button, **_pointer(options))  # type: ignore[arg-type]
 
 
-def _double_click(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.dblclick()
+def _double_click(
+    page: Page, t: _T, value: str | None, second: _T | None, options: Options
+) -> None:
+    t.dblclick(**_pointer(options))
 
 
-def _hover(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.hover()
+def _hover(page: Page, t: _T, value: str | None, second: _T | None, options: Options) -> None:
+    t.hover(**_pointer(options))
+
+
+def _pointer(options: Options) -> dict[str, Any]:
+    """Playwright's own arguments for `at=` and `keys=`."""
+    found: dict[str, Any] = {}
+    if "at" in options:
+        x, y = _numbers(options["at"], 2, "at= takes two numbers, like at=120,40")
+        found["position"] = {"x": x, "y": y}
+    if "keys" in options:
+        found["modifiers"] = [key for key in options["keys"].split("+") if key]
+    return found
+
+
+def _numbers(written: str, count: int, wanted: str) -> list[float]:
+    parts = [part for part in re.split(r"[,\s]+", written.strip()) if part]
+    try:
+        numbers = [float(part) for part in parts]
+    except ValueError:
+        raise ActionNeedsMore(wanted) from None
+    if len(numbers) != count:
+        raise ActionNeedsMore(wanted)
+    return numbers
 
 
 def _fill(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     t.fill(_lines_for(t, value or ""))
 
 
-def _type(page: Page, t: _T, value: str | None, second: _T | None) -> None:
+def _type(page: Page, t: _T, value: str | None, second: _T | None, options: Options) -> None:
     # One key at a time. Search and autocomplete boxes listen for keystrokes and ignore a
     # value that simply appears, which is exactly what `fill` does.
-    t.press_sequentially(_lines_for(t, value or ""))
+    (delay,) = _numbers(options.get("delay", "0"), 1, "delay= takes milliseconds, like delay=100")
+    if not 0 <= delay <= MAX_KEY_DELAY_MS:
+        raise ActionNeedsMore(f"delay= is at most {MAX_KEY_DELAY_MS} milliseconds a key")
+    t.press_sequentially(_lines_for(t, value or ""), delay=delay)
 
 
 def _lines_for(t: _T, text: str) -> str:
@@ -693,6 +915,25 @@ def _scroll_to(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     t.scroll_into_view_if_needed()
 
 
+def _scroll_in(page: Page, t: _T, value: str | None, second: _T | None) -> None:
+    """Turn the wheel over the element, the way a person scrolls a box: the wheel moves the
+    nearest thing under the pointer that can scroll."""
+    words = (value or "down").split()
+    way = words[0].lower()
+    if way not in SCROLL_WAYS:
+        raise ActionNeedsMore(f"scroll inside takes down, up, left or right, not {words[0]!r}")
+    if len(words) > 1:
+        (amount,) = _numbers(words[1], 1, "scroll takes a number of pixels after the way")
+    else:
+        size = t.bounding_box() or {"width": 0, "height": 0}
+        across = way in ("left", "right")
+        amount = (size["width"] if across else size["height"]) * SCREENS_PER_SCROLL
+    dx, dy = SCROLL_WAYS[way]
+    t.hover()
+    page.mouse.wheel(dx * amount, dy * amount)
+    _wait_for_scroll(page)
+
+
 def _drag(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     assert second is not None  # guaranteed by perform()
     t.drag_to(second)
@@ -734,6 +975,46 @@ def _hide_highlight(page: Page, t: _T | None, value: str | None, second: _T | No
     page.hide_highlight()
 
 
+def _mouse(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    """The mouse at a place, not at an element. See `MOUSE_MOVES` for what can be written."""
+    words = (value or "").split()
+    move = words[0] if words else ""
+    counts = MOUSE_MOVES.get(move)
+    if counts is None:
+        raise ActionNeedsMore(
+            f"mouse takes {', '.join(MOUSE_MOVES)}, like: mouse click 120 40, not {value!r}"
+        )
+    numbers = _numbers(" ".join(words[1:]), counts, f"mouse {move} takes {counts} numbers")
+    mouse = page.mouse
+    if move in ("click", "dblclick", "right"):
+        button = "right" if move == "right" else "left"
+        mouse.click(*numbers, button=button, click_count=2 if move == "dblclick" else 1)
+    elif move == "move":
+        mouse.move(*numbers)
+    elif move == "down":
+        mouse.down()
+    elif move == "up":
+        mouse.up()
+    elif move == "wheel":
+        mouse.wheel(*numbers)
+        _wait_for_scroll(page)
+    else:
+        x, y, to_x, to_y = numbers
+        mouse.move(x, y)
+        mouse.down()
+        # In steps, so a page that follows the pointer sees it travel, as a hand would.
+        mouse.move(to_x, to_y, steps=DRAG_STEPS)
+        mouse.up()
+
+
+def _keydown(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    page.keyboard.down(value or "")
+
+
+def _keyup(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    page.keyboard.up(value or "")
+
+
 def _goto(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     page.goto(value or "")
 
@@ -756,7 +1037,12 @@ def _scroll(page: Page, t: _T | None, value: str | None, second: _T | None) -> N
     # top-left corner. Centring it also means the wheel lands on the main panel rather than
     # on some narrow strip at the edge of the page.
     page.mouse.move(size["width"] / 2, size["height"] / 2)
-    page.mouse.wheel(0, _scroll_amount(page, value))
+    across = (value or "").strip().lower()
+    if across in ("left", "right"):
+        width = size["width"] * SCREENS_PER_SCROLL
+        page.mouse.wheel(width if across == "right" else -width, 0)
+    else:
+        page.mouse.wheel(0, _scroll_amount(page, value))
     _wait_for_scroll(page)
 
 
@@ -792,19 +1078,14 @@ def _evaluate(page: Page, t: _T | None, value: str | None, second: _T | None) ->
     return page.evaluate(value or "() => null")
 
 
-def _screenshot(page: Page, t: _T | None, value: str | None, second: _T | None) -> str:
-    where = Path(value) if value else Path.cwd() / f"dejo-{int(time.time())}.png"
-    where.parent.mkdir(parents=True, exist_ok=True)
-    if t is not None:
-        t.screenshot(path=where)
-    else:
-        page.screenshot(path=where, full_page=True)
-    return str(where)
-
-
 def _set_time(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: the Session handles it, because the clock belongs to the whole context.
     raise AssertionError("set_time should have been handled by the session")
+
+
+def _dialog(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: the Browser answers dialogs, so `Browser.do` handles this.
+    raise AssertionError("dialog should have been handled by the session")
 
 
 def _restart_trail(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
@@ -820,6 +1101,61 @@ def _dismiss_when_seen(page: Page, t: _T | None, value: str | None, second: _T |
 def _new_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable, like _switch_tab: the Session owns the tab list.
     raise AssertionError("new_tab should have been handled by the session")
+
+
+def _cookie(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: cookies belong to the context, so `Browser.do` handles this.
+    raise AssertionError("cookie should have been handled by the session")
+
+
+def _storage(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: `Browser.do` handles this beside cookies.
+    raise AssertionError("storage should have been handled by the session")
+
+
+def _state(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: the Session handles it, because it answers with the file's path.
+    raise AssertionError("state should have been handled by the session")
+
+
+def _record(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: the Session handles it, because it answers with the files.
+    raise AssertionError("record should have been handled by the session")
+
+
+def _allow(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: permissions belong to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("allow should have been handled by the session")
+
+
+def _mock(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: routes belong to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("mock should have been handled by the session")
+
+
+def _script(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: init scripts belong to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("script should have been handled by the session")
+
+
+def _block(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: blocking belongs to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("block should have been handled by the session")
+
+
+def _header(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: headers belong to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("header should have been handled by the session")
+
+
+def _emulate(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: emulation belongs to every tab, so `Browser.do` handles this.
+    raise AssertionError("emulate should have been handled by the session")
+
+
+def _close_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: the Browser owns the tab list, so `Browser.do` handles this.
+    raise AssertionError("close_tab should have been handled by the session")
 
 
 def _switch_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
@@ -842,6 +1178,7 @@ _RUNNERS: dict[str, Any] = {
     "select": _select,
     "upload": _upload,
     "scroll_to": _scroll_to,
+    "scroll_in": _scroll_in,
     "drag": _drag,
     "focus": _focus,
     "blur": _blur,
@@ -850,6 +1187,9 @@ _RUNNERS: dict[str, Any] = {
     "dispatch_event": _dispatch_event,
     "highlight": _highlight,
     "hide_highlight": _hide_highlight,
+    "mouse": _mouse,
+    "keydown": _keydown,
+    "keyup": _keyup,
     "goto": _goto,
     "back": _back,
     "forward": _forward,
@@ -858,23 +1198,34 @@ _RUNNERS: dict[str, Any] = {
     "wait": _wait,
     "wait_for": _wait_for,
     "switch_tab": _switch_tab,
+    "close_tab": _close_tab,
+    "emulate": _emulate,
+    "block": _block,
+    "mock": _mock,
+    "script": _script,
+    "allow": _allow,
+    "header": _header,
+    "record": _record,
+    "cookie": _cookie,
+    "storage": _storage,
+    "state": _state,
     "new_tab": _new_tab,
     "dismiss_when_seen": _dismiss_when_seen,
     "restart_trail": _restart_trail,
+    "dialog": _dialog,
     "evaluate": _evaluate,
-    "screenshot": _screenshot,
     "set_time": _set_time,
 }
 
 # These have a sensible default, so a missing value is not an error.
 _VALUE_OPTIONAL = {
+    "close_tab",
     "press",
     "dispatch_event",
     "scroll",
     "wait",
     "new_tab",
     "wait_for",
-    "screenshot",
 }
 
 

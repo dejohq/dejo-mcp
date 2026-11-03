@@ -22,9 +22,9 @@ from urllib.parse import parse_qsl, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, reads
+from . import actions, reads, steplog
 from . import snapshot as aria
-from .browser import LATEST_TAB, Browser, Element, Snapshot, domain_of
+from .browser import BROWSER_ACTIONS, Browser, Element, Snapshot, domain_of
 from .events import Emitter, MemoryWrite
 from .models import (
     Control,
@@ -97,6 +97,10 @@ class TraceEntry:
     step that used to answer is drift, not success — and reporting it as success is how a
     warm run "works" while handing back nothing."""
     download: str | None = None
+    second: list[Locator] | None = None
+    """For a drag, the ways to find the element it was dropped on."""
+    options: dict[str, str] = field(default_factory=dict)
+    """The `KEY=VALUE` words the step was written with."""
     locators: list[Locator] | None = None
     """The ways to find the element chosen when the step ran, when they had to be
     narrowed. Replaces `element.locators()` in the trail. A read is narrowed to the
@@ -135,6 +139,7 @@ class Session:
         self.browser = browser
         self.store = store
         self.events = emitter or Emitter()
+        steplog.attach(self.events)
         self.trace: list[TraceEntry] = []
         # The last read that was NOT marked as the answer, and where it happened. Kept
         # because a caller that never marks one still needs its trail to answer — see
@@ -206,6 +211,7 @@ class Session:
         second: Element | None = None,
         expect: Postcondition | None = None,
         risky: bool = False,
+        options: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Do one thing to an element that has already been found, and report what changed.
 
@@ -218,6 +224,7 @@ class Session:
         self.browser.last_download = None
         self.browser.last_download_path = None
         self.browser.last_dialog = None
+        self.browser.step_begins()
         self.last_result = None
         if risky:
             self.browser.watch_for_messages()
@@ -230,7 +237,9 @@ class Session:
         sends = element is not None and (action in actions.PRESSES or enter)
         held = self.browser.held_back(element) if sends and element is not None else []
 
-        element, lasting = self._perform(action, element=element, value=value, second=second)
+        element, lasting, second = self._perform(
+            action, element=element, value=value, second=second, options=options
+        )
 
         # An anchor was clicked and the address has not moved. Either it went nowhere, or
         # this is a single-page app that will change the URL in a moment — a React Router
@@ -293,6 +302,8 @@ class Session:
             expect=expect,
             risky=risky,
             locators=lasting,
+            second=second.locators() if second is not None else None,
+            options=dict(options or {}),
             left=left,
         )
         # An action that changes nothing is not a step. Replaying `highlight` would draw a
@@ -355,36 +366,44 @@ class Session:
         element: Element | None,
         value: str | None,
         second: Element | None = None,
-    ) -> tuple[Element | None, list[Locator] | None]:
+        options: dict[str, str] | None = None,
+    ) -> tuple[Element | None, list[Locator] | None, Element | None]:
         """Describe the element, then hand the doing to the registry.
 
         Finding things is Dejo's job because a durable descriptor has to be recorded at the
         same moment. Performing is Playwright's job. This method is the seam between them.
-        Returns the described element, and the ways of finding it the trail should keep.
+        Returns the described element, the ways of finding it the trail should keep, and the
+        described second element of a drag.
         """
         spec = self._spec(action)
         if spec.session_handled:
             self._do_here(action, value)
-            return None, None
+            return None, None, None
         if action == "goto":
             # Through the browser, as replay does, so the page's HTTP status is kept. The
             # registry's goto dropped it, so an error page (or a 403 from a site that turns
             # automated browsers away) was learned on as if it were the page (22 Oct 2026).
             self.browser.goto(value or "")
             self.browser.settle()
-            return None, None
+            return None, None, None
 
         # Describe before acting. The durable descriptors have to be read while the
         # element is still on the page as it was — a click can navigate away, and then
         # there is nothing left to describe.
         element = self.browser.describe(element) if element is not None else None
         lasting = self._only_ones(element)
+        second = self.browser.describe(second) if second is not None else None
         target = self.browser.locate(element) if element else None
         second_target = self.browser.locate(second) if second is not None else None
 
         try:
             self.last_result = actions.perform(
-                action, page=self.browser.page, target=target, value=value, second=second_target
+                action,
+                page=self.browser.page,
+                target=target,
+                value=value,
+                second=second_target,
+                options=options,
             )
         except actions.ActionNeedsMore as incomplete:
             raise ActionFailed(str(incomplete)) from incomplete
@@ -392,7 +411,7 @@ class Session:
         # Every action, not a chosen few. A download event can arrive after the click has
         # already returned, and a select can navigate just as a click can.
         self.browser.settle()
-        return element, lasting
+        return element, lasting, second
 
     def _only_ones(self, element: Element | None) -> list[Locator] | None:
         """The ways of finding this element that match it and nothing else on the page.
@@ -418,13 +437,18 @@ class Session:
 
     def _do_here(self, action: str, value: str | None) -> None:
         """The few actions that need Dejo's own state rather than just the page."""
-        if action == "switch_tab":
-            self.browser.switch_tab(value or LATEST_TAB)
+        if action in BROWSER_ACTIONS:
+            try:
+                self.browser.do(action, value)
+            except ValueError as wrong:
+                raise ActionFailed(str(wrong)) from wrong
             self._snapshot = None
             return
-        if action == "new_tab":
-            self.browser.new_tab(value or None)
-            self._snapshot = None
+        if action == "state":
+            self.last_result = self._state(value or "")
+            return
+        if action == "record":
+            self.last_result = self._recording(value or "")
             return
         if action == "dismiss_when_seen":
             if not value:
@@ -435,12 +459,32 @@ class Session:
             self.trace.clear()
             self._loose_read = None
             return
-        if action == "set_time":
-            if not value:
-                raise ActionFailed('set_time needs a date, such as "2026-09-15"')
-            self.browser.set_time(value)
-            return
         raise ActionFailed(f"{action} is marked session-handled but nothing handles it")
+
+    def _recording(self, value: str) -> str:
+        """`video`, `trace` or both to start; `stop` to write the files. Names them."""
+        kinds = value.replace(",", " ").split()
+        try:
+            if kinds == ["stop"]:
+                written = self.browser.stop_recording()
+                return "saved " + ", ".join(written) if written else "nothing was recording"
+            return "recording to " + ", ".join(self.browser.start_recording(kinds))
+        except ValueError as wrong:
+            raise ActionFailed(str(wrong)) from wrong
+
+    def _state(self, value: str) -> str:
+        """`save NAME` or `load NAME`: the file it wrote or read, for the reply."""
+        how, _, name = value.partition(" ")
+        name = name.strip()
+        if how not in ("save", "load") or not name:
+            raise ActionFailed("state takes: save NAME, or load NAME (or a path to a .json file)")
+        try:
+            where = (
+                self.browser.save_state(name) if how == "save" else self.browser.load_state(name)
+            )
+        except ValueError as wrong:
+            raise ActionFailed(str(wrong)) from wrong
+        return f"{'saved to' if how == 'save' else 'loaded from'} {where}"
 
     def remember_overlay(self, selector: str) -> None:
         """Clear an overlay from now on, and write it down so later runs do the same.

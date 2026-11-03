@@ -34,8 +34,8 @@ from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, reads
-from .browser import ACCEPT, Browser
+from . import actions, reads, steplog
+from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
     DriftDetected,
     Emitter,
@@ -50,6 +50,7 @@ from .events import (
     StepSkipped,
     StepStarted,
 )
+from .home import setting
 from .models import (
     Locator,
     Playbook,
@@ -129,6 +130,10 @@ class RepairRequest:
         }
 
 
+# Which recordings every replay makes: "video", "trace", or both with a comma.
+RECORD_SETTING = "DEJO_RECORD"
+
+
 @dataclass
 class ReplayResult:
     ok: bool
@@ -136,6 +141,8 @@ class ReplayResult:
     repair: RepairRequest | None = None
     reason: str = ""
     saved_files: list[str] = field(default_factory=list)
+    recordings: list[str] = field(default_factory=list)
+    """The video and trace files of this replay, when DEJO_RECORD asked for them."""
     """Files this run actually wrote to disk. A "download the invoice" task is not done
     until there is a real file, so replay reports paths rather than just filenames."""
 
@@ -239,6 +246,15 @@ class NeedsTask(NoTrailError):
     def __init__(self, message: str, *, tasks: list[str]):
         super().__init__(message)
         self.tasks = tasks
+
+
+def _reads_many(step: Step) -> bool:
+    """A read about every match (a count, every row, every card's fields). Replay handed it
+    only the first match, so `count` replayed as 1 and `all_text` as one row."""
+    if step.action != READ_ACTION:
+        return False
+    kind = (step.value or "text").partition(":")[0]
+    return kind in reads.READS and reads.READS[kind].many
 
 
 def _said_nothing(step: Step) -> str:
@@ -430,6 +446,7 @@ class Executor:
         self.store = store
         self.browser = browser
         self.events = emitter or Emitter()
+        steplog.attach(self.events)
         # Which signed-in identity this replay is. Only secrets need it: one domain can
         # have a customer, a vendor and an admin sign-in, each with its own password.
         self.profile = profile
@@ -446,7 +463,23 @@ class Executor:
     _unverified: list[int] = []
     """Substituted steps nothing on the page could confirm."""
 
-    def run(
+    def run(self, domain: str, task: str | None = None, **how: Any) -> ReplayResult:
+        """Replay a trail, recording it as DEJO_RECORD asks (video, trace, or both).
+
+        The files are named in the result, beside any downloads, so whoever asked for the
+        replay finds them without looking."""
+        wanted = [kind.strip() for kind in (setting(RECORD_SETTING) or "").split(",") if kind]
+        if not wanted:
+            return self._replay(domain, task=task, **how)
+        self.browser.start_recording(wanted, name=task or domain)
+        try:
+            result = self._replay(domain, task=task, **how)
+        finally:
+            written = self.browser.stop_recording()
+        result.recordings = written
+        return result
+
+    def _replay(
         self,
         domain: str,
         *,
@@ -471,6 +504,10 @@ class Executor:
         self._skipped: list[str] = []
         self._signed_in_already: list[str] = []
         playbook = self._load(domain, task)
+        # The browser as it is, not as the last task left it: a trail that emulates a phone
+        # says so in its own steps.
+        self.browser.clear_emulation()
+        self.browser.clear_blocks()
         if start_url and _leaves_out_of(start_url, playbook):
             start_url = None
 
@@ -814,6 +851,11 @@ class Executor:
         # the step would report success having downloaded nothing.
         self.browser.last_download = None
         self.browser.last_download_path = None
+        # A step that answered a dialog last time answers the next one the same way: the
+        # same choice, the same words in a prompt. Any page-level step can open one too.
+        self.browser.expect_dialog(step.dialog_choice or ACCEPT, step.dialog_answer)
+        self.browser.last_dialog = None
+        self.browser.step_begins()
 
         # Are we even on the page this step belongs to? Asked FIRST, before a single
         # locator is tried, because everything that follows assumes we are.
@@ -893,10 +935,6 @@ class Executor:
             return self._do_to_the_page(step, began)
 
         outcome = self._StepOutcome()
-        # A step that answered a confirm box last time expects the same wording this time.
-        self.browser.dialog_policy = step.dialog_choice or ACCEPT
-        self.browser.last_dialog = None
-
         settled, found_anything, missed = self._try_locators(step, outcome, began=began)
         if settled is not None:
             self._blame(missed, step)
@@ -1019,7 +1057,9 @@ class Executor:
             # A read only needs the element to BE there. Insisting it be visible is what
             # made a hidden heading unreplayable on a page it had been recorded from. The
             # same goes for a hidden <select>.
-            target = self.browser.resolve(locator, visible=step.action not in _SEEN_OR_NOT)
+            target = self.browser.resolve(
+                locator, visible=step.action not in _SEEN_OR_NOT, every=_reads_many(step)
+            )
             if target is None:
                 missed.append((locator, label))
                 continue
@@ -1313,11 +1353,17 @@ class Executor:
         spec = actions.spec_for(step.action)
         value = self._value_for(step, domain) if spec.name in _TEXT_ENTRY else step.value
         was = self.browser.page.url
+        if step.action in BROWSER_ACTIONS:
+            self.browser.do(step.action, value)
+            self.browser.settle()
+            return True
         actions.perform(
             step.action,
             page=self.browser.page,
             target=target,
             value=value,
+            second=self._second_for(step) if spec.needs_second_target else None,
+            options=step.options,
         )
         self.browser.settle()
         if step.risky:
@@ -1330,6 +1376,16 @@ class Executor:
         if moved and self.browser.await_url_change(was):
             self.browser.settle()
         return True
+
+    def _second_for(self, step: Step) -> Any:
+        """The element a drag drops onto, found by the ways the trail kept for it.
+
+        A miss is the browser's kind of failure, so it counts as drift like any other."""
+        for locator in sorted(step.second, key=lambda loc: loc.confidence, reverse=True):
+            found = self.browser.resolve(locator)
+            if found is not None:
+                return found
+        raise PlaywrightError("the element this step drops onto is no longer on the page")
 
     def _retire(self, playbook: Playbook, started: float) -> ReplayResult:
         """Throw the trail away, keep what is known about the site, and say so.

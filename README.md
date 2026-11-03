@@ -27,6 +27,7 @@
   <a href="#benchmark">Benchmark</a> ·
   <a href="#tools">Tools</a> ·
   <a href="docs/BROWSING.md">What it can do</a> ·
+  <a href="docs/CAPABILITIES.md">Compared</a> ·
   <a href=".github/CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -296,6 +297,10 @@ All on your machine.
 | routes, site facts, maps, history | `~/.dejo/memory.db`, one SQLite file. Every decision about what is remembered is in [`engine/src/dejo/store.py`](engine/src/dejo/store.py) |
 | signed-in browser profiles | `~/.dejo/browser-profile`, `~/.dejo/profiles/` |
 | downloads | `~/.dejo/downloads` |
+| screenshots and PDFs | `~/.dejo/captures` |
+| saved sign-in states (`state save`) | `~/.dejo/states` |
+| videos and traces | `~/.dejo/recordings` |
+| the step log, one file a day | `~/.dejo/logs` |
 | passwords, if you choose to keep them in a file | `~/.dejo/secrets.json` |
 
 Being signed in is not the same as remembering. Forget a site and Dejo is still signed in, and
@@ -338,12 +343,72 @@ rather than one item. A step that buys, pays, sends, deletes or submits is marke
 (`click! button "Pay"`); unmarked, Dejo will not do it, and marked, it never runs twice on its
 own.
 
+Every step, in one place:
+
+| step | what it does |
+|---|---|
+| `go URL`, `back`, `forward`, `reload` | move between pages |
+| `click T`, `double_click T`, `hover T`, `tap T` | press things |
+| `fill T "text"`, `type T "text"`, `clear T`, `press KEY [T]` | type; `press Control+A` sends a chord |
+| `select T "option"`, `check T`, `uncheck T`, `set_checked T true` | choose |
+| `upload T "file"`, `drag T to T`, `focus T`, `blur T`, `select_text T` | everything else a hand does |
+| `scroll T`, `scroll down\|up\|left\|right\|top\|bottom\|PIXELS` | bring an element into view, or scroll the page |
+| `scroll T down\|up\|left\|right [PIXELS]` | scroll inside one element: a list, table or chat in its own box |
+| `mouse click\|dblclick\|right\|move X Y`, `mouse drag X Y to X2 Y2`, `mouse down\|up`, `mouse wheel DX DY` | the mouse at a place on the screen, for a chart, map or canvas with nothing inside it to name |
+| `keydown KEY`, `keyup KEY` | hold a key while other steps run |
+| options at the end of a line: `at=X,Y`, `keys=Shift+Control`, `button=right\|middle`, `delay=MS` | click a spot on an element, hold keys while clicking, right click, type at a given speed (`type T "text" delay=100`) |
+| `wait T`, `wait text:WORDS`, `wait url:PART`, `wait gone:CSS`, `wait idle`, `wait SECONDS` | wait for something real |
+| `wait "text:Saved\|Error"` | wait for whichever words come first |
+| `block "**/*.png"`, `block off [PATTERN]` | stop the page loading what matches (images, an ad, a chat widget that slows every run). Kept in the trail |
+| `allow notifications clipboard-read ...`, `allow off` | grant permissions to every site (Dejo grants none unasked). Kept in the trail |
+| `mock "**/api/user" 200 '{"name": "Asha"}'`, `mock off` | answer the page's requests to an address with a made-up response, to test a page. Not kept in a trail: a trail replays the real site |
+| `script "JAVASCRIPT"` | run your own JavaScript in every page from now on, before the page's own. Not kept, like `js` |
+| `header set NAME "VALUE"`, `header clear` | send a header with every request, such as a test server's key. Not kept in a trail |
+| `wait request:WORDS`, `wait response:WORDS` | wait until the page asked for, or got an answer from, an address with these words, since the step before |
+| `tab N\|latest\|main`, `tab new [URL]`, `tab close [N]` | move between tabs, open one, close one (`read tabs` lists them) |
+| `emulate viewport 390x844`, `emulate device "iPhone 13"`, `emulate timezone Asia/Tokyo`, `emulate locale de-DE`, `emulate color dark`, `emulate media print`, `emulate motion reduce`, `emulate offline on`, `emulate network slow3g`, `emulate cpu 4`, `emulate geolocation 18.52,73.85` | look like another browser from now on; `emulate KIND off` undoes one. Kept in the trail, and every replay starts from the browser as it is |
+| `cookie set NAME "VALUE"`, `cookie clear [NAME]`, `storage set KEY "VALUE"`, `storage clear [KEY]` | change the browser's cookies or this page's local storage (`read cookies`, `read storage` read them). Not kept in a trail: a cookie is often a sign-in |
+| `state save NAME`, `state load NAME\|"/path/state.json"` | save every cookie and the local storage to `~/.dejo/states/NAME.json` (Playwright's storage-state file), or load one: a sign-in to keep, move to another machine, or take from another tool |
+| `record video`, `record trace`, `record performance` (one or more), `record stop` | record what happens next: a video of every tab, a trace that opens in Playwright's trace viewer (`npx playwright show-trace FILE`), or a performance trace that opens in Chrome DevTools' Performance panel. Saved under `~/.dejo/recordings`. Set `DEJO_RECORD=video,trace` to record every replay |
+| `dialog dismiss`, `dialog accept ["answer"]` | how to answer the next alert, confirm or prompt box (Dejo accepts unless told) |
+| `screenshot [T\|full] [as NAME]`, `pdf [as NAME]` | save a picture of the screen, one element or the whole page, or the page as a PDF, under `~/.dejo/captures`. Kept in a trail, so every replay saves a new one |
+| `read fields '{"name": "h3", "price": ".price", "link": "a@href"}' css "article" as items` | many fields of every matching element at once, as JSON: the agent names each field with CSS inside the element (`@attr` for an attribute). No model involved, and it replays |
+| `read box T as where`, `read html T as markup` | where an element is on the screen (X Y WIDTH HEIGHT, the numbers `mouse click` uses), or its HTML |
+| `read metrics as speed` | how fast the page loaded: first byte, first and largest paint, ready, load, layout shift, requests and bytes |
+| `read table T as rows` | a whole table as JSON, one object per row, named by its headings |
+| `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `tabs`, `cookies`, `storage`, `downloads`, `workers`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
+| `expect url\|text\|see\|gone\|count\|value ...` | check the step before landed |
+| `look [WORDS\|from REF\|gN\|all\|raw]` | show the page |
+| `look image` | send a picture of the screen in the reply, for a chart, map or canvas; click a spot in it with `mouse click X Y` |
+| `dismiss css "..."`, `note "fact"`, `restart`, `set_time "2026-09-15"`, `js CODE` | site knowledge and escape hatches |
+
 It handles what breaks recorded flows: shadow DOM, iframes, `div`s pretending to be buttons,
 content that loads late, cookie banners, confirm dialogs, new tabs, and file pickers with no
 visible input. A `js` step runs your own JavaScript when a site does something nobody
 anticipated, and is deliberately never saved into a route, because a step made of code cannot
 be repaired. The full capability list, with the reason for each choice, is in
-[`docs/BROWSING.md`](docs/BROWSING.md).
+[`docs/BROWSING.md`](docs/BROWSING.md). How Dejo compares with Playwright, Playwright MCP,
+Chrome DevTools MCP, browser-use, Stagehand, Puppeteer and Selenium, capability by capability,
+is in [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
+
+## Settings
+
+Set these in the environment of `dejo-mcp`, in your agent's MCP config (`"env": {...}`), or
+before a `dejo` command. All are optional.
+
+| setting | what it does |
+|---|---|
+| `DEJO_HEADED=1` | show the browser window, to watch every run live. Headless otherwise. `dejo run --headed` does the same for one run |
+| `DEJO_RECORD=video,trace` | record every replay: a video, a Playwright trace, or both, under `~/.dejo/recordings` |
+| `DEJO_CDP_URL=http://127.0.0.1:9222` | drive a browser that is already running instead of starting one: a cloud browser, or your own Chrome started with `--remote-debugging-port=9222`. Its sign-ins are used as they are. Dejo works in a tab of its own, never one you have open, closes that tab when it stops, and leaves the browser running. `dejo run --cdp URL` does the same for one run |
+| `DEJO_PROXY=http://proxy.corp:8080` | send every request through your company's proxy |
+| `DEJO_IGNORE_HTTPS_ERRORS=1` | accept a site's own certificate, for an intranet or a test server |
+| `DEJO_LOG=off` | stop writing the step log, `~/.dejo/logs/DATE.log`: one plain line for each step learned or replayed, what it did, how it found its element, and why it stopped |
+| `DEJO_PROFILE`, `DEJO_PROFILES_DIR` | where the browser profiles live |
+| `DEJO_DB` | which memory file |
+| `DEJO_AGENT` | which agent this is, when several share one memory |
+| `DEJO_LOCALE` | the language and region the browser tells sites, like `en-IN` |
+| `DEJO_MEMORY=sibyl` | keep the memory in Sibyl Memory |
 
 ## When something goes wrong
 

@@ -410,7 +410,9 @@ EXERCISED = {
     "text",
     "url",
     "idle",
-}  # in_frame: test_waiting_in_frames.py
+    "request",
+    "response",
+}  # in_frame: test_waiting_in_frames.py; request and response: test_parity.py
 
 
 def test_every_wait_kind_is_exercised() -> None:

@@ -40,6 +40,7 @@ from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from .hard import hard_page
+from .parity import SLOW_SECONDS, data_json, parity_page
 
 app = FastAPI(title="Acme Billing (Dejo demo site)", docs_url=None, redoc_url=None)
 
@@ -774,6 +775,30 @@ def chips(request: Request) -> HTMLResponse:
 def hard() -> HTMLResponse:
     """Every awkward thing a real website does, on one URL. See `hard.py`."""
     return hard_page()
+
+
+@app.get("/parity", response_class=HTMLResponse)
+def parity() -> HTMLResponse:
+    """What other browser tools can do, on one URL. See `parity.py`."""
+    return HTMLResponse(parity_page())
+
+
+@app.get("/parity/echo", response_class=HTMLResponse)
+def parity_echo(request: Request) -> HTMLResponse:
+    """Says which team the request's X-Team header named, to show headers a step set."""
+    team = request.headers.get("x-team", "none")
+    return HTMLResponse(f'<!doctype html><title>Echo</title><p id="team">{team}</p>')
+
+
+@app.get("/parity/data")
+def parity_data() -> Response:
+    return Response(data_json(), media_type="application/json")
+
+
+@app.get("/parity/slow-data")
+async def parity_slow_data() -> Response:
+    await asyncio.sleep(SLOW_SECONDS)
+    return Response(data_json(), media_type="application/json")
 
 
 @app.get("/checkout", response_class=HTMLResponse)
