@@ -7,12 +7,17 @@ program on `/parity` and then replays it, and checks the page shows the step rea
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from dejo import program
 from dejo.browser import Browser, domain_of
 from dejo.executor import Executor, ReplayResult
 from dejo.operations import Session
 from dejo.runner import Outcome, Runner
 from dejo.store import DejoStore
+
+# How every PNG file starts.
+PNG = b"\x89PNG"
 
 
 def learn(browser: Browser, store: DejoStore, task: str, text: str) -> Outcome:
@@ -114,3 +119,41 @@ def test_the_words_of_an_alert_can_be_read_and_replayed(
     )
     assert outcome.answers == {"said": "Saved!"}
     assert replay(browser, store, demo_server, "what the save says").answers == {"said": "Saved!"}
+
+
+# ------------------------------------------------------------------ screenshots and PDF
+
+
+def test_a_screenshot_is_kept_and_a_new_one_is_taken_on_every_replay(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "picture of the chart",
+        f'go {demo_server}/parity\nscreenshot css "#chart" as chart\n',
+    )
+    first = Path(outcome.answers["chart"])
+    assert first.is_file() and first.read_bytes().startswith(PNG)
+    again = Path(replay(browser, store, demo_server, "picture of the chart").answers["chart"])
+    assert again.is_file() and again != first, "a replay must take a new picture"
+
+
+def test_a_whole_page_screenshot_and_a_pdf(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "keep the page",
+        f"go {demo_server}/parity\nscreenshot full as page\npdf as printout\n",
+    )
+    assert Path(outcome.answers["page"]).read_bytes().startswith(PNG)
+    assert Path(outcome.answers["printout"]).read_bytes().startswith(b"%PDF")
+    result = replay(browser, store, demo_server, "keep the page")
+    assert Path(result.answers["printout"]).read_bytes().startswith(b"%PDF")
+
+
+def test_pictures_are_kept_beside_the_downloads(browser: Browser, tmp_path: Path) -> None:
+    """Everything Dejo writes lives in one folder: ~/.dejo, or wherever downloads were sent."""
+    assert browser.captures == tmp_path / "captures"

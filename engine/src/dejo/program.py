@@ -76,10 +76,15 @@ DESCRIBED = frozenset(
 
 # Actions that must be the only line of a program. They are never recorded, so mixing them
 # into a trail would leave a step that silently does nothing on replay.
-ALONE = frozenset({"evaluate", "screenshot"})
+ALONE = frozenset({"evaluate"})
 
 # Registry actions that take a value only sometimes.
-OPTIONAL_VALUE = frozenset({"new_tab", "screenshot"})
+OPTIONAL_VALUE = frozenset({"new_tab"})
+
+# Reads written as a verb of their own, because what they make is a file, not words:
+# `screenshot [T] [full] [as NAME]` and `pdf [as NAME]`. Each is kept in a trail as a read,
+# so a replay takes a fresh one, and its answer is the path of the file.
+CAPTURE_VERBS = frozenset({"screenshot", "pdf"})
 
 # Words that name how to find an element, besides an ARIA role. They match the locator kinds
 # Dejo already stores (`models.Locator`), so a target written by an agent can be kept as it
@@ -261,6 +266,7 @@ def verbs_help() -> str:
         + ", ".join(plain)
         + "; "
         "read [KIND] [T] as NAME; expect url|text|see|gone|count|value ...; "
+        "screenshot [T|full] [as NAME]; pdf [as NAME]; "
         "look [WORDS|from REF|gN|all|raw]; note TEXT; js CODE (alone); help (every step). "
         'T is a ref like e12, or KIND "string" with KIND a role, text, label, placeholder, '
         'alt, title, testid or css, then optionally first, last, nth N or has "text".'
@@ -315,6 +321,8 @@ def reference() -> str:
             "WAITS (wait KIND:SUBJECT, or wait T, or wait SECONDS):",
             waits.catalogue(),
             "",
+            "FILES: screenshot [T | full] [as NAME] and pdf [as NAME] save a picture or a PDF and "
+            "answer its path. Kept in a trail, so every replay saves a new one.",
             "CHECKS: expect url|text|see|gone|count|value ... checks the action just before.",
             'LOOK: look [WORDS | from REF | gN | all | raw]. NOTE: note "a fact about the site".',
         ]
@@ -365,6 +373,8 @@ def _parse_line(body: str, number: int, reason: str) -> Step:
         step = _expect(reader, number, body, reason)
     elif head == "look":
         step = _look(reader, number, body, reason)
+    elif head in CAPTURE_VERBS:
+        step = _capture(head, reader, number, body, reason)
     elif head == "help":
         step = Look(number, body, "help", reason=reason)
     elif head == "note":
@@ -522,7 +532,23 @@ def _read_with_kind(reader: _Words, number: int, body: str, reason: str) -> Read
     if spec.needs_attribute:
         attribute = reader.string(f"read {word} needs {spec.attribute_means}")
     target = reader.target() if spec.needs_target else None
+    if spec.optional_target and reader.peek() == reads.FULL_PAGE:
+        attribute = reader.take()
+    elif spec.optional_target and reader.peek() != "as":
+        target = reader.target()
     return Read(number, body, kind, _named(reader, number), target, attribute, reason)
+
+
+def _capture(kind: str, reader: _Words, number: int, body: str, reason: str) -> Read:
+    target = None
+    attribute = None
+    if kind == "screenshot" and reader.peek() == reads.FULL_PAGE:
+        reader.take()
+        attribute = reads.FULL_PAGE
+    elif kind == "screenshot" and reader.more() and reader.peek() != "as":
+        target = reader.target()
+    name = _named(reader, number) if reader.more() else kind
+    return Read(number, body, kind, name, target, attribute, reason)
 
 
 def _named(reader: _Words, number: int) -> str:

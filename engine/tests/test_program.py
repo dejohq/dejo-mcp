@@ -334,7 +334,6 @@ def test_a_whole_line_comment_is_skipped() -> None:
     ("text", "says"),
     [
         ('js "1"\nclick e1', "js must be the only line"),
-        ("screenshot\nclick e1", "screenshot must be the only line"),
         ('expect url "x"', "expect checks the action on the line just before it"),
         ('click e1\nread e2 as x\nexpect url "y"', "expect checks the action"),
         ('click e1\nexpect url "a"\nexpect url "b"', "expect checks the action"),
@@ -482,3 +481,22 @@ def test_help_lists_every_action_and_every_read() -> None:
         assert program.usage_of(spec) in written, spec.name
     for name in reads.READS:
         assert f"  {name} — " in written, name
+
+
+@pytest.mark.parametrize(
+    ("line", "kind", "name", "attribute", "target"),
+    [
+        ("screenshot", "screenshot", "screenshot", None, None),
+        ("screenshot full as page", "screenshot", "page", "full", None),
+        ('screenshot css "#chart" as chart', "screenshot", "chart", None, Target("css", "#chart")),
+        ("read screenshot e4 as box", "screenshot", "box", None, Target("ref", "e4")),
+        ("pdf", "pdf", "pdf", None, None),
+        ("pdf as invoice", "pdf", "invoice", None, None),
+    ],
+)
+def test_a_picture_or_a_pdf_is_a_read_that_answers_a_file(
+    line: str, kind: str, name: str, attribute: str | None, target: Target | None
+) -> None:
+    step = only(line)
+    assert isinstance(step, Read)
+    assert (step.kind, step.name, step.attribute, step.target) == (kind, name, attribute, target)

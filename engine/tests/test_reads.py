@@ -287,6 +287,8 @@ EXERCISED = {
     "failed_requests",
     # Covered in tests/test_parity.py, learned and replayed on the parity page.
     "dialog",
+    "screenshot",
+    "pdf",
 }
 
 

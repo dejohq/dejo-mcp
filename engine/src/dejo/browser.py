@@ -1208,6 +1208,12 @@ class Browser:
         return options
 
     @property
+    def captures(self) -> Path:
+        """Where screenshots and PDFs are saved: beside the downloads, under ~/.dejo unless
+        the caller moved the downloads somewhere else."""
+        return self._downloads.parent / "captures"
+
+    @property
     def permissions(self) -> list[str]:
         """What this browser has been allowed to do. Empty unless a caller asked."""
         return list(self._permissions)
@@ -1254,6 +1260,7 @@ class Browser:
 
         # Diagnostics. Kept on the page itself so every tab has its own, and so `reads`
         # can find them without knowing anything about Dejo.
+        page._dejo_captures = self.captures  # type: ignore[attr-defined]
         page._dejo_console = []  # type: ignore[attr-defined]
         page._dejo_failures = []  # type: ignore[attr-defined]
         page.on("console", lambda message: self._remember_console(page, message))

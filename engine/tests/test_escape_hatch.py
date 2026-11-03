@@ -12,6 +12,8 @@ nobody thought of, and it is deliberately never recorded.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from dejo import actions, reads
@@ -179,10 +181,7 @@ def test_set_time_without_a_date_says_so(noisy: Session) -> None:
 
 
 def test_screenshot_saves_a_file(noisy: Session, tmp_path) -> None:
-    where = tmp_path / "page.png"
-    outcome = noisy.act("take a picture", "screenshot", value=str(where))
-
-    assert outcome["result"] == str(where)
+    where = Path(noisy.read("screenshot"))
     assert where.is_file()
     assert where.stat().st_size > 0
 
@@ -190,14 +189,14 @@ def test_screenshot_saves_a_file(noisy: Session, tmp_path) -> None:
 def test_screenshot_of_one_element(noisy: Session, tmp_path) -> None:
     page = noisy.look()
     ref = next(e["ref"] for e in page["elements"] if e["name"] == "1,240.00")
-    where = tmp_path / "total.png"
-    noisy.act("picture of the total", "screenshot", ref=ref, value=str(where))
-    assert where.is_file()
+    assert Path(noisy.read("screenshot", ref=ref)).is_file()
 
 
-def test_a_screenshot_is_never_a_step(noisy: Session, tmp_path) -> None:
+def test_a_screenshot_is_a_step_only_when_it_is_kept(noisy: Session, tmp_path) -> None:
+    """A picture taken while looking around is not a step; one the caller keeps is, and its
+    replay takes a new picture (see tests/test_parity.py)."""
     before = len(noisy.trace)
-    noisy.act("take a picture", "screenshot", value=str(tmp_path / "x.png"))
+    noisy.read("screenshot")
     assert len(noisy.trace) == before
 
 
@@ -206,13 +205,13 @@ def test_a_screenshot_is_never_a_step(noisy: Session, tmp_path) -> None:
 
 def test_the_new_actions_are_in_the_catalogue() -> None:
     listed = actions.catalogue()
-    for name in ("evaluate", "screenshot", "set_time"):
+    for name in ("evaluate", "set_time"):
         assert name in listed
 
 
 def test_the_new_reads_are_in_the_catalogue() -> None:
     listed = reads.catalogue()
-    for name in ("console_errors", "failed_requests"):
+    for name in ("console_errors", "failed_requests", "screenshot", "pdf"):
         assert name in listed
 
 

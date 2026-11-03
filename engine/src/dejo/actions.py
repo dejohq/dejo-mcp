@@ -18,7 +18,6 @@ Two rules hold throughout:
 
 from __future__ import annotations
 
-import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -371,13 +370,6 @@ ACTIONS: dict[str, ActionSpec] = {
         value_means="the JavaScript, e.g. `() => document.title` or `el => el.dataset.id`",
         recordable=False,
     ),
-    "screenshot": ActionSpec(
-        "screenshot",
-        "save a picture of the page, or of one element. For showing a human what happened",
-        needs_target=False,
-        value_means="where to save it. Leave empty for an automatic name",
-        recordable=False,
-    ),
     "set_time": ActionSpec(
         "set_time",
         "tell the page it is a different date and time. For a dashboard whose numbers "
@@ -507,7 +499,7 @@ def perform(
     if spec.value_means and value is None and action not in _VALUE_OPTIONAL:
         raise ActionNeedsMore(f"{action} needs a value: {spec.value_means}")
 
-    # Most actions answer nothing. `evaluate` and `screenshot` do, so the return travels.
+    # Most actions answer nothing. `evaluate` does, so the return travels.
     return _RUNNERS[action](page, target, value, second)
 
 
@@ -802,16 +794,6 @@ def _evaluate(page: Page, t: _T | None, value: str | None, second: _T | None) ->
     return page.evaluate(value or "() => null")
 
 
-def _screenshot(page: Page, t: _T | None, value: str | None, second: _T | None) -> str:
-    where = Path(value) if value else Path.cwd() / f"dejo-{int(time.time())}.png"
-    where.parent.mkdir(parents=True, exist_ok=True)
-    if t is not None:
-        t.screenshot(path=where)
-    else:
-        page.screenshot(path=where, full_page=True)
-    return str(where)
-
-
 def _set_time(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: the Session handles it, because the clock belongs to the whole context.
     raise AssertionError("set_time should have been handled by the session")
@@ -878,7 +860,6 @@ _RUNNERS: dict[str, Any] = {
     "restart_trail": _restart_trail,
     "dialog": _dialog,
     "evaluate": _evaluate,
-    "screenshot": _screenshot,
     "set_time": _set_time,
 }
 
@@ -890,7 +871,6 @@ _VALUE_OPTIONAL = {
     "wait",
     "new_tab",
     "wait_for",
-    "screenshot",
 }
 
 

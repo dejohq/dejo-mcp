@@ -16,16 +16,30 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator as PWLocator
 from playwright.sync_api import Page
+
+from .home import HOME
 
 # Reads should answer or give up quickly. The default 30 seconds is right for an action
 # that is waiting for a page to settle, but a question about the current page either has an
 # answer now or does not.
 READ_TIMEOUT_MS = 5000
 
+
+# The word after `screenshot` that asks for the whole length of the page, not just the
+# part on screen.
+FULL_PAGE = "full"
+
+# Where pictures and PDFs go when a page was never told: the browser tells each page its own
+# folder (see `Browser._watch`), and this is only for a page Dejo did not open.
+CAPTURES = HOME / "captures"
 
 # A markdown heading: `## Pricing`.
 _HEADING = re.compile(r"^(#{1,6})\s")
@@ -56,6 +70,8 @@ class ReadSpec:
     needs_attribute: bool = False
     attribute_means: str = "the attribute name, like: read attr href e4"
     """What the extra word a read needs is, for a message about it missing."""
+    optional_target: bool = False
+    """Takes an element when one is named, and the whole page when not."""
     many: bool = False
     """Does this read WANT more than one match?
 
@@ -165,6 +181,20 @@ READS: dict[str, ReadSpec] = {
         "dialog",
         "the words of the last alert, confirm or prompt box this page showed",
         "text",
+        needs_target=False,
+    ),
+    "screenshot": ReadSpec(
+        "screenshot",
+        "a picture of what is on screen, of one element, or with full of the whole page. "
+        "Saved as a file, and taken again on every replay",
+        "the path of the picture",
+        needs_target=False,
+        optional_target=True,
+    ),
+    "pdf": ReadSpec(
+        "pdf",
+        "the page saved as a PDF, as it would print. Taken again on every replay",
+        "the path of the PDF",
         needs_target=False,
     ),
     "page_text": ReadSpec(
@@ -335,6 +365,40 @@ def _dialog(page: Page, t: PWLocator | None, attribute: str | None) -> str:
     return getattr(page, "_dejo_dialog", "")
 
 
+def _screenshot(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    where = _capture_path(page, "png")
+    if t is not None:
+        t.screenshot(path=where, timeout=READ_TIMEOUT_MS)
+    else:
+        page.screenshot(path=where, full_page=attribute == FULL_PAGE)
+    return str(where)
+
+
+def _pdf(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    where = _capture_path(page, "pdf")
+    try:
+        page.pdf(path=where)
+    except PlaywrightError as refused:
+        if "headless" not in str(refused).lower():
+            raise
+        # Chromium prints to PDF only when it has no window. Said plainly, with the fix.
+        raise ReadNeedsMore(
+            "a PDF can only be made by a browser with no window, and this one has a window. "
+            "Run it without DEJO_HEADED, or take a screenshot instead."
+        ) from refused
+    return str(where)
+
+
+def _capture_path(page: Page, suffix: str) -> Path:
+    """A new file for a picture or PDF of this page: the site and the moment, never reused,
+    so a trail replayed every morning keeps every morning's picture."""
+    folder = Path(getattr(page, "_dejo_captures", CAPTURES))
+    folder.mkdir(parents=True, exist_ok=True)
+    site = (urlparse(page.url).hostname or "page").replace(":", "-")
+    moment = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    return folder / f"{site}-{moment}.{suffix}"
+
+
 _READERS: dict[str, Any] = {
     "text": _text,
     "all_text": _all_text,
@@ -352,6 +416,8 @@ _READERS: dict[str, Any] = {
     "console_errors": _console_errors,
     "failed_requests": _failed_requests,
     "dialog": _dialog,
+    "screenshot": _screenshot,
+    "pdf": _pdf,
 }
 
 
