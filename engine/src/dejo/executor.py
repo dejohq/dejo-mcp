@@ -34,7 +34,7 @@ from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, reads
+from . import actions, reads, steplog
 from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
     DriftDetected,
@@ -437,6 +437,7 @@ class Executor:
         self.store = store
         self.browser = browser
         self.events = emitter or Emitter()
+        steplog.attach(self.events)
         # Which signed-in identity this replay is. Only secrets need it: one domain can
         # have a customer, a vendor and an admin sign-in, each with its own password.
         self.profile = profile

@@ -41,6 +41,7 @@ from . import view as pageview
 from .actions import PRESSES
 from .browser import NoSuchElement, domain_of, on_site
 from .distill import distill, locators_for, postcondition_for
+from .events import RunFinished, RunStarted, StepFailed, StepPassed
 from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, href_path, utc_now
 from .operations import (
     READ_ACTION,
@@ -386,6 +387,11 @@ class Runner:
     def run(self, written: Program, *, done: bool = False) -> Outcome:
         """Run every line in order. Stop at the first that fails. Save when finished."""
         outcome = Outcome(task=self.task, domain=self.domain, total=len(written.steps))
+        events = self.session.events
+        first = written.steps[0] if written.steps else None
+        going = first.value if isinstance(first, Action) and first.action == "goto" else ""
+        site = self.domain or domain_of(going or "") or "a new site"
+        events.emit(RunStarted(domain=site, task=self.task, mode="learn"))
         steps = list(written.steps)
         fixing = self._fix_for(written)
         read_something = False
@@ -420,15 +426,23 @@ class Runner:
                     self._refuse_a_human_check(written)
                 read_something = read_something or isinstance(step, Read)
                 outcome.passed.append(step)
+                events.emit(StepPassed(index=step.line, intent=_short(step)))
             except _Stopped as stop:
                 self._stop(outcome, step, stop, steps[at + 1 :])
+                events.emit(StepFailed(index=step.line, intent=_short(step), reason=outcome.reason))
                 break
             except (ActionFailed, NoSuchElement, PlaywrightError, ValueError) as failed:
                 self._stop(outcome, step, self._explain(failed), steps[at + 1 :])
+                events.emit(StepFailed(index=step.line, intent=_short(step), reason=outcome.reason))
                 break
 
         outcome.domain = self.domain
         self._stood = self.browser.page.url
+        events.emit(
+            RunFinished(
+                domain=self.domain, succeeded=outcome.ok, steps_replayed=len(outcome.passed)
+            )
+        )
         # Only what THIS program did. A download from an earlier program has already been
         # saved, and counting it again saved a later look as a new step.
         downloaded = any(entry.download for entry in self.session.trace[trace_before:])

@@ -14,7 +14,7 @@ from pathlib import Path
 
 from tests.demo_site.parity import DATA
 
-from dejo import program
+from dejo import program, steplog
 from dejo.browser import Browser, domain_of
 from dejo.executor import Executor, ReplayResult
 from dejo.operations import Session
@@ -544,3 +544,21 @@ def test_every_replay_is_recorded_when_dejo_record_is_set(
     assert sorted(Path(path).suffix for path in result.recordings) == [".webm", ".zip"]
     assert all(Path(path).is_file() for path in result.recordings)
     assert all(Path(path).parent == browser.recordings for path in result.recordings)
+
+
+def test_a_plain_log_says_what_was_done_and_why(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    learn(
+        browser,
+        store,
+        "read the heading",
+        f'go {demo_server}/parity\nread css "h1" as heading\n',
+    )
+    replay(browser, store, demo_server, "read the heading")
+    runner = Runner(Session(browser=browser, store=store), task="a wrong turn", store=store)
+    runner.run(program.parse('click css "#nowhere"\n'))
+    logged = "\n".join(path.read_text() for path in steplog.folder().glob("*.log"))
+    assert "learn 127.0.0.1" in logged and '"read the heading": step 2 done: read css' in logged
+    assert "replay 127.0.0.1" in logged and '"read the heading": finished after 2 steps' in logged
+    assert '"a wrong turn": step 1 failed: click css "#nowhere"' in logged

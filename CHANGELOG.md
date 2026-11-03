@@ -4,6 +4,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **A plain step log.** Every line learned and every step replayed is written to
+  `~/.dejo/logs/DATE.log`, in words: what it did, how it found its element, how long it took,
+  and why a run stopped. A person can see what their agent did without asking it.
+  `DEJO_LOG=off` turns it off.
 - **Watch a run live in a visible window.** `DEJO_HEADED=1` in the MCP server's environment
   shows the browser for every run; headless stays the default. The README now lists every
   `DEJO_` setting in one table.

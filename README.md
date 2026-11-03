@@ -300,6 +300,7 @@ All on your machine.
 | screenshots and PDFs | `~/.dejo/captures` |
 | saved sign-in states (`state save`) | `~/.dejo/states` |
 | videos and traces | `~/.dejo/recordings` |
+| the step log, one file a day | `~/.dejo/logs` |
 | passwords, if you choose to keep them in a file | `~/.dejo/secrets.json` |
 
 Being signed in is not the same as remembering. Forget a site and Dejo is still signed in, and
@@ -389,6 +390,7 @@ before a `dejo` command. All are optional.
 |---|---|
 | `DEJO_HEADED=1` | show the browser window, to watch every run live. Headless otherwise. `dejo run --headed` does the same for one run |
 | `DEJO_RECORD=video,trace` | record every replay: a video, a Playwright trace, or both, under `~/.dejo/recordings` |
+| `DEJO_LOG=off` | stop writing the step log, `~/.dejo/logs/DATE.log`: one plain line for each step learned or replayed, what it did, how it found its element, and why it stopped |
 | `DEJO_PROFILE`, `DEJO_PROFILES_DIR` | where the browser profiles live |
 | `DEJO_DB` | which memory file |
 | `DEJO_AGENT` | which agent this is, when several share one memory |

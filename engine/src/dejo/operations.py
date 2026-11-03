@@ -22,7 +22,7 @@ from urllib.parse import parse_qsl, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, reads
+from . import actions, reads, steplog
 from . import snapshot as aria
 from .browser import BROWSER_ACTIONS, Browser, Element, Snapshot, domain_of
 from .events import Emitter, MemoryWrite
@@ -139,6 +139,7 @@ class Session:
         self.browser = browser
         self.store = store
         self.events = emitter or Emitter()
+        steplog.attach(self.events)
         self.trace: list[TraceEntry] = []
         # The last read that was NOT marked as the answer, and where it happened. Kept
         # because a caller that never marks one still needs its trail to answer — see
