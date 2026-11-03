@@ -533,6 +533,25 @@ ACTIONS: dict[str, ActionSpec] = {
         ),
         session_handled=True,
     ),
+    "block": ActionSpec(
+        "block",
+        "stop the page loading anything whose address matches a pattern: images, fonts, an "
+        "ad or a chat widget that slows every run. `block off` lets everything through. "
+        "Kept in the trail",
+        needs_target=False,
+        value_means='a pattern like "**/*.png" or "*ads.example.com*", or "off [PATTERN]"',
+        session_handled=True,
+    ),
+    "header": ActionSpec(
+        "header",
+        "send a header with every request from now on, such as an API key a test server "
+        "wants, or stop: header clear",
+        needs_target=False,
+        value_means='"set NAME VALUE" or "clear"',
+        recordable=False,
+        not_kept="a header is often a key or a sign-in, and a trail is shared and stored",
+        session_handled=True,
+    ),
     "emulate": ActionSpec(
         "emulate",
         "make the browser look like another one from now on: a phone, a window size, another "
@@ -1076,6 +1095,16 @@ def _record(page: Page, t: _T | None, value: str | None, second: _T | None) -> N
     raise AssertionError("record should have been handled by the session")
 
 
+def _block(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: blocking belongs to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("block should have been handled by the session")
+
+
+def _header(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: headers belong to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("header should have been handled by the session")
+
+
 def _emulate(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: emulation belongs to every tab, so `Browser.do` handles this.
     raise AssertionError("emulate should have been handled by the session")
@@ -1128,6 +1157,8 @@ _RUNNERS: dict[str, Any] = {
     "switch_tab": _switch_tab,
     "close_tab": _close_tab,
     "emulate": _emulate,
+    "block": _block,
+    "header": _header,
     "record": _record,
     "cookie": _cookie,
     "storage": _storage,

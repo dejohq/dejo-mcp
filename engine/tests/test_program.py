@@ -115,6 +115,8 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "storage": "storage clear",
         "state": "state save team",
         "record": "record video",
+        "block": 'block "**/*.png"',
+        "header": "header clear",
     }
     if name in special:
         return special[name]
@@ -149,6 +151,9 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
         ("record video trace", "record", "video trace", None),
         ("record stop", "record", "stop", None),
         ("record performance", "record", "performance", None),
+        ('block "**/*.png"', "block", "**/*.png", None),
+        ('block off "**/*.png"', "block", "off **/*.png", None),
+        ('header set X-Team "blue"', "header", "set X-Team blue", None),
         ("dialog accept", "dialog", "accept", None),
         ('dialog accept "Rohit"', "dialog", "answer:Rohit", None),
         ("go /issues", "goto", "/issues", None),

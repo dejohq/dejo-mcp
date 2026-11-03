@@ -45,7 +45,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from . import emulation
 from . import snapshot as aria
-from .home import HOME, PROFILE_OWNER, setting
+from .home import HOME, PROFILE_OWNER, setting, switched_on
 from .locks import ProfileHeld, ProfileLock
 from .models import ENTER_FRAME, Locator
 from .snapshot import Element, Snapshot
@@ -157,8 +157,28 @@ MAIN_TAB = "main"
 # carries them out, the same way while learning and on replay. Replay used to hand them to
 # the page-level registry, which could not do them: a saved `tab latest` failed every time.
 BROWSER_ACTIONS = frozenset(
-    {"switch_tab", "new_tab", "close_tab", "set_time", "dialog", "emulate", "cookie", "storage"}
+    {
+        "switch_tab",
+        "new_tab",
+        "close_tab",
+        "set_time",
+        "dialog",
+        "emulate",
+        "cookie",
+        "storage",
+        "block",
+        "header",
+    }
 )
+
+# How a `block` line lets things through again.
+OFF_WORD = "off"
+
+# A proxy every request goes through, as a company network asks: http://proxy.corp:8080.
+PROXY_SETTING = "DEJO_PROXY"
+
+# Accept a site's own (self-signed) certificate, for an intranet or a test server.
+SELF_SIGNED_SETTING = "DEJO_IGNORE_HTTPS_ERRORS"
 
 # What can be recorded while a run happens. A video is what a person watching would have
 # seen; a trace opens in Playwright's trace viewer (npx playwright show-trace FILE, or
@@ -1086,6 +1106,8 @@ class Browser:
         self._hold: ProfileLock | None = None
         self._failed_while_watching: list[str] | None = None
         self._emulation: dict[str, str] = {}
+        self._blocked: list[str] = []
+        self._headers: dict[str, str] = {}
         self._recording: dict[str, Any] = {}
         """What is being recorded: "video" maps each tab to its file, "trace" to its file."""
 
@@ -1177,6 +1199,11 @@ class Browser:
         }
         if self._channel:
             options["channel"] = self._channel
+        proxy = setting(PROXY_SETTING)
+        if proxy:
+            # A company network's own proxy. Not a way round a site's block: Dejo stops at a
+            # block and hands over to the person, whatever the proxy.
+            options["proxy"] = {"server": proxy}
         return options
 
     def _launch(self) -> Any:
@@ -1324,6 +1351,11 @@ class Browser:
         if self._geolocation is not None:
             latitude, longitude = self._geolocation
             options["geolocation"] = {"latitude": latitude, "longitude": longitude}
+        if switched_on(SELF_SIGNED_SETTING):
+            # An intranet or a test server with its own certificate, which a person would
+            # click through. Off unless asked: a wrong certificate on the open web is a warning
+            # worth keeping.
+            options["ignore_https_errors"] = True
         return options
 
     @property
@@ -1492,6 +1524,10 @@ class Browser:
             self.cookie(value or "")
         elif action == "storage":
             self.storage(value or "")
+        elif action == "block":
+            self.block(value or "")
+        elif action == "header":
+            self.header(value or "")
         elif action == "set_time":
             if not value:
                 raise ValueError('set_time needs a date, such as "2026-09-15"')
@@ -1581,6 +1617,41 @@ class Browser:
             self.page.evaluate("() => localStorage.clear()")
         else:
             raise ValueError('storage takes: set KEY "VALUE", or clear [KEY]')
+
+    def block(self, value: str) -> None:
+        """Stop the page from loading what matches a pattern (`**/*.png`, `*ads.example*`),
+        or let it through again with `off PATTERN`, or everything with `off`."""
+        assert self._context is not None
+        words = value.split()
+        if words[:1] == [OFF_WORD]:
+            for pattern in words[1:] or list(self._blocked):
+                with suppress(PlaywrightError):
+                    self._context.unroute(pattern)
+                if pattern in self._blocked:
+                    self._blocked.remove(pattern)
+            return
+        if not value.strip():
+            raise ValueError('block takes an address pattern, like: block "**/*.png"')
+        self._context.route(value, lambda route: route.abort("blockedbyclient"))
+        self._blocked.append(value)
+
+    def clear_blocks(self) -> None:
+        """Let everything load again, before a trail sets its own blocks."""
+        self.block(OFF_WORD)
+
+    def header(self, value: str) -> None:
+        """`set NAME VALUE` sends that header with every request from now on; `clear` stops
+        every header set this way."""
+        assert self._context is not None
+        how, _, rest = value.partition(" ")
+        name, _, said = rest.strip().partition(" ")
+        if how == "set" and name and said:
+            self._headers[name] = said
+        elif how == "clear":
+            self._headers.clear()
+        else:
+            raise ValueError('header takes: set NAME "VALUE", or clear')
+        self._context.set_extra_http_headers(self._headers)
 
     def save_state(self, name: str) -> Path:
         """Write this browser's cookies and local storage to a file: a sign-in to keep, to

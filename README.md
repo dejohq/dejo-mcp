@@ -358,6 +358,9 @@ Every step, in one place:
 | `keydown KEY`, `keyup KEY` | hold a key while other steps run |
 | options at the end of a line: `at=X,Y`, `keys=Shift+Control`, `button=right\|middle`, `delay=MS` | click a spot on an element, hold keys while clicking, right click, type at a given speed (`type T "text" delay=100`) |
 | `wait T`, `wait text:WORDS`, `wait url:PART`, `wait gone:CSS`, `wait idle`, `wait SECONDS` | wait for something real |
+| `wait "text:Saved\|Error"` | wait for whichever words come first |
+| `block "**/*.png"`, `block off [PATTERN]` | stop the page loading what matches (images, an ad, a chat widget that slows every run). Kept in the trail |
+| `header set NAME "VALUE"`, `header clear` | send a header with every request, such as a test server's key. Not kept in a trail |
 | `wait request:WORDS`, `wait response:WORDS` | wait until the page asked for, or got an answer from, an address with these words, since the step before |
 | `tab N\|latest\|main`, `tab new [URL]`, `tab close [N]` | move between tabs, open one, close one (`read tabs` lists them) |
 | `emulate viewport 390x844`, `emulate device "iPhone 13"`, `emulate timezone Asia/Tokyo`, `emulate locale de-DE`, `emulate color dark`, `emulate media print`, `emulate motion reduce`, `emulate offline on`, `emulate network slow3g`, `emulate cpu 4`, `emulate geolocation 18.52,73.85` | look like another browser from now on; `emulate KIND off` undoes one. Kept in the trail, and every replay starts from the browser as it is |
@@ -394,6 +397,8 @@ before a `dejo` command. All are optional.
 | `DEJO_HEADED=1` | show the browser window, to watch every run live. Headless otherwise. `dejo run --headed` does the same for one run |
 | `DEJO_RECORD=video,trace` | record every replay: a video, a Playwright trace, or both, under `~/.dejo/recordings` |
 | `DEJO_CDP_URL=http://127.0.0.1:9222` | drive a browser that is already running instead of starting one: a cloud browser, or your own Chrome started with `--remote-debugging-port=9222`. Its window, tabs and sign-ins are used as they are, and Dejo leaves it running. `dejo run --cdp URL` does the same for one run |
+| `DEJO_PROXY=http://proxy.corp:8080` | send every request through your company's proxy |
+| `DEJO_IGNORE_HTTPS_ERRORS=1` | accept a site's own certificate, for an intranet or a test server |
 | `DEJO_LOG=off` | stop writing the step log, `~/.dejo/logs/DATE.log`: one plain line for each step learned or replayed, what it did, how it found its element, and why it stopped |
 | `DEJO_PROFILE`, `DEJO_PROFILES_DIR` | where the browser profiles live |
 | `DEJO_DB` | which memory file |

@@ -36,6 +36,12 @@ QUIET_WAIT_MS = 5000
 
 MS_PER_SECOND = 1000
 
+# How often a network wait looks at what the page asked for.
+NETWORK_POLL_MS = 50
+
+# Between words in `text:Saved|Error`: wait for any one of them.
+ANY_OF = "|"
+
 # The tags that hold a page of their own. Waiting for one of these is waiting for a page.
 FRAME_TAGS = ("IFRAME", "FRAME")
 
@@ -79,7 +85,8 @@ WAITS: dict[str, WaitSpec] = {
     ),
     "text": WaitSpec(
         "text",
-        "wait until some words appear anywhere on the page",
+        "wait until some words appear anywhere on the page; text:Saved|Error waits for "
+        "whichever comes first",
     ),
     "url": WaitSpec(
         "url",
@@ -191,7 +198,12 @@ def _wait_gone(page: Page, subject: str, timeout_ms: int) -> None:
 
 
 def _wait_text(page: Page, subject: str, timeout_ms: int) -> None:
-    page.get_by_text(subject).first.wait_for(state="visible", timeout=timeout_ms)
+    # `text:Saved|Error` waits for whichever comes first, as a person watches for either.
+    words = [part.strip() for part in subject.split(ANY_OF) if part.strip()]
+    found = page.get_by_text(words[0])
+    for other in words[1:]:
+        found = found.or_(page.get_by_text(other))
+    found.first.wait_for(state="visible", timeout=timeout_ms)
 
 
 def _wait_url(page: Page, subject: str, timeout_ms: int) -> None:
@@ -207,22 +219,25 @@ def _wait_response(page: Page, subject: str, timeout_ms: int) -> None:
 
 
 def _wait_network(page: Page, subject: str, timeout_ms: int, *, answered: bool) -> None:
-    """Done at once when the page already made (or was answered for) such a request since
-    the step before this wait began; otherwise wait for the next one.
+    """Done when the page made (or, for a response, got an answer to) a request with these
+    words in its address since the step before this wait began. A request that failed was
+    answered too: by the failure, which `read requests` then shows.
 
-    Asked in that order on purpose. A click that fetches data is usually answered before
-    the next line starts, and Playwright's own `expect_response` must be set up BEFORE the
-    click, which a step line written after the click cannot do."""
+    Looked for in what the page already did, and not with Playwright's `expect_response`:
+    that must be set up BEFORE the click, which a line written after the click cannot do,
+    and a click that fetches data is usually answered before the next line starts."""
     since = getattr(page, "_dejo_since_before", 0.0)
-    for entry in getattr(page, "_dejo_requests", []):
-        if subject not in entry["request"].url:
-            continue
-        if not answered and entry["at"] >= since:
-            return
-        if answered and entry["response"] is not None and entry.get("answered", 0) >= since:
-            return
-    event = "response" if answered else "request"
-    page.wait_for_event(event, lambda seen: subject in seen.url, timeout=timeout_ms)
+    began = time.monotonic()
+    while True:
+        for entry in getattr(page, "_dejo_requests", []):
+            if subject not in entry["request"].url or entry["at"] < since:
+                continue
+            if not answered or entry["response"] is not None or entry["failed"]:
+                return
+        if (time.monotonic() - began) * MS_PER_SECOND > timeout_ms:
+            raise PWTimeout(f"no {'answer' if answered else 'request'} for {subject}")
+        # Through Playwright, so the page's events are delivered while this waits.
+        page.wait_for_timeout(NETWORK_POLL_MS)
 
 
 def _wait_idle(page: Page, subject: str, timeout_ms: int) -> None:

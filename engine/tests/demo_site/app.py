@@ -783,6 +783,13 @@ def parity() -> HTMLResponse:
     return HTMLResponse(parity_page())
 
 
+@app.get("/parity/echo", response_class=HTMLResponse)
+def parity_echo(request: Request) -> HTMLResponse:
+    """Says which team the request's X-Team header named, to show headers a step set."""
+    team = request.headers.get("x-team", "none")
+    return HTMLResponse(f'<!doctype html><title>Echo</title><p id="team">{team}</p>')
+
+
 @app.get("/parity/data")
 def parity_data() -> Response:
     return Response(data_json(), media_type="application/json")

@@ -4,6 +4,12 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Control what the page loads and how it is asked.** `block "**/*.png"` stops the page
+  loading what matches (kept in the trail, and a replay starts with nothing blocked), `header
+  set NAME "VALUE"` sends a header with every request (not kept), `DEJO_PROXY` sends every
+  request through a company proxy and `DEJO_IGNORE_HTTPS_ERRORS=1` accepts an intranet's own
+  certificate. `wait "text:Saved|Error"` waits for whichever words come first, and
+  `wait response:...` also ends when the request failed.
 - **How fast a page is.** `read metrics` gives the browser's own load numbers (first byte,
   first and largest paint, ready, load, layout shift, requests, bytes) and replays like any
   read; `record performance` ... `record stop` saves a Chrome performance trace that opens in

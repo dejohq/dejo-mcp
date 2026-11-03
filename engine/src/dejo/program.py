@@ -139,6 +139,7 @@ SETTING_VERBS: dict[str, dict[str, int]] = {
     "storage": {"set": 2, "clear": 1},
     "state": {"save": 1, "load": 1},
     "record": {"video": 2, "trace": 2, "performance": 2, "stop": 0},
+    "header": {"set": 2, "clear": 0},
 }
 
 # What `record` can make.
@@ -308,6 +309,8 @@ USAGE = {
     "storage": 'storage set KEY "VALUE" | storage clear [KEY]',
     "state": 'state save NAME | state load NAME|"/path/state.json"',
     "record": "record video|trace|performance (one or more) | record stop",
+    "block": 'block "**/*.png" | block off [PATTERN]',
+    "header": 'header set NAME "VALUE" | header clear',
     "emulate": "emulate KIND SETTING  (see EMULATE below)",
     "dialog": 'dialog dismiss | dialog accept ["answer"]',
     "dismiss_when_seen": 'dismiss css "SELECTOR"',
@@ -457,6 +460,8 @@ def _action(head: str, reader: _Words, number: int, body: str, reason: str) -> A
         value = _checked_address(value or "", number)
     if name == "mouse":
         value = _mouse_value(value or "", reader, number)
+    if name == "block" and value == "off" and reader.more():
+        value = f"off {reader.take()}"
     if name == "emulate":
         value = _emulate_value(value or "", reader, number)
     if name in SETTING_VERBS:

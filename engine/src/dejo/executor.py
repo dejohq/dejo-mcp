@@ -507,6 +507,7 @@ class Executor:
         # The browser as it is, not as the last task left it: a trail that emulates a phone
         # says so in its own steps.
         self.browser.clear_emulation()
+        self.browser.clear_blocks()
         if start_url and _leaves_out_of(start_url, playbook):
             start_url = None
 

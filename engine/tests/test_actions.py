@@ -488,6 +488,8 @@ EXERCISED = {
     "storage",
     "state",
     "record",
+    "block",
+    "header",
 }
 
 

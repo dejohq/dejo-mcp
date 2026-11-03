@@ -644,3 +644,58 @@ def test_a_performance_trace_opens_in_chrome_devtools(
     trace = json.loads(Path(found.group(1)).read_text())
     events = trace["traceEvents"] if isinstance(trace, dict) else trace
     assert any(event.get("name") == "navigationStart" for event in events)
+
+
+# ------------------------------------------------- what the page loads, and how it is asked
+
+
+def test_a_blocked_address_stays_blocked_on_replay_and_only_there(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    task = "load with the data blocked"
+    outcome = learn(
+        browser,
+        store,
+        task,
+        f"go {demo_server}/parity\n"
+        'block "**/parity/data"\n'
+        'click button "Load data"\n'
+        "wait response:/parity/data\n"
+        'read requests "/parity/data" as calls\n',
+    )
+    assert "ERR_BLOCKED_BY_CLIENT" in outcome.answers["calls"]
+    blocked = replay(browser, store, demo_server, task).answers["calls"]
+    assert "ERR_BLOCKED_BY_CLIENT" in blocked[0]
+    learn(
+        browser,
+        store,
+        "load the data",
+        f"go {demo_server}/parity\n"
+        + 'click button "Load data"\nwait response:/parity/data\nread css "#log" as log\n',
+    )
+    assert replay(browser, store, demo_server, "load the data").answers["log"] == "weather: Pune 31"
+
+
+def test_a_header_is_sent_but_not_kept_and_a_wait_takes_either_words(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "which team",
+        'header set X-Team "blue"\n'
+        f"go {demo_server}/parity/echo\n"
+        'wait "text:red|blue"\n'
+        'read css "#team" as team\n',
+    )
+    assert outcome.answers == {"team": "blue"}
+    assert "is not kept in the trail, because a header is often a key" in outcome.text()
+
+
+def test_a_company_proxy_and_its_own_certificates_are_settings(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("DEJO_PROXY", "http://proxy.corp:8080")
+    monkeypatch.setenv("DEJO_IGNORE_HTTPS_ERRORS", "1")
+    browser = Browser(downloads=tmp_path / "downloads")
+    browser._channel = None
+    assert browser._launch_options()["proxy"] == {"server": "http://proxy.corp:8080"}
+    assert browser._context_options()["ignore_https_errors"] is True
