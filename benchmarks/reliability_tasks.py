@@ -8,6 +8,9 @@ posts, buys or logs in. A search box is typed into; a filter, a tab or a link is
 R01-R25 are the 25 tasks of `real_tasks.py` (T01-T25), with the same checked answers.
 R26-R50 cover what those miss: iframes, shadow DOM, custom dropdowns, date pickers, hover
 menus, infinite scroll, a second tab, a search box with suggestions, tables and long pages.
+R51-R61 cover what other browser tools can do that Dejo learned to: dialogs, right clicks,
+whole tables and many fields as JSON, closing a tab, a page's own API answers, another
+language or a phone, cookies and PDFs. They run on test services and practice sites.
 Where a site exists to practise test automation, it is used, because nobody minds being
 automated there and its pages stay the same for years.
 
@@ -643,5 +646,131 @@ TASKS: list[Task] = [
             'read css ".quote .author" first as answer',
         ),
         ("Marilyn Monroe",),
+    ),
+    # ------------------------------------------------- what other browser tools can do too
+    Task(
+        "R51",
+        "the-internet.herokuapp.com",
+        "cancel a prompt box",
+        _steps(
+            "go https://the-internet.herokuapp.com/javascript_alerts",
+            "dialog dismiss",
+            'click button "Click for JS Prompt"',
+            'read css "#result" as answer',
+        ),
+        ("You entered: null",),
+    ),
+    Task(
+        "R52",
+        "the-internet.herokuapp.com",
+        "type an answer into a prompt box",
+        _steps(
+            "go https://the-internet.herokuapp.com/javascript_alerts",
+            'dialog accept "Dejo"',
+            'click button "Click for JS Prompt"',
+            'read css "#result" as answer',
+        ),
+        ("You entered: Dejo",),
+    ),
+    Task(
+        "R53",
+        "the-internet.herokuapp.com",
+        "right click, and read the alert it opens",
+        _steps(
+            "go https://the-internet.herokuapp.com/context_menu",
+            'click css "#hot-spot" button=right',
+            "read dialog as answer",
+        ),
+        ("You selected a context menu",),
+    ),
+    Task(
+        "R54",
+        "the-internet.herokuapp.com",
+        "a whole table as JSON",
+        _steps(
+            "go https://the-internet.herokuapp.com/tables",
+            'read table css "#table1" as answer',
+        ),
+        ('re:"Last Name": "Smith".*"Email": "jsmith@gmail.com"',),
+    ),
+    Task(
+        "R55",
+        "the-internet.herokuapp.com",
+        "a new window, then closing it",
+        _steps(
+            "go https://the-internet.herokuapp.com/windows",
+            'click link "Click Here"',
+            "tab latest",
+            'read css "h3" as opened',
+            "tab close",
+            'read css "h3" as answer',
+        ),
+        ("Opening a new window",),
+    ),
+    Task(
+        "R56",
+        "books.toscrape.com",
+        "many fields of every card at once",
+        _steps(
+            "go https://books.toscrape.com/",
+            'read fields \'{"title": "h3 a@title", "price": ".price_color"}\' '
+            'css "article.product_pod" as answer',
+        ),
+        ('re:"title": "A Light in the Attic", "price": "£51.77"',),
+    ),
+    Task(
+        "R57",
+        "quotes.toscrape.com",
+        "the JSON a page draws itself from",
+        _steps(
+            "go https://quotes.toscrape.com/scroll",
+            "wait response:/api/quotes",
+            'read response "/api/quotes" as answer',
+        ),
+        ('re:"has_next": ?true',),
+    ),
+    Task(
+        "R58",
+        "httpbin.org",
+        "another language, as the site is told it",
+        _steps(
+            "go https://httpbin.org/",
+            "emulate locale de-DE",
+            "go https://httpbin.org/headers",
+            'read css "pre" as answer',
+        ),
+        ('re:"Accept-Language": "de-DE',),
+    ),
+    Task(
+        "R59",
+        "httpbin.org",
+        "a phone, as the site is told it",
+        _steps(
+            "go https://httpbin.org/",
+            'emulate device "iPhone 13"',
+            "go https://httpbin.org/user-agent",
+            'read css "pre" as answer',
+        ),
+        ("re:iPhone",),
+    ),
+    Task(
+        "R60",
+        "httpbin.org",
+        "a cookie the site set",
+        _steps(
+            "go https://httpbin.org/cookies/set?flavour=ginger",
+            'read cookies "flavour" as answer',
+        ),
+        ("flavour=ginger (httpbin.org)",),
+    ),
+    Task(
+        "R61",
+        "example.com",
+        "the page as a PDF",
+        _steps(
+            "go https://example.com/",
+            "read pdf as answer",
+        ),
+        (r"re:\.pdf$",),
     ),
 ]

@@ -104,6 +104,10 @@ _PATH_MARKS = re.compile(r"[#.\[]")
 # Locator kinds that find an element by what it is called, not where it is.
 _NAMING_LOCATORS = _WORDED_LOCATORS | {"test_id", "structural"}
 
+# Reads whose answer is a whole document by design: an API's JSON answer is long, and it is
+# the answer itself, not a page with the answer buried in it (quotes.toscrape.com/scroll).
+_DOCUMENT_READS = frozenset({"response"})
+
 # Reads that hand back only a part of their element, so the element may be the whole page.
 _PART_READS = frozenset({"passage"})
 
@@ -730,7 +734,9 @@ class Runner:
                 "the read found nothing there",
                 "the value may sit in another element; look at the page below",
             )
-        if step.kind not in _MANY_READS and _whole_page(element, answer, part=step.kind):
+        if step.kind not in _MANY_READS | _DOCUMENT_READS and _whole_page(
+            element, answer, part=step.kind
+        ):
             if self.session.trace:
                 self.session.trace.pop()
             if step.kind in _PART_READS:

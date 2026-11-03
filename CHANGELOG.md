@@ -4,6 +4,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **The reliability benchmark covers the new steps.** R51-R61 run dialogs, a right click, a
+  whole table and many fields as JSON, closing a tab, a page's own API answer, another
+  language, a phone, a cookie and a PDF on practice sites and test services, through Dejo and
+  through plain Playwright. R01-R50 stay the score compared week on week.
 - **Control what the page loads and how it is asked.** `block "**/*.png"` stops the page
   loading what matches (kept in the trail, and a replay starts with nothing blocked), `header
   set NAME "VALUE"` sends a header with every request (not kept), `DEJO_PROXY` sends every

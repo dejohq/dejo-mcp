@@ -32,9 +32,10 @@ CHANGING_VERBS = ("upload", "drag", "dispatch_event", "js", "evaluate", "set_tim
 WORDS_THAT_SEND = re.compile(r"\b(sign in|log ?in|register|subscribe|add to cart|buy|vote)\b", re.I)
 
 
-def test_there_are_about_fifty_tasks_with_unique_ids() -> None:
+def test_there_are_fifty_tasks_and_then_the_parity_tasks_with_unique_ids() -> None:
+    """R01-R50 are the score compared week on week; R51 on are what other tools can do."""
     ids = [task.id for task in TASKS]
-    assert len(ids) == len(set(ids)) == 50
+    assert len(ids) == len(set(ids)) == 61
     assert ids == sorted(ids)
 
 
