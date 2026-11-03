@@ -782,3 +782,15 @@ def test_the_files_a_tab_downloaded_and_its_workers_are_read(
     assert outcome.ok, outcome.text()
     assert outcome.answers["files"].endswith(".pdf")
     assert outcome.answers["workers"].startswith("blob:")
+
+
+def test_fields_of_the_whole_page_are_one_object(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "the page's own fields",
+        f'go {demo_server}/parity\nread fields \'{{"title": "h1", "first": "h3 a@href"}}\' as page\n',
+    )
+    assert json.loads(outcome.answers["page"]) == {"title": "Parity lab", "first": "/parity/kettle"}

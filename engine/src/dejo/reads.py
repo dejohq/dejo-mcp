@@ -536,7 +536,11 @@ def _fields(page: Page, t: PWLocator | None, attribute: str | None) -> str:
             'the fields are a JSON object of NAME: CSS, like {"name": "h3", "link": "a@href"}'
         )
     if t is None:
-        return json.dumps(page.locator("html").evaluate(_FIELDS_JS, fields), ensure_ascii=False)
+        # The page as a whole is the document itself; nothing is searched for.
+        whole = page.evaluate(
+            f"(fields) => ({_FIELDS_JS})(document.documentElement, fields)", fields
+        )
+        return json.dumps(whole, ensure_ascii=False)
     found = [one.evaluate(_FIELDS_JS, fields) for one in t.all()]
     return json.dumps(found, ensure_ascii=False)
 
