@@ -4,6 +4,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Watch a run live in a visible window.** `DEJO_HEADED=1` in the MCP server's environment
+  shows the browser for every run; headless stays the default. The README now lists every
+  `DEJO_` setting in one table.
 - **Record a video or a trace of a run.** `record video`, `record trace` (or both) and then
   `record stop` save a video of every tab and a trace that opens in Playwright's trace viewer,
   with each step, the page before and after it, and its network, under `~/.dejo/recordings`.

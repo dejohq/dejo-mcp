@@ -47,7 +47,7 @@ from dejo.browser import (
     profile_named,
 )
 from dejo.executor import Executor, NeedsTask, NoTrailError, ReplayResult
-from dejo.home import setting
+from dejo.home import setting, switched_on
 from dejo.models import SiteKnowledge
 from dejo.operations import Session
 from dejo.runner import Runner
@@ -1008,6 +1008,19 @@ def build_server(
     )
 
 
+def from_environment() -> dict[str, Any]:
+    """How the server is set up, read from its `DEJO_` settings."""
+    return {
+        "agent": setting("DEJO_AGENT"),
+        "profile": setting("DEJO_PROFILE"),
+        "profiles_dir": setting("DEJO_PROFILES_DIR"),
+        "db_path": setting("DEJO_DB"),
+        # Headless unless asked: a window that opens on every task is in the way of the
+        # person whose machine it is. Asked for, it shows each run as it happens.
+        "headless": not switched_on("DEJO_HEADED"),
+    }
+
+
 def run_stdio() -> None:
     """Entry point for `dejo-mcp` and `python -m dejo_mcp`.
 
@@ -1020,15 +1033,12 @@ def run_stdio() -> None:
         DEJO_PROFILES_DIR  where named profiles live. Default ~/.dejo/profiles.
         DEJO_DB       which memory database. Agents share this on purpose; it is how a
                       trail gets from one to the other.
+        DEJO_HEADED   1 to show the browser window, to watch a run live. Headless otherwise.
+        DEJO_RECORD   video, trace or both (video,trace): record every replay.
 
     The old CAIRN_ names are still read when the DEJO_ one is not set.
     """
-    server = build_server(
-        agent=setting("DEJO_AGENT"),
-        profile=setting("DEJO_PROFILE"),
-        profiles_dir=setting("DEJO_PROFILES_DIR"),
-        db_path=setting("DEJO_DB"),
-    )
+    server = build_server(**from_environment())
     who = setting("DEJO_AGENT") or "the default agent"
     log(f"ready as {who}, profile {server.dejo_tools.active!r}")
     try:

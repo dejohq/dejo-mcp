@@ -26,3 +26,15 @@ def test_look_image_sends_a_picture_of_the_screen(mcp_server, demo_server) -> No
     picture = replied.content[1]
     assert picture.mimeType == "image/png"
     assert base64.b64decode(picture.data).startswith(PNG)
+
+
+def test_the_window_is_hidden_unless_dejo_headed_asks(monkeypatch) -> None:
+    """Headless stays the default; DEJO_HEADED=1 shows every run live."""
+    from dejo_mcp.server import from_environment
+
+    monkeypatch.delenv("DEJO_HEADED", raising=False)
+    assert from_environment()["headless"] is True
+    monkeypatch.setenv("DEJO_HEADED", "1")
+    assert from_environment()["headless"] is False
+    monkeypatch.setenv("DEJO_HEADED", "no")
+    assert from_environment()["headless"] is True

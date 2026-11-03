@@ -380,6 +380,21 @@ be repaired. The full capability list, with the reason for each choice, is in
 Chrome DevTools MCP, browser-use, Stagehand, Puppeteer and Selenium, capability by capability,
 is in [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
 
+## Settings
+
+Set these in the environment of `dejo-mcp`, in your agent's MCP config (`"env": {...}`), or
+before a `dejo` command. All are optional.
+
+| setting | what it does |
+|---|---|
+| `DEJO_HEADED=1` | show the browser window, to watch every run live. Headless otherwise. `dejo run --headed` does the same for one run |
+| `DEJO_RECORD=video,trace` | record every replay: a video, a Playwright trace, or both, under `~/.dejo/recordings` |
+| `DEJO_PROFILE`, `DEJO_PROFILES_DIR` | where the browser profiles live |
+| `DEJO_DB` | which memory file |
+| `DEJO_AGENT` | which agent this is, when several share one memory |
+| `DEJO_LOCALE` | the language and region the browser tells sites, like `en-IN` |
+| `DEJO_MEMORY=sibyl` | keep the memory in Sibyl Memory |
+
 ## When something goes wrong
 
 Start with `dejo doctor`. It checks the browser, the profile, the memory and the downloads
