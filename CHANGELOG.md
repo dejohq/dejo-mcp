@@ -4,6 +4,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **How fast a page is.** `read metrics` gives the browser's own load numbers (first byte,
+  first and largest paint, ready, load, layout shift, requests, bytes) and replays like any
+  read; `record performance` ... `record stop` saves a Chrome performance trace that opens in
+  DevTools' Performance panel.
 - **Read many fields at once, as JSON.** `read fields '{"name": "h3", "price": ".price",
   "link": "a@href"}' css "article" as products` gives one object per matching element, and
   `read table css "#prices" as rows` a whole table keyed by its headings: the model-free

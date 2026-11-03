@@ -163,7 +163,30 @@ BROWSER_ACTIONS = frozenset(
 # What can be recorded while a run happens. A video is what a person watching would have
 # seen; a trace opens in Playwright's trace viewer (npx playwright show-trace FILE, or
 # trace.playwright.dev) with every step, the page before and after it, and its network.
-RECORDINGS = ("video", "trace")
+RECORDINGS = ("video", "trace", "performance")
+
+# What a performance recording traces: the categories Chrome DevTools' Performance panel
+# records, as Puppeteer lists them for `page.tracing` (Apache-2.0, Copyright 2017 Google
+# Inc.): names, not code, so the file opens in DevTools like one it made itself.
+PERFORMANCE_CATEGORIES = [
+    "-*",
+    "devtools.timeline",
+    "v8.execute",
+    "disabled-by-default-devtools.timeline",
+    "disabled-by-default-devtools.timeline.frame",
+    "toplevel",
+    "blink.console",
+    "blink.user_timing",
+    "latencyInfo",
+    "disabled-by-default-devtools.timeline.stack",
+    "disabled-by-default-v8.cpu_profiler",
+]
+
+# How long Chrome gets to hand over a finished performance trace.
+TRACE_END_MS = 30_000
+
+# How much of a trace one read of Chrome's stream asks for.
+TRACE_CHUNK = 1 << 20
 
 # What `state save NAME` writes, one JSON file each, beside the profiles: Playwright's own
 # storage-state format, so the same file loads into Playwright, Playwright MCP or Dejo.
@@ -1610,6 +1633,16 @@ class Browser:
         if "trace" in kinds and "trace" not in self._recording:
             self._context.tracing.start(screenshots=True, snapshots=True, title=name)
             self._recording["trace"] = base.with_suffix(".trace.zip")
+        if "performance" in kinds and "performance" not in self._recording:
+            session = self._context.new_cdp_session(self.page)
+            session.send(
+                "Tracing.start",
+                {
+                    "transferMode": "ReturnAsStream",
+                    "traceConfig": {"includedCategories": PERFORMANCE_CATEGORIES},
+                },
+            )
+            self._recording["performance"] = (session, base.with_suffix(".performance.json"))
         if "video" in kinds and "video" not in self._recording:
             self._recording["video"] = {}
             self._recording["video_base"] = base
@@ -1629,6 +1662,8 @@ class Browser:
         files = [str(path) for path in self._recording.get("video", {}).values()]
         if "trace" in self._recording:
             files.append(str(self._recording["trace"]))
+        if "performance" in self._recording:
+            files.append(str(self._recording["performance"][1]))
         return files
 
     def stop_recording(self) -> list[str]:
@@ -1643,8 +1678,34 @@ class Browser:
         if "trace" in self._recording and self._context is not None:
             self._context.tracing.stop(path=self._recording["trace"])
             written.append(str(self._recording["trace"]))
+        if "performance" in self._recording:
+            session, where = self._recording["performance"]
+            with suppress(PlaywrightError):
+                self._end_performance(session, where)
+                written.append(str(where))
         self._recording = {}
         return written
+
+    def _end_performance(self, session: Any, where: Path) -> None:
+        """Stop Chrome's tracing and copy its trace, which it hands over as a stream, into
+        a file that opens in DevTools' Performance panel."""
+        ended: dict[str, Any] = {}
+        session.on("Tracing.tracingComplete", lambda said: ended.update(said))
+        session.send("Tracing.end")
+        waited = 0
+        while "stream" not in ended and waited < TRACE_END_MS:
+            self.page.wait_for_timeout(TAB_POLL_MS)
+            waited += TAB_POLL_MS
+        if "stream" not in ended:
+            raise PlaywrightError("Chrome never handed over the performance trace")
+        with where.open("w", encoding="utf-8") as trace:
+            while True:
+                chunk = session.send("IO.read", {"handle": ended["stream"], "size": TRACE_CHUNK})
+                trace.write(chunk.get("data", ""))
+                if chunk.get("eof"):
+                    break
+        session.send("IO.close", {"handle": ended["stream"]})
+        session.detach()
 
     @property
     def recordings(self) -> Path:

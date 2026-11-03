@@ -521,11 +521,11 @@ ACTIONS: dict[str, ActionSpec] = {
     ),
     "record": ActionSpec(
         "record",
-        "record what happens next, until record stop: a video of every tab, or a trace that "
+        "record what happens next, until record stop: a video of every tab, a trace that "
         "opens in Playwright's trace viewer with each step, the page before and after it, "
-        "and its network",
+        "and its network, or a performance trace that opens in Chrome DevTools",
         needs_target=False,
-        value_means='"video", "trace", "video trace", or "stop"',
+        value_means='"video", "trace", "performance", several of them, or "stop"',
         recordable=False,
         not_kept=(
             "a recording is of one run. To record every replay, set DEJO_RECORD=video,trace "

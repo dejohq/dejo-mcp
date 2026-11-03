@@ -172,6 +172,14 @@ READS: dict[str, ReadSpec] = {
         "JSON",
         many=True,
     ),
+    "metrics": ReadSpec(
+        "metrics",
+        "how fast this page loaded, as the browser measured it: first byte, first and "
+        "largest paint, page ready, layout shift, requests and bytes. For a speed check; "
+        "record performance gives the whole trace",
+        "text",
+        needs_target=False,
+    ),
     "count": ReadSpec(
         "count",
         'how many elements match — "there are 3 unpaid invoices"',
@@ -514,6 +522,50 @@ def _table(page: Page, t: PWLocator, attribute: str | None) -> str:
     return json.dumps(t.first.evaluate(_TABLE_JS), ensure_ascii=False)
 
 
+# The browser's own measurements of this page's load. Largest paint and layout shift come
+# only from an observer, so it is asked for what it already buffered and given one frame.
+_METRICS_JS = """
+() => new Promise((done) => {
+  const nav = performance.getEntriesByType("navigation")[0] || {};
+  const paints = Object.fromEntries(
+    performance.getEntriesByType("paint").map((p) => [p.name, p.startTime]));
+  const resources = performance.getEntriesByType("resource");
+  const seen = {lcp: 0, cls: 0};
+  const watch = (type, take) => {
+    try {
+      new PerformanceObserver((list) => list.getEntries().forEach(take))
+        .observe({type, buffered: true});
+    } catch (e) {}
+  };
+  watch("largest-contentful-paint", (e) => { seen.lcp = Math.max(seen.lcp, e.startTime); });
+  watch("layout-shift", (e) => { if (!e.hadRecentInput) seen.cls += e.value; });
+  requestAnimationFrame(() => setTimeout(() => done({
+    first_byte_ms: nav.responseStart || 0,
+    first_paint_ms: paints["first-paint"] || 0,
+    first_contentful_paint_ms: paints["first-contentful-paint"] || 0,
+    largest_contentful_paint_ms: seen.lcp,
+    dom_ready_ms: nav.domContentLoadedEventEnd || 0,
+    load_ms: nav.loadEventEnd || 0,
+    layout_shift: seen.cls,
+    requests: resources.length + 1,
+    bytes: resources.reduce((all, r) => all + (r.transferSize || 0), nav.transferSize || 0),
+  }), 0));
+})
+"""
+
+
+def _metrics(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    measured = page.evaluate(_METRICS_JS)
+    parts = [
+        f"{name.removesuffix('_ms').replace('_', ' ')} {round(value)} ms"
+        for name, value in measured.items()
+        if name.endswith("_ms") and value
+    ]
+    parts.append(f"layout shift {measured['layout_shift']:.3f}")
+    parts.append(f"{measured['requests']} requests, {measured['bytes'] / 1024:.0f} KB")
+    return ", ".join(parts)
+
+
 def _dialog(page: Page, t: PWLocator | None, attribute: str | None) -> str:
     return getattr(page, "_dejo_dialog", "")
 
@@ -609,6 +661,7 @@ _READERS: dict[str, Any] = {
     "response": _response,
     "dialog": _dialog,
     "tabs": _tabs,
+    "metrics": _metrics,
     "fields": _fields,
     "table": _table,
     "cookies": _cookies,

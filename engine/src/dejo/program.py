@@ -138,8 +138,11 @@ SETTING_VERBS: dict[str, dict[str, int]] = {
     "cookie": {"set": 2, "clear": 1},
     "storage": {"set": 2, "clear": 1},
     "state": {"save": 1, "load": 1},
-    "record": {"video": 1, "trace": 1, "stop": 0},
+    "record": {"video": 2, "trace": 2, "performance": 2, "stop": 0},
 }
+
+# What `record` can make.
+RECORDINGS = frozenset({"video", "trace", "performance"})
 
 # The words that scroll the page itself rather than name an element.
 PAGE_SCROLLS = frozenset({"down", "up", "left", "right", "top", "bottom"})
@@ -304,7 +307,7 @@ USAGE = {
     "cookie": 'cookie set NAME "VALUE" | cookie clear [NAME]',
     "storage": 'storage set KEY "VALUE" | storage clear [KEY]',
     "state": 'state save NAME | state load NAME|"/path/state.json"',
-    "record": "record video | record trace | record video trace | record stop",
+    "record": "record video|trace|performance (one or more) | record stop",
     "emulate": "emulate KIND SETTING  (see EMULATE below)",
     "dialog": 'dialog dismiss | dialog accept ["answer"]',
     "dismiss_when_seen": 'dismiss css "SELECTOR"',
@@ -490,8 +493,9 @@ def _setting_value(name: str, how: str, reader: _Words, number: int) -> str:
         if not reader.more() or OPTION.match(reader.peek() or ""):
             break
         words.append(reader.take())
-    if name == "record" and words[1:] and words[1] not in ("video", "trace"):
-        raise ProgramError(number, f"record takes video and trace, not {words[1]!r}")
+    wrong = [word for word in words[1:] if word not in RECORDINGS]
+    if name == "record" and wrong:
+        raise ProgramError(number, f"record takes video, trace and performance, not {wrong[0]!r}")
     if how in ("set", "save", "load") and len(words) - 1 < shapes[how]:
         raise ProgramError(number, f"{name} {how} needs {shapes[how]} more words, in quotes")
     return " ".join(words)

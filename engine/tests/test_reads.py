@@ -297,6 +297,7 @@ EXERCISED = {
     "storage",
     "fields",
     "table",
+    "metrics",
 }
 
 

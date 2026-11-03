@@ -613,3 +613,34 @@ def test_a_count_replays_every_match_not_only_the_first(
         f'go {demo_server}/parity\nread count css "article.card" as n\n',
     )
     assert replay(browser, store, demo_server, "how many cards").answers == {"n": 2}
+
+
+# ---------------------------------------------------------------------------- speed
+
+
+def test_page_load_numbers_are_read_and_replayed(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(browser, store, "how fast", f"go {demo_server}/parity\nread metrics as speed\n")
+    assert re.search(r"load \d+ ms", outcome.answers["speed"]), outcome.answers
+    assert "layout shift" in replay(browser, store, demo_server, "how fast").answers["speed"]
+
+
+def test_a_performance_trace_opens_in_chrome_devtools(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "trace the load",
+        f"go {demo_server}/blank\n"
+        "record performance\n"
+        f"go {demo_server}/parity\n"
+        "record stop\n"
+        'read css "h1" as heading\n',
+    )
+    found = re.search(r"saved (\S+\.performance\.json)", outcome.text())
+    assert found, outcome.text()
+    trace = json.loads(Path(found.group(1)).read_text())
+    events = trace["traceEvents"] if isinstance(trace, dict) else trace
+    assert any(event.get("name") == "navigationStart" for event in events)
