@@ -107,11 +107,10 @@ RUN_DESCRIPTION = (
     "read T as name   (the value you will report)\n"
     'expect url "part" | expect text "words" | expect see T\n'
     "look words       (show the page, these words first; look image: a picture)\n"
-    'Also: back, hover T, wait T, upload T "file", tab N, dialog dismiss,\n'
-    "screenshot [T], pdf (saved, path given back).\n"
-    'wait response:/api | read response "/api" | read requests\n'
-    "mouse click X Y | click T button=right keys=Shift at=X,Y\n"
-    'emulate device "iPhone 13"|viewport 390x844|timezone X|color dark|network slow3g\n'
+    'Also: back, hover T, wait T, upload T "file", tab N|close, dialog dismiss,\n'
+    "screenshot [T], pdf, mouse click X Y, click T button=right, read table T,\n"
+    'read fields \'{"name": "css"}\' T, read response "/api", wait response:/api,\n'
+    'emulate device "iPhone 13"|timezone X, record video|trace.\n'
     "help    (every other step)\n"
     'T is a ref, or role "name" (link "Travel"), text "...", label "...", css "...". '
     "Add first, last or nth 3 to mean that place in a list, not that item.\n"
