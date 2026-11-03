@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import zipfile
 from pathlib import Path
 
 from tests.demo_site.parity import DATA
@@ -503,3 +504,43 @@ def test_a_saved_state_is_written_to_a_file_and_loads_back(
         )
     )
     assert outcome.answers == {"cookies": "flavour=ginger (127.0.0.1)", "theme": "green"}
+
+
+# --------------------------------------------------------------------- watching a run
+
+
+def test_a_video_and_a_trace_of_a_learning_run(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "load and watch",
+        f"go {demo_server}/parity\n"
+        "record video trace\n"
+        'click button "Load data"\n'
+        'wait "text:weather: Pune"\n'
+        "record stop\n"
+        'read css "#log" as log\n',
+    )
+    said = outcome.text()
+    video = re.search(r"saved (\S+\.webm)", said)
+    trace = re.search(r"(\S+\.trace\.zip)\)", said)
+    assert video and trace, said
+    video, trace = video.group(1), trace.group(1)
+    assert video.endswith(".webm") and Path(video).stat().st_size > 0
+    with zipfile.ZipFile(trace) as opened:
+        assert any(name.endswith(".trace") for name in opened.namelist())
+    assert outcome.saved is not None
+    assert "record" not in [step.action for step in outcome.saved.steps]
+
+
+def test_every_replay_is_recorded_when_dejo_record_is_set(
+    browser: Browser, store: DejoStore, demo_server: str, monkeypatch
+) -> None:
+    learn(browser, store, "load", f'go {demo_server}/parity\nread css "h1" as heading\n')
+    monkeypatch.setenv("DEJO_RECORD", "video,trace")
+    result = replay(browser, store, demo_server, "load")
+    assert sorted(Path(path).suffix for path in result.recordings) == [".webm", ".zip"]
+    assert all(Path(path).is_file() for path in result.recordings)
+    assert all(Path(path).parent == browser.recordings for path in result.recordings)

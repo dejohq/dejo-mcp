@@ -4,6 +4,11 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Record a video or a trace of a run.** `record video`, `record trace` (or both) and then
+  `record stop` save a video of every tab and a trace that opens in Playwright's trace viewer,
+  with each step, the page before and after it, and its network, under `~/.dejo/recordings`.
+  `DEJO_RECORD=video,trace` records every replay, and the reply names the files, also when a
+  replay broke.
 - **Cookies, local storage and saved sign-in state.** `read cookies` and `read storage` read
   them (a cookie the page itself cannot read keeps its value hidden); `cookie set`/`clear` and
   `storage set`/`clear` change them; `state save team` writes every cookie and the local

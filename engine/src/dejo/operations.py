@@ -446,6 +446,9 @@ class Session:
         if action == "state":
             self.last_result = self._state(value or "")
             return
+        if action == "record":
+            self.last_result = self._recording(value or "")
+            return
         if action == "dismiss_when_seen":
             if not value:
                 raise ActionFailed("dismiss_when_seen needs a CSS selector")
@@ -456,6 +459,17 @@ class Session:
             self._loose_read = None
             return
         raise ActionFailed(f"{action} is marked session-handled but nothing handles it")
+
+    def _recording(self, value: str) -> str:
+        """`video`, `trace` or both to start; `stop` to write the files. Names them."""
+        kinds = value.replace(",", " ").split()
+        try:
+            if kinds == ["stop"]:
+                written = self.browser.stop_recording()
+                return "saved " + ", ".join(written) if written else "nothing was recording"
+            return "recording to " + ", ".join(self.browser.start_recording(kinds))
+        except ValueError as wrong:
+            raise ActionFailed(str(wrong)) from wrong
 
     def _state(self, value: str) -> str:
         """`save NAME` or `load NAME`: the file it wrote or read, for the reply."""

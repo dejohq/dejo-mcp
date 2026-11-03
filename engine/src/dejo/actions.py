@@ -519,6 +519,20 @@ ACTIONS: dict[str, ActionSpec] = {
         not_kept="a sign-in belongs to the profile, not to a task; dejo_profile keeps it",
         session_handled=True,
     ),
+    "record": ActionSpec(
+        "record",
+        "record what happens next, until record stop: a video of every tab, or a trace that "
+        "opens in Playwright's trace viewer with each step, the page before and after it, "
+        "and its network",
+        needs_target=False,
+        value_means='"video", "trace", "video trace", or "stop"',
+        recordable=False,
+        not_kept=(
+            "a recording is of one run. To record every replay, set DEJO_RECORD=video,trace "
+            "in the MCP server's environment"
+        ),
+        session_handled=True,
+    ),
     "emulate": ActionSpec(
         "emulate",
         "make the browser look like another one from now on: a phone, a window size, another "
@@ -1057,6 +1071,11 @@ def _state(page: Page, t: _T | None, value: str | None, second: _T | None) -> No
     raise AssertionError("state should have been handled by the session")
 
 
+def _record(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: the Session handles it, because it answers with the files.
+    raise AssertionError("record should have been handled by the session")
+
+
 def _emulate(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: emulation belongs to every tab, so `Browser.do` handles this.
     raise AssertionError("emulate should have been handled by the session")
@@ -1109,6 +1128,7 @@ _RUNNERS: dict[str, Any] = {
     "switch_tab": _switch_tab,
     "close_tab": _close_tab,
     "emulate": _emulate,
+    "record": _record,
     "cookie": _cookie,
     "storage": _storage,
     "state": _state,

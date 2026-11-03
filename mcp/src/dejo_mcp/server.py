@@ -650,6 +650,7 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
         )
     lines.extend(f"{name} = {value}" for name, value in result.answers.items())
     lines.extend(f"saved file: {path}" for path in result.saved_files)
+    lines.extend(f"recorded: {path}" for path in result.recordings)
     if playbook is not None:
         risky = [f"step {s.index} ({s.intent})" for s in playbook.steps if s.risky]
         if risky:
@@ -690,6 +691,8 @@ def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply
     lines = [f"broke at step {at} of {total}: {broken.intent}{tried}"]
     if at > 1:
         lines.append(f"steps 1-{at - 1} passed and are kept.")
+    # A recording of a run that broke is the one most worth watching.
+    lines.extend(f"recorded: {path}" for path in result.recordings)
     rest = f"runs steps {at + 1}-{total} itself" if at < total else "saves the trail with the fix"
     lines += [
         shown,

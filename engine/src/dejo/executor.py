@@ -50,6 +50,7 @@ from .events import (
     StepSkipped,
     StepStarted,
 )
+from .home import setting
 from .models import (
     Locator,
     Playbook,
@@ -129,6 +130,10 @@ class RepairRequest:
         }
 
 
+# Which recordings every replay makes: "video", "trace", or both with a comma.
+RECORD_SETTING = "DEJO_RECORD"
+
+
 @dataclass
 class ReplayResult:
     ok: bool
@@ -136,6 +141,8 @@ class ReplayResult:
     repair: RepairRequest | None = None
     reason: str = ""
     saved_files: list[str] = field(default_factory=list)
+    recordings: list[str] = field(default_factory=list)
+    """The video and trace files of this replay, when DEJO_RECORD asked for them."""
     """Files this run actually wrote to disk. A "download the invoice" task is not done
     until there is a real file, so replay reports paths rather than just filenames."""
 
@@ -446,7 +453,23 @@ class Executor:
     _unverified: list[int] = []
     """Substituted steps nothing on the page could confirm."""
 
-    def run(
+    def run(self, domain: str, task: str | None = None, **how: Any) -> ReplayResult:
+        """Replay a trail, recording it as DEJO_RECORD asks (video, trace, or both).
+
+        The files are named in the result, beside any downloads, so whoever asked for the
+        replay finds them without looking."""
+        wanted = [kind.strip() for kind in (setting(RECORD_SETTING) or "").split(",") if kind]
+        if not wanted:
+            return self._replay(domain, task=task, **how)
+        self.browser.start_recording(wanted, name=task or domain)
+        try:
+            result = self._replay(domain, task=task, **how)
+        finally:
+            written = self.browser.stop_recording()
+        result.recordings = written
+        return result
+
+    def _replay(
         self,
         domain: str,
         *,

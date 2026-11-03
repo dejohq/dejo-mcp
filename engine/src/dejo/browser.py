@@ -160,6 +160,11 @@ BROWSER_ACTIONS = frozenset(
     {"switch_tab", "new_tab", "close_tab", "set_time", "dialog", "emulate", "cookie", "storage"}
 )
 
+# What can be recorded while a run happens. A video is what a person watching would have
+# seen; a trace opens in Playwright's trace viewer (npx playwright show-trace FILE, or
+# trace.playwright.dev) with every step, the page before and after it, and its network.
+RECORDINGS = ("video", "trace")
+
 # What `state save NAME` writes, one JSON file each, beside the profiles: Playwright's own
 # storage-state format, so the same file loads into Playwright, Playwright MCP or Dejo.
 STATE_SUFFIX = ".json"
@@ -1052,6 +1057,8 @@ class Browser:
         self._hold: ProfileLock | None = None
         self._failed_while_watching: list[str] | None = None
         self._emulation: dict[str, str] = {}
+        self._recording: dict[str, Any] = {}
+        """What is being recorded: "video" maps each tab to its file, "trace" to its file."""
 
     # ------------------------------------------------------------- lifecycle
 
@@ -1342,6 +1349,11 @@ class Browser:
         for selector in self._overlays:
             self._arm_overlay(page, selector)
 
+        # A video being made films every tab, including the ones opened during it.
+        if "video" in self._recording:
+            with suppress(PlaywrightError):
+                self._film(page)
+
         # And whatever the browser is emulating: a CDP setting belongs to one page.
         for kind, chosen in self._emulation.items():
             with suppress(PlaywrightError, emulation.EmulationError):
@@ -1556,6 +1568,60 @@ class Browser:
         """Where saved sign-in states are kept: beside the downloads, under ~/.dejo."""
         return self._downloads.parent / "states"
 
+    def start_recording(self, kinds: list[str], name: str = "run") -> list[str]:
+        """Record a video of every tab, a trace of everything, or both, until
+        `stop_recording`. Returns the files that will be written."""
+        assert self._context is not None
+        unknown = sorted(set(kinds) - set(RECORDINGS))
+        if unknown or not kinds:
+            raise ValueError(f"record takes {' or '.join(RECORDINGS)}, not {', '.join(unknown)}")
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        base = self.recordings / f"{stamp}-{_file_name(name)}"
+        base.parent.mkdir(parents=True, exist_ok=True)
+        if "trace" in kinds and "trace" not in self._recording:
+            self._context.tracing.start(screenshots=True, snapshots=True, title=name)
+            self._recording["trace"] = base.with_suffix(".trace.zip")
+        if "video" in kinds and "video" not in self._recording:
+            self._recording["video"] = {}
+            self._recording["video_base"] = base
+            for page in [page for page in self.tabs if not page.is_closed()]:
+                self._film(page)
+        return self.recording_files()
+
+    def _film(self, page: Page) -> None:
+        films: dict[Page, Path] = self._recording["video"]
+        if page in films:
+            return
+        where = Path(f"{self._recording['video_base']}-tab{len(films)}.webm")
+        page.screencast.start(path=where)
+        films[page] = where
+
+    def recording_files(self) -> list[str]:
+        files = [str(path) for path in self._recording.get("video", {}).values()]
+        if "trace" in self._recording:
+            files.append(str(self._recording["trace"]))
+        return files
+
+    def stop_recording(self) -> list[str]:
+        """Stop every recording and write its files. Returns the files written."""
+        written = []
+        for page, where in self._recording.get("video", {}).items():
+            if not page.is_closed():
+                with suppress(PlaywrightError):
+                    page.screencast.stop()
+            if Path(where).is_file():
+                written.append(str(where))
+        if "trace" in self._recording and self._context is not None:
+            self._context.tracing.stop(path=self._recording["trace"])
+            written.append(str(self._recording["trace"]))
+        self._recording = {}
+        return written
+
+    @property
+    def recordings(self) -> Path:
+        """Where videos and traces are saved: beside the downloads, under ~/.dejo."""
+        return self._downloads.parent / "recordings"
+
     def clear_emulation(self) -> None:
         """Back to this browser as it is, before a trail sets its own. A replay of a task that
         emulated a phone must not leave the next task on a phone."""
@@ -1669,6 +1735,9 @@ class Browser:
         return list(self._overlays)
 
     def stop(self) -> None:
+        if self._recording:
+            with suppress(PlaywrightError):
+                self.stop_recording()
         self.keep_session_cookies()
         for closer in (self._context, self._browser):
             if closer is not None:

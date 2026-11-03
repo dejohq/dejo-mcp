@@ -487,6 +487,7 @@ EXERCISED = {
     "cookie",
     "storage",
     "state",
+    "record",
 }
 
 

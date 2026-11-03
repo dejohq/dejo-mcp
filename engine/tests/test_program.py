@@ -114,6 +114,7 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "cookie": "cookie clear",
         "storage": "storage clear",
         "state": "state save team",
+        "record": "record video",
     }
     if name in special:
         return special[name]
@@ -145,6 +146,8 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
         ('cookie set theme "dark mode"', "cookie", "set theme dark mode", None),
         ("storage clear token", "storage", "clear token", None),
         ("state load team", "state", "load team", None),
+        ("record video trace", "record", "video trace", None),
+        ("record stop", "record", "stop", None),
         ("dialog accept", "dialog", "accept", None),
         ('dialog accept "Rohit"', "dialog", "answer:Rohit", None),
         ("go /issues", "goto", "/issues", None),
