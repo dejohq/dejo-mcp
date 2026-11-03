@@ -14,6 +14,7 @@ What is deliberately absent — `inner_html`, `bounding_box`, `evaluate` — and
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -149,6 +150,27 @@ READS: dict[str, ReadSpec] = {
         "text",
         needs_attribute=True,
         attribute_means='the words, like: read passage "Pricing" e1 as pricing',
+    ),
+    "fields": ReadSpec(
+        "fields",
+        "several fields of every matching element at once, as JSON: one object per element. "
+        "The fields are a JSON object of NAME: CSS inside the element, @attr for an "
+        "attribute and . for the element itself. Without an element, one object for the page",
+        "JSON",
+        needs_target=False,
+        optional_target=True,
+        needs_attribute=True,
+        attribute_means=(
+            'the fields, like: read fields \'{"name": "h3", "price": ".price", "link": '
+            '"a@href"}\' css "article" as products'
+        ),
+        many=True,
+    ),
+    "table": ReadSpec(
+        "table",
+        "a whole table as JSON: one object per row, named by the table's headings",
+        "JSON",
+        many=True,
     ),
     "count": ReadSpec(
         "count",
@@ -439,6 +461,59 @@ def _tabs(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
     ]
 
 
+# One element's fields: each a CSS selector inside it, `@attr` for an attribute of what it
+# finds, `.` for the element itself. A field that finds nothing is null, not an error: a
+# card with no sale price is a real answer.
+_FIELDS_JS = """
+(el, fields) => {
+  const one = {};
+  for (const [name, written] of Object.entries(fields)) {
+    const [where, attr] = written.split("@");
+    const found = !where.trim() || where.trim() === "." ? el : el.querySelector(where);
+    if (!found) { one[name] = null; continue; }
+    const said = attr ? found.getAttribute(attr) : (found.innerText ?? found.textContent ?? "");
+    one[name] = said === null ? null : said.replace(/\\s+/g, " ").trim();
+  }
+  return one;
+}
+"""
+
+# A table's rows as objects named by its headings: the <th> of its head, or of its first row.
+_TABLE_JS = """
+(table) => {
+  const text = (cell) => (cell.innerText || cell.textContent || "").replace(/\\s+/g, " ").trim();
+  const rows = [...table.querySelectorAll("tr")];
+  const headRow = table.querySelector("thead tr") || rows.find((r) => r.querySelector("th"));
+  const names = headRow ? [...headRow.children].map(text) : [];
+  return rows.filter((r) => r !== headRow).map((r) => {
+    const cells = [...r.children].map(text);
+    const row = {};
+    cells.forEach((cell, at) => { row[names[at] || `column ${at + 1}`] = cell; });
+    return row;
+  }).filter((row) => Object.values(row).some(Boolean));
+}
+"""
+
+
+def _fields(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    try:
+        fields = json.loads(attribute or "")
+    except json.JSONDecodeError:
+        fields = None
+    if not isinstance(fields, dict) or not all(isinstance(v, str) for v in fields.values()):
+        raise ReadNeedsMore(
+            'the fields are a JSON object of NAME: CSS, like {"name": "h3", "link": "a@href"}'
+        )
+    if t is None:
+        return json.dumps(page.locator("html").evaluate(_FIELDS_JS, fields), ensure_ascii=False)
+    found = [one.evaluate(_FIELDS_JS, fields) for one in t.all()]
+    return json.dumps(found, ensure_ascii=False)
+
+
+def _table(page: Page, t: PWLocator, attribute: str | None) -> str:
+    return json.dumps(t.first.evaluate(_TABLE_JS), ensure_ascii=False)
+
+
 def _dialog(page: Page, t: PWLocator | None, attribute: str | None) -> str:
     return getattr(page, "_dejo_dialog", "")
 
@@ -534,6 +609,8 @@ _READERS: dict[str, Any] = {
     "response": _response,
     "dialog": _dialog,
     "tabs": _tabs,
+    "fields": _fields,
+    "table": _table,
     "cookies": _cookies,
     "storage": _storage,
     "screenshot": _screenshot,

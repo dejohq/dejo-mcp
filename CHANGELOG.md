@@ -4,6 +4,12 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Read many fields at once, as JSON.** `read fields '{"name": "h3", "price": ".price",
+  "link": "a@href"}' css "article" as products` gives one object per matching element, and
+  `read table css "#prices" as rows` a whole table keyed by its headings: the model-free
+  version of Stagehand's and browser-use's `extract`, and it replays like any read.
+- **A count or a list read replays over every match.** Replay handed `count` and `all_text`
+  only the first element, so a saved count answered 1 on every later run.
 - **Drive a browser that is already running.** `DEJO_CDP_URL=http://127.0.0.1:9222` (or
   `dejo run --cdp URL`) connects over the Chrome DevTools Protocol to a cloud browser, or to
   your own Chrome started with `--remote-debugging-port`, instead of starting one. Its tabs and

@@ -118,6 +118,8 @@ _MANY_READS = {
     "tabs",
     "cookies",
     "storage",
+    "fields",
+    "table",
 }
 
 # A read is one value the user asked for: a price, a date, a name, a short note. Past this it

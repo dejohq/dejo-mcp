@@ -366,6 +366,8 @@ Every step, in one place:
 | `record video`, `record trace`, `record video trace`, `record stop` | record what happens next: a video of every tab, or a trace that opens in Playwright's trace viewer (`npx playwright show-trace FILE`). Saved under `~/.dejo/recordings`. Set `DEJO_RECORD=video,trace` to record every replay |
 | `dialog dismiss`, `dialog accept ["answer"]` | how to answer the next alert, confirm or prompt box (Dejo accepts unless told) |
 | `screenshot [T\|full] [as NAME]`, `pdf [as NAME]` | save a picture of the screen, one element or the whole page, or the page as a PDF, under `~/.dejo/captures`. Kept in a trail, so every replay saves a new one |
+| `read fields '{"name": "h3", "price": ".price", "link": "a@href"}' css "article" as items` | many fields of every matching element at once, as JSON: the agent names each field with CSS inside the element (`@attr` for an attribute). No model involved, and it replays |
+| `read table T as rows` | a whole table as JSON, one object per row, named by its headings |
 | `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `tabs`, `cookies`, `storage`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
 | `expect url\|text\|see\|gone\|count\|value ...` | check the step before landed |
 | `look [WORDS\|from REF\|gN\|all\|raw]` | show the page |

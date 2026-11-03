@@ -559,3 +559,15 @@ def test_exact_mouse_and_keyboard_lines(line: str, value: str | None, options: t
 def test_a_wrong_mouse_line_or_option_is_refused(line: str, says: str) -> None:
     with pytest.raises(ProgramError, match=says):
         program.parse(line)
+
+
+def test_many_fields_are_named_before_the_element_they_are_read_from() -> None:
+    step = only("""read fields '{"name": "h3", "link": "a@href"}' css "article" as items""")
+    assert isinstance(step, Read)
+    assert (step.kind, step.attribute, step.target) == (
+        "fields",
+        '{"name": "h3", "link": "a@href"}',
+        Target("css", "article"),
+    )
+    whole_page = only("""read fields '{"title": "h1"}' as page""")
+    assert (whole_page.target, whole_page.attribute) == (None, '{"title": "h1"}')

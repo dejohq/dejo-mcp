@@ -2201,6 +2201,7 @@ class Browser:
         *,
         timeout_ms: int = LOCATOR_WAIT_MS,
         visible: bool = True,
+        every: bool = False,
     ) -> PWLocator | None:
         """Turn a stored locator back into something on the page, or None if it misses.
 
@@ -2222,7 +2223,8 @@ class Browser:
             # into place and cannot yet receive a click. Visible also waits for it to
             # stop moving.
             found.first.wait_for(state="visible" if visible else "attached", timeout=timeout_ms)
-            return found.first
+            # Every match, for a read that is about all of them (a count, every row).
+            return found if every else found.first
         except PlaywrightError:
             # Playwright's own base error, which a timeout is a subclass of. This used to
             # read `(PWTimeout, Exception)`, where the second clause swallowed everything —

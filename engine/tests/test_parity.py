@@ -562,3 +562,54 @@ def test_a_plain_log_says_what_was_done_and_why(
     assert "learn 127.0.0.1" in logged and '"read the heading": step 2 done: read css' in logged
     assert "replay 127.0.0.1" in logged and '"read the heading": finished after 2 steps' in logged
     assert '"a wrong turn": step 1 failed: click css "#nowhere"' in logged
+
+
+# ------------------------------------------------------------- many fields at once
+
+
+def test_many_fields_of_every_card_are_read_as_json_and_replay(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """What Stagehand's extract and browser-use's extract do with a model, done with the
+    agent's own field names and no model: one object per card."""
+    task = "every product"
+    outcome = learn(
+        browser,
+        store,
+        task,
+        f"go {demo_server}/parity\n"
+        'read fields \'{"name": "h3", "price": ".price", "link": "h3 a@href", "sale": ".sale"}\' '
+        'css "article.card" as products\n',
+    )
+    wanted = [
+        {"name": "Kettle", "price": "£24.00", "link": "/parity/kettle", "sale": None},
+        {"name": "Teapot", "price": "£18.50", "link": "/parity/teapot", "sale": None},
+    ]
+    assert json.loads(outcome.answers["products"]) == wanted
+    assert json.loads(replay(browser, store, demo_server, task).answers["products"]) == wanted
+
+
+def test_a_table_is_read_as_json_and_replays(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    learn(
+        browser,
+        store,
+        "the price list",
+        f'go {demo_server}/parity\nread table css "#prices" as prices\n',
+    )
+    rows = json.loads(replay(browser, store, demo_server, "the price list").answers["prices"])
+    assert rows == [{"Item": "Tea", "Price": "£2.00"}, {"Item": "Cake", "Price": "£3.50"}]
+
+
+def test_a_count_replays_every_match_not_only_the_first(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Replay handed a count only the first match, so it answered 1 for every list."""
+    learn(
+        browser,
+        store,
+        "how many cards",
+        f'go {demo_server}/parity\nread count css "article.card" as n\n',
+    )
+    assert replay(browser, store, demo_server, "how many cards").answers == {"n": 2}

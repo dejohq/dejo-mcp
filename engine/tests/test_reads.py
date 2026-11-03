@@ -295,6 +295,8 @@ EXERCISED = {
     "tabs",
     "cookies",
     "storage",
+    "fields",
+    "table",
 }
 
 

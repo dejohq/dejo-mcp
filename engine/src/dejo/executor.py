@@ -248,6 +248,15 @@ class NeedsTask(NoTrailError):
         self.tasks = tasks
 
 
+def _reads_many(step: Step) -> bool:
+    """A read about every match (a count, every row, every card's fields). Replay handed it
+    only the first match, so `count` replayed as 1 and `all_text` as one row."""
+    if step.action != READ_ACTION:
+        return False
+    kind = (step.value or "text").partition(":")[0]
+    return kind in reads.READS and reads.READS[kind].many
+
+
 def _said_nothing(step: Step) -> str:
     """Why an empty answer is reported as a broken step rather than a quiet success."""
     return (
@@ -1047,7 +1056,9 @@ class Executor:
             # A read only needs the element to BE there. Insisting it be visible is what
             # made a hidden heading unreplayable on a page it had been recorded from. The
             # same goes for a hidden <select>.
-            target = self.browser.resolve(locator, visible=step.action not in _SEEN_OR_NOT)
+            target = self.browser.resolve(
+                locator, visible=step.action not in _SEEN_OR_NOT, every=_reads_many(step)
+            )
             if target is None:
                 missed.append((locator, label))
                 continue
