@@ -4,6 +4,11 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Reliability after this work: Dejo 47 of the 50 week-on-week tasks, and 11 of the 11 new
+  ones.** On the same day, before any of it, Dejo passed 46 of 50; plain Playwright passed 45
+  of 50 and 10 of 11. Dejo's three misses are a college catalog that blocked the test machine
+  (twice) and one page whose wording moved (`benchmarks/reliability-2026-11-03-before.json`,
+  `benchmarks/reliability-2026-11-03.json`).
 - **`read downloads` and `read workers`.** The files a tab downloaded, where they were saved,
   and the web workers a page runs in the background.
 - **Made-up answers and init scripts, for testing.** `mock "**/api/user" 200 '{...}'`
