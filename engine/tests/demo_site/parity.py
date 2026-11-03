@@ -143,6 +143,9 @@ PARITY_PAGE = f"""<!doctype html>
     log('settings shown');
   }}
 
+  // A worker, as a page that crunches numbers in the background starts one.
+  new Worker(URL.createObjectURL(new Blob(['onmessage = () => {{}}'], {{type: 'text/javascript'}})));
+
   document.cookie = 'flavour=ginger; path=/';
   localStorage.setItem('theme', 'green');
 </script>

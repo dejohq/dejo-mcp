@@ -376,7 +376,7 @@ Every step, in one place:
 | `read box T as where`, `read html T as markup` | where an element is on the screen (X Y WIDTH HEIGHT, the numbers `mouse click` uses), or its HTML |
 | `read metrics as speed` | how fast the page loaded: first byte, first and largest paint, ready, load, layout shift, requests and bytes |
 | `read table T as rows` | a whole table as JSON, one object per row, named by its headings |
-| `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `tabs`, `cookies`, `storage`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
+| `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `tabs`, `cookies`, `storage`, `downloads`, `workers`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
 | `expect url\|text\|see\|gone\|count\|value ...` | check the step before landed |
 | `look [WORDS\|from REF\|gN\|all\|raw]` | show the page |
 | `look image` | send a picture of the screen in the reply, for a chart, map or canvas; click a spot in it with `mouse click X Y` |

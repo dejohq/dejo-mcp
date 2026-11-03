@@ -760,3 +760,25 @@ def test_a_made_up_answer_and_an_init_script_are_used_but_not_kept(
     assert "a step made of code cannot be repaired" in said
     assert outcome.saved is not None
     assert "mock" not in [step.action for step in outcome.saved.steps]
+
+
+def test_the_files_a_tab_downloaded_and_its_workers_are_read(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    runner = Runner(Session(browser=browser, store=store), task="what it fetched", store=store)
+    outcome = runner.run(
+        program.parse(
+            f"go {demo_server}/\n"
+            'fill label "Email" "finance@acme.com"\n'
+            'fill label "Password" "hunter2"\n'
+            'click button "Sign in"\n'
+            'click link "September 2026"\n'
+            'click link "Download"\n'
+            "read downloads as files\n"
+            f"go {demo_server}/parity\n"
+            "read workers as workers\n"
+        )
+    )
+    assert outcome.ok, outcome.text()
+    assert outcome.answers["files"].endswith(".pdf")
+    assert outcome.answers["workers"].startswith("blob:")

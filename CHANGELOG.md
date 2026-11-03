@@ -4,6 +4,8 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **`read downloads` and `read workers`.** The files a tab downloaded, where they were saved,
+  and the web workers a page runs in the background.
 - **Made-up answers and init scripts, for testing.** `mock "**/api/user" 200 '{...}'`
   answers the page's requests to an address with a response you write, and `script "..."`
   runs your JavaScript in every page before its own. Both are done and never kept in a

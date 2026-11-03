@@ -180,6 +180,18 @@ READS: dict[str, ReadSpec] = {
         "text",
         needs_target=False,
     ),
+    "downloads": ReadSpec(
+        "downloads",
+        "the files this tab has downloaded, where they were saved",
+        "a list of paths",
+        needs_target=False,
+    ),
+    "workers": ReadSpec(
+        "workers",
+        "the scripts the page runs in the background (web workers), by address",
+        "a list of addresses",
+        needs_target=False,
+    ),
     "box": ReadSpec(
         "box",
         "where an element is on the screen and how big: X Y WIDTH HEIGHT in pixels from the top "
@@ -577,6 +589,14 @@ def _metrics(page: Page, t: PWLocator | None, attribute: str | None) -> str:
     return ", ".join(parts)
 
 
+def _downloads(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    return list(getattr(page, "_dejo_downloads", []))
+
+
+def _workers(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    return [worker.url for worker in page.workers]
+
+
 def _box(page: Page, t: PWLocator, attribute: str | None) -> str:
     found = t.bounding_box(timeout=READ_TIMEOUT_MS)
     if found is None:
@@ -687,6 +707,8 @@ _READERS: dict[str, Any] = {
     "dialog": _dialog,
     "tabs": _tabs,
     "box": _box,
+    "downloads": _downloads,
+    "workers": _workers,
     "html": _html,
     "metrics": _metrics,
     "fields": _fields,

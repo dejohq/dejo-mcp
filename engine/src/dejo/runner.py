@@ -124,6 +124,8 @@ _MANY_READS = {
     "storage",
     "fields",
     "table",
+    "downloads",
+    "workers",
 }
 
 # A read is one value the user asked for: a price, a date, a name, a short note. Past this it

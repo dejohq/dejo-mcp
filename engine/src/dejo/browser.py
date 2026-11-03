@@ -1418,6 +1418,7 @@ class Browser:
         # Diagnostics. Kept on the page itself so every tab has its own, and so `reads`
         # can find them without knowing anything about Dejo.
         page._dejo_captures = self.captures  # type: ignore[attr-defined]
+        page._dejo_downloads = []  # type: ignore[attr-defined]
         page._dejo_console = []  # type: ignore[attr-defined]
         page._dejo_messages = []  # type: ignore[attr-defined]
         page._dejo_requests = []  # type: ignore[attr-defined]
@@ -2008,6 +2009,9 @@ class Browser:
             download.save_as(destination)
             self.last_download_path = str(destination)
             self.saved_files.append(str(destination))
+            # Kept on the page that downloaded it too, for `read downloads`.
+            if download.page is not None:
+                download.page._dejo_downloads.append(str(destination))  # type: ignore[attr-defined]
 
     # ----------------------------------------------------------------- doing
 

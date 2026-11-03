@@ -300,6 +300,8 @@ EXERCISED = {
     "metrics",
     "box",
     "html",
+    "downloads",
+    "workers",
 }
 
 
