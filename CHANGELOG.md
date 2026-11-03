@@ -2,8 +2,15 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
-## Unreleased
+## 0.3.1 — 2026-11-03
 
+- **Dejo now finds and uses the right element on 47 of 50 real websites, up from 25.** A new
+  benchmark, `benchmarks/reliability.py`, runs 50 fixed step programs on real public sites
+  (iframes, shadow DOM, custom dropdowns, date pickers, hover menus, infinite scroll, tabs,
+  suggestions, tables, long pages) with no model anywhere. Before the fixes below Dejo passed
+  25 of 50; after them 47 of 50, where the same steps through plain Playwright passed 43. Two
+  of Dejo's three misses were sites that blocked the test machine
+  (`benchmarks/reliability-2026-11-02-before.json`, `benchmarks/reliability-2026-11-02.json`).
 - **A target finds an element by words in its name, the way Playwright does.** A name had to
   match exactly, so `link "Belt Sander"` found nothing on a shop card whose link says "Belt
   Sander $73.59", and `checkbox "Best Current Practice"` missed the filter called "Best
