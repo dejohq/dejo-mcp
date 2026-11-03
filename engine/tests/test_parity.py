@@ -64,3 +64,53 @@ def test_a_step_into_a_new_tab_replays(
     result = replay(browser, store, demo_server, "the books in the new tab")
     assert result.answers == {"heading": "Books"}
     assert browser.page.url.endswith("/books")
+
+
+# ------------------------------------------------------------------------------ dialogs
+
+
+def test_a_dismissed_confirm_box_is_dismissed_again_on_replay(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Dejo accepts every box unless told. Told to cancel one, the trail keeps the choice."""
+    outcome = learn(
+        browser,
+        store,
+        "keep the draft",
+        f"go {demo_server}/parity\n"
+        "dialog dismiss\n"
+        'click button "Reset draft"\n'
+        'read css "#log" as log\n',
+    )
+    assert outcome.answers == {"log": "kept"}
+    assert "dismissed it" in outcome.text()
+    assert replay(browser, store, demo_server, "keep the draft").answers == {"log": "kept"}
+
+
+def test_an_answer_typed_into_a_prompt_is_typed_again_on_replay(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "give my name",
+        f"go {demo_server}/parity\n"
+        'dialog accept "Rohit"\n'
+        'click button "Ask my name"\n'
+        'read css "#log" as log\n',
+    )
+    assert outcome.answers == {"log": "name: Rohit"}
+    assert replay(browser, store, demo_server, "give my name").answers == {"log": "name: Rohit"}
+
+
+def test_the_words_of_an_alert_can_be_read_and_replayed(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "what the save says",
+        f'go {demo_server}/parity\nclick button "Save"\nread dialog as said\n',
+    )
+    assert outcome.answers == {"said": "Saved!"}
+    assert replay(browser, store, demo_server, "what the save says").answers == {"said": "Saved!"}

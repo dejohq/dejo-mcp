@@ -53,7 +53,7 @@ ALIASES = {
 # Verbs whose arguments do not follow the plain `VERB [T] [VALUE] [to T]` shape, so each has
 # its own reader below. `scroll` takes a target OR a direction, `wait` a target, seconds or a
 # `kind:subject`, `tab` a number or `new`, `press` a key first and then maybe a target.
-SHAPED_VERBS = frozenset({"press", "scroll", "wait", "tab"})
+SHAPED_VERBS = frozenset({"press", "scroll", "wait", "tab", "dialog"})
 
 # Registry actions the help line already shows in their own words, so the plain list after
 # it does not repeat them.
@@ -70,6 +70,7 @@ DESCRIBED = frozenset(
         "back",
         "switch_tab",
         "new_tab",
+        "dialog",
     }
 )
 
@@ -134,7 +135,7 @@ GROUP = re.compile(r"^g\d+$")
 NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 PickKind = Literal["first", "last", "nth", "has"]
-LookMode = Literal["page", "words", "from", "group", "all", "raw"]
+LookMode = Literal["page", "words", "from", "group", "all", "raw", "help"]
 
 
 class ProgramError(ValueError):
@@ -256,12 +257,69 @@ def verbs_help() -> str:
     plain = sorted(set(actions.ACTIONS) - DESCRIBED - set(ALIASES.values()) - ALONE)
     return (
         "Verbs: go URL, click T, fill T TEXT, select T OPTION, press KEY [T], scroll T|down, "
-        "wait T|SECONDS, tab N|new [URL], back, " + ", ".join(plain) + "; "
+        "wait T|SECONDS, tab N|new [URL], dialog accept [ANSWER]|dismiss, back, "
+        + ", ".join(plain)
+        + "; "
         "read [KIND] [T] as NAME; expect url|text|see|gone|count|value ...; "
-        "look [WORDS|from REF|gN|all|raw]; note TEXT; js CODE (alone). "
+        "look [WORDS|from REF|gN|all|raw]; note TEXT; js CODE (alone); help (every step). "
         'T is a ref like e12, or KIND "string" with KIND a role, text, label, placeholder, '
         'alt, title, testid or css, then optionally first, last, nth N or has "text".'
     )
+
+
+# How a line writes the registry actions whose verb or arguments differ from their name.
+USAGE = {
+    "press": "press KEY [T]",
+    "scroll": "scroll down|up|top|bottom|PIXELS",
+    "scroll_to": "scroll T",
+    "wait": "wait SECONDS",
+    "wait_for": "wait T | wait KIND:SUBJECT",
+    "switch_tab": "tab N|latest|main",
+    "new_tab": "tab new [URL]",
+    "dialog": 'dialog dismiss | dialog accept ["answer"]',
+    "dismiss_when_seen": 'dismiss css "SELECTOR"',
+    "restart_trail": "restart",
+    "evaluate": "js CODE  (alone)",
+    "goto": "go URL",
+}
+
+
+def usage_of(spec: actions.ActionSpec) -> str:
+    """How one action is written as a line: `fill T "VALUE"`, `drag T to T`."""
+    if spec.name in USAGE:
+        return USAGE[spec.name]
+    words = [spec.name, "T" if spec.needs_target else "", '"VALUE"' if spec.value_means else ""]
+    if spec.needs_second_target:
+        words.append("to T")
+    shown = " ".join(word for word in words if word)
+    return f"{shown}  (VALUE = {spec.value_means})" if spec.value_means else shown
+
+
+def reference() -> str:
+    """Every step Dejo understands, for the `help` line. Built from the registries, so a
+    new action or read is listed the moment it exists. The tool's own description has room
+    for the common steps only: every tool definition is re-read on every turn."""
+    shapes = "\n".join(
+        [
+            "Each line is one step. T is a ref from the page (e12, f1e3 in an iframe), or a "
+            'KIND "string" with KIND a role (link, button, ...), text, label, placeholder, '
+            'alt, title, testid or css; then optionally first, last, nth N or has "words".',
+            "Write VERB! (click!, fill!) for a step that buys, pays, sends, deletes or submits.",
+            "",
+            "ACTIONS:",
+            *(f"  {usage_of(spec)} — {spec.summary}" for spec in actions.ACTIONS.values()),
+            "",
+            "READS (read KIND [T] as NAME; KIND defaults to text):",
+            reads.catalogue(),
+            "",
+            "WAITS (wait KIND:SUBJECT, or wait T, or wait SECONDS):",
+            waits.catalogue(),
+            "",
+            "CHECKS: expect url|text|see|gone|count|value ... checks the action just before.",
+            'LOOK: look [WORDS | from REF | gN | all | raw]. NOTE: note "a fact about the site".',
+        ]
+    )
+    return shapes
 
 
 def _split_comment(raw: str, number: int) -> tuple[str, str]:
@@ -307,6 +365,8 @@ def _parse_line(body: str, number: int, reason: str) -> Step:
         step = _expect(reader, number, body, reason)
     elif head == "look":
         step = _look(reader, number, body, reason)
+    elif head == "help":
+        step = Look(number, body, "help", reason=reason)
     elif head == "note":
         step = Note(number, body, reader.string("note needs the fact, in quotes"), reason)
     else:
@@ -379,6 +439,9 @@ def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> A
             return Action(number, body, "wait_for", None, reader.take(), reason=reason)
         return Action(number, body, "wait_for", reader.target(), reason=reason)
 
+    if verb == "dialog":
+        return _dialog(reader, number, body, reason)
+
     # tab N | tab latest | tab main | tab new [URL]
     word = reader.string('tab needs a number, "latest", "main" or "new"')
     if word == "new":
@@ -394,6 +457,19 @@ def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> A
     if word not in ("latest", "main") and not word.isdigit():
         raise ProgramError(number, f'tab takes a number, "latest", "main" or "new", not {word!r}')
     return Action(number, body, "switch_tab", None, word, reason=reason)
+
+
+def _dialog(reader: _Words, number: int, body: str, reason: str) -> Action:
+    """`dialog accept`, `dialog accept "Rohit"` (typed into a prompt) or `dialog dismiss`.
+    Said BEFORE the step that opens the box, which is when the browser must know."""
+    choice = reader.string("dialog needs accept or dismiss, like: dialog dismiss")
+    if choice == "dismiss":
+        return Action(number, body, "dialog", None, "dismiss", reason=reason)
+    if choice != "accept":
+        raise ProgramError(number, f"dialog takes accept or dismiss, not {choice!r}")
+    answer = reader.optional_string()
+    value = "accept" if answer is None else f"answer:{answer}"
+    return Action(number, body, "dialog", None, value, reason=reason)
 
 
 def _checked_address(url: str, number: int) -> str:

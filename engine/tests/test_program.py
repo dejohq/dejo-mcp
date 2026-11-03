@@ -106,6 +106,7 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "wait_for": "wait element:#total",
         "switch_tab": "tab latest",
         "new_tab": "tab new https://example.com/",
+        "dialog": "dialog dismiss",
     }
     if name in special:
         return special[name]
@@ -129,6 +130,9 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
 @pytest.mark.parametrize(
     ("line", "action", "value", "target"),
     [
+        ("dialog dismiss", "dialog", "dismiss", None),
+        ("dialog accept", "dialog", "accept", None),
+        ('dialog accept "Rohit"', "dialog", "answer:Rohit", None),
         ("go /issues", "goto", "/issues", None),
         ("press Enter e4", "press", "Enter", Target("ref", "e4")),
         ("press Escape", "press", "Escape", None),
@@ -461,3 +465,20 @@ def test_lines_agents_really_wrote_get_the_right_hint(line: str, says: str) -> N
     """Each of these was sent by Claude in the 21 Oct benchmark and got a misleading error."""
     with pytest.raises(ProgramError, match=says):
         program.parse(line)
+
+
+# ------------------------------------------------------------------------ help
+
+
+def test_help_is_a_line_of_its_own() -> None:
+    assert only("help").mode == "help"
+
+
+def test_help_lists_every_action_and_every_read() -> None:
+    """The tool description only has room for the common steps, so `help` is where every
+    other step is found. Built from the registries, it cannot miss one."""
+    written = program.reference()
+    for spec in actions.ACTIONS.values():
+        assert program.usage_of(spec) in written, spec.name
+    for name in reads.READS:
+        assert f"  {name} — " in written, name

@@ -52,7 +52,7 @@ PARITY_PAGE = f"""<!doctype html>
 
 <a id="away" href="/books" target="_blank">Open the books in a new tab</a>
 
-<button onclick="log(confirm('Delete the draft?') ? 'deleted' : 'kept')">Delete draft</button>
+<button onclick="log(confirm('Reset the draft?') ? 'reset' : 'kept')">Reset draft</button>
 <button onclick="log('name: ' + prompt('What is your name?', 'nobody'))">Ask my name</button>
 <button onclick="alert('Saved!'); log('alerted')">Save</button>
 

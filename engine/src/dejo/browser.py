@@ -148,7 +148,10 @@ MAIN_TAB = "main"
 # Registry actions done to the browser as a whole rather than to one page, so `Browser.do`
 # carries them out, the same way while learning and on replay. Replay used to hand them to
 # the page-level registry, which could not do them: a saved `tab latest` failed every time.
-BROWSER_ACTIONS = frozenset({"switch_tab", "new_tab", "set_time"})
+BROWSER_ACTIONS = frozenset({"switch_tab", "new_tab", "set_time", "dialog"})
+
+# How a `dialog` line writes "accept and type this into the prompt".
+ANSWER_PREFIX = "answer:"
 
 # A tab opened by the SITE arrives on an event, not on the call that caused it, so there is
 # a gap between `window.open` returning and Dejo knowing the tab exists. Poll for it
@@ -973,6 +976,10 @@ class Browser:
         appears to succeed while nothing happened. Whatever is chosen, the message and the
         choice are both recorded, and replay stops if the message has changed."""
         self.last_dialog: dict[str, str] | None = None
+        self._next_dialog: tuple[str, str | None] | None = None
+        """How to answer the NEXT dialog only, set by a `dialog` line or by replay: the
+        choice, and the words to type into a prompt. Used once, then the policy rules again,
+        so one cancelled box never cancels every box after it."""
         self.last_status: int | None = None
         """The HTTP status the last `goto` was answered with. None when there was no
         response to read, which happens for a jump within the same page."""
@@ -1294,15 +1301,24 @@ class Browser:
         An unanswered dialog blocks every later step: the browser simply stops. So one of
         these must always run — doing nothing is not a neutral option.
         """
-        self.last_dialog = {
-            "type": dialog.type,
-            "message": dialog.message,
-            "choice": self.dialog_policy,
-        }
-        if self.dialog_policy == ACCEPT:
-            dialog.accept()
-        else:
+        choice, answer = self._next_dialog or (self.dialog_policy, None)
+        self._next_dialog = None
+        self.last_dialog = {"type": dialog.type, "message": dialog.message, "choice": choice}
+        if answer is not None and dialog.type == "prompt":
+            self.last_dialog["answer"] = answer
+        if dialog.page is not None:
+            dialog.page._dejo_dialog = dialog.message  # type: ignore[attr-defined]
+        if choice != ACCEPT:
             dialog.dismiss()
+        elif answer is not None and dialog.type == "prompt":
+            dialog.accept(answer)
+        else:
+            dialog.accept()
+
+    def expect_dialog(self, choice: str, answer: str | None = None) -> None:
+        """Answer the next dialog this way: accept or dismiss, and for a prompt, these
+        words. A prompt accepted with no words keeps the default the site wrote in it."""
+        self._next_dialog = (choice, answer)
 
     def do(self, action: str, value: str | None) -> None:
         """One of `BROWSER_ACTIONS`. Raises ValueError, in words a person can act on, when
@@ -1315,6 +1331,14 @@ class Browser:
             if not value:
                 raise ValueError('set_time needs a date, such as "2026-09-15"')
             self.set_time(value)
+        elif action == "dialog":
+            choice = value or ACCEPT
+            if choice.startswith(ANSWER_PREFIX):
+                self.expect_dialog(ACCEPT, choice[len(ANSWER_PREFIX) :])
+            elif choice in (ACCEPT, DISMISS):
+                self.expect_dialog(choice)
+            else:
+                raise ValueError('dialog takes accept, dismiss, or accept "the answer to type"')
         else:
             raise ValueError(f"{action} is not something done to the whole browser")
 

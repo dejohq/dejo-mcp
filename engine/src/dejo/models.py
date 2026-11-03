@@ -370,6 +370,12 @@ class Step:
     "click OK" must never blindly accept a box that now reads "delete 400 rows?" — so on
     replay a changed message stops the run instead of answering it."""
 
+    dialog_answer: str | None = None
+    """What was typed into a prompt box this step answered, when anything was.
+
+    Kept with the choice, so a replay types the same answer the learning run did, instead
+    of accepting whatever default the site wrote in the box."""
+
     secret: str | None = None
     """Names a value this step needs but must never remember, such as "password".
 
@@ -509,6 +515,7 @@ class Step:
             "risky": self.risky,
             "clears_away": self.clears_away,
             **({"second": [loc.to_dict() for loc in self.second]} if self.second else {}),
+            **({"dialog_answer": self.dialog_answer} if self.dialog_answer is not None else {}),
             "health": round(self.health, 3),
         }
 
@@ -532,6 +539,7 @@ class Step:
             risky=raw.get("risky", False),
             clears_away=raw.get("clears_away", False),
             second=[Locator.from_dict(loc) for loc in raw.get("second", [])],
+            dialog_answer=raw.get("dialog_answer"),
         )
 
 

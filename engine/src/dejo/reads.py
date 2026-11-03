@@ -161,6 +161,12 @@ READS: dict[str, ReadSpec] = {
         "a list of urls with their status",
         needs_target=False,
     ),
+    "dialog": ReadSpec(
+        "dialog",
+        "the words of the last alert, confirm or prompt box this page showed",
+        "text",
+        needs_target=False,
+    ),
     "page_text": ReadSpec(
         "page_text",
         "the readable text of the WHOLE page. ALMOST NEVER THE RIGHT ANSWER. If you "
@@ -325,6 +331,10 @@ def _failed_requests(page: Page, t: PWLocator | None, attribute: str | None) -> 
     return list(getattr(page, "_dejo_failures", []))
 
 
+def _dialog(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    return getattr(page, "_dejo_dialog", "")
+
+
 _READERS: dict[str, Any] = {
     "text": _text,
     "all_text": _all_text,
@@ -341,6 +351,7 @@ _READERS: dict[str, Any] = {
     "page_text": _page_text,
     "console_errors": _console_errors,
     "failed_requests": _failed_requests,
+    "dialog": _dialog,
 }
 
 

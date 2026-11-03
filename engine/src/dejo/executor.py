@@ -814,6 +814,10 @@ class Executor:
         # the step would report success having downloaded nothing.
         self.browser.last_download = None
         self.browser.last_download_path = None
+        # A step that answered a dialog last time answers the next one the same way: the
+        # same choice, the same words in a prompt. Any page-level step can open one too.
+        self.browser.expect_dialog(step.dialog_choice or ACCEPT, step.dialog_answer)
+        self.browser.last_dialog = None
 
         # Are we even on the page this step belongs to? Asked FIRST, before a single
         # locator is tried, because everything that follows assumes we are.
@@ -893,10 +897,6 @@ class Executor:
             return self._do_to_the_page(step, began)
 
         outcome = self._StepOutcome()
-        # A step that answered a confirm box last time expects the same wording this time.
-        self.browser.dialog_policy = step.dialog_choice or ACCEPT
-        self.browser.last_dialog = None
-
         settled, found_anything, missed = self._try_locators(step, outcome, began=began)
         if settled is not None:
             self._blame(missed, step)

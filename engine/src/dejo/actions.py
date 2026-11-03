@@ -387,6 +387,16 @@ ACTIONS: dict[str, ActionSpec] = {
         value_means='a date such as "2026-09-15" or "2026-09-15T10:00:00"',
         session_handled=True,
     ),
+    "dialog": ActionSpec(
+        "dialog",
+        "say how to answer the NEXT alert, confirm or prompt box. Dejo accepts every box "
+        "unless told otherwise. Kept with the step that opens the box, so replay answers it "
+        "the same way",
+        needs_target=False,
+        value_means='"accept", "dismiss", or "answer:the words to type into a prompt"',
+        recordable=False,
+        session_handled=True,
+    ),
     "restart_trail": ActionSpec(
         "restart_trail",
         "forget the steps recorded so far and start the trail from here. The browser stays "
@@ -807,6 +817,11 @@ def _set_time(page: Page, t: _T | None, value: str | None, second: _T | None) ->
     raise AssertionError("set_time should have been handled by the session")
 
 
+def _dialog(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: the Browser answers dialogs, so `Browser.do` handles this.
+    raise AssertionError("dialog should have been handled by the session")
+
+
 def _restart_trail(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: the Session owns the trail, so it handles this before we get here.
     raise AssertionError("restart_trail should have been handled by the session")
@@ -861,6 +876,7 @@ _RUNNERS: dict[str, Any] = {
     "new_tab": _new_tab,
     "dismiss_when_seen": _dismiss_when_seen,
     "restart_trail": _restart_trail,
+    "dialog": _dialog,
     "evaluate": _evaluate,
     "screenshot": _screenshot,
     "set_time": _set_time,

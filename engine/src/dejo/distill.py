@@ -38,6 +38,7 @@ def distill(trace: list[TraceEntry], *, domain: str, task: str) -> Playbook:
             answered=bool(entry.answer),
             dialog_message=(entry.dialog or {}).get("message"),
             dialog_choice=(entry.dialog or {}).get("choice"),
+            dialog_answer=(entry.dialog or {}).get("answer"),
             risky=entry.risky,
             clears_away=clears_away(entry),
         )

@@ -339,6 +339,24 @@ rather than one item. A step that buys, pays, sends, deletes or submits is marke
 (`click! button "Pay"`); unmarked, Dejo will not do it, and marked, it never runs twice on its
 own.
 
+Every step, in one place:
+
+| step | what it does |
+|---|---|
+| `go URL`, `back`, `forward`, `reload` | move between pages |
+| `click T`, `double_click T`, `hover T`, `tap T` | press things |
+| `fill T "text"`, `type T "text"`, `clear T`, `press KEY [T]` | type; `press Control+A` sends a chord |
+| `select T "option"`, `check T`, `uncheck T`, `set_checked T true` | choose |
+| `upload T "file"`, `drag T to T`, `focus T`, `blur T`, `select_text T` | everything else a hand does |
+| `scroll T`, `scroll down\|up\|top\|bottom\|PIXELS` | scroll |
+| `wait T`, `wait text:WORDS`, `wait url:PART`, `wait gone:CSS`, `wait idle`, `wait SECONDS` | wait for something real |
+| `tab N\|latest\|main`, `tab new [URL]` | move between tabs |
+| `dialog dismiss`, `dialog accept ["answer"]` | how to answer the next alert, confirm or prompt box (Dejo accepts unless told) |
+| `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `dialog`, `console_errors`, `failed_requests` |
+| `expect url\|text\|see\|gone\|count\|value ...` | check the step before landed |
+| `look [WORDS\|from REF\|gN\|all\|raw]` | show the page |
+| `dismiss css "..."`, `note "fact"`, `restart`, `set_time "2026-09-15"`, `js CODE` | site knowledge and escape hatches |
+
 It handles what breaks recorded flows: shadow DOM, iframes, `div`s pretending to be buttons,
 content that loads late, cookie banners, confirm dialogs, new tabs, and file pickers with no
 visible input. A `js` step runs your own JavaScript when a site does something nobody

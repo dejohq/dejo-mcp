@@ -315,6 +315,8 @@ class Runner:
 
         Returns a View, or for `raw` Playwright's own snapshot text. Every look also goes
         into the site's map, exactly as `Session.look` does."""
+        if mode == "help":
+            return language.reference()
         raw, frames = self.browser.raw_snapshot()
         url, title = self.browser.page.url, self.browser.page.title()
         self._stood = url
@@ -551,6 +553,8 @@ class Runner:
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
             out.after_sending.append(_after_sending(step, did))
+        if did.get("dialog"):
+            out.after_sending.append(_answered(step, did["dialog"]))
         for tab in did.get("opened") or []:
             out.after_sending.append(
                 f"line {step.line} opened a new tab: {tab}. This call stayed in the tab it was "
@@ -1369,6 +1373,17 @@ def _after_sending(step: Action, did: dict[str, Any]) -> str:
     elif not said:
         told[0] += " and no request failed; the page below shows where it stands"
     return f"after line {step.line} ({_short(step)}): " + "; ".join(told)
+
+
+def _answered(step: Action, dialog: dict[str, str]) -> str:
+    """One line on the box a step opened, so the agent knows it was there at all: an alert
+    leaves nothing on the page, and the step would otherwise look like it did nothing."""
+    typed = f', typing "{dialog["answer"]}"' if dialog.get("answer") else ""
+    done = "accepted" if dialog["choice"] == "accept" else "dismissed"
+    return (
+        f'line {step.line} opened a {dialog["type"]} box saying "{dialog["message"]}"; Dejo '
+        f"{done} it{typed}. To answer it another way, put a dialog line before the step"
+    )
 
 
 def _whole_page(element: Element | None, answer: Any, *, part: str = "") -> bool:

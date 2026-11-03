@@ -285,6 +285,8 @@ EXERCISED = {
     # Covered in tests/test_escape_hatch.py.
     "console_errors",
     "failed_requests",
+    # Covered in tests/test_parity.py, learned and replayed on the parity page.
+    "dialog",
 }
 
 

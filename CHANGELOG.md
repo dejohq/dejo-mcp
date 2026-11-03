@@ -4,6 +4,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Dejo can cancel a dialog, type an answer into a prompt, and read what a box said.**
+  `dialog dismiss` or `dialog accept "Rohit"` before the step that opens the box says how to
+  answer it; the choice and the words are kept with that step and used again on replay.
+  `read dialog as said` reads the last box's words, and every reply names a box a step opened.
 - **A saved drag and a saved switch to another tab replay.** A drag kept what it picked up
   but not where it dropped it, and `tab latest` could not be done on replay at all, so both
   failed every later run. The drop target is now kept with the step, and replay waits for a
