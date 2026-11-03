@@ -107,6 +107,7 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "switch_tab": "tab latest",
         "new_tab": "tab new https://example.com/",
         "dialog": "dialog dismiss",
+        "mouse": "mouse click 120 40",
     }
     if name in special:
         return special[name]
@@ -500,3 +501,35 @@ def test_a_picture_or_a_pdf_is_a_read_that_answers_a_file(
     step = only(line)
     assert isinstance(step, Read)
     assert (step.kind, step.name, step.attribute, step.target) == (kind, name, attribute, target)
+
+
+@pytest.mark.parametrize(
+    ("line", "value", "options"),
+    [
+        ("mouse click 120 40", "click 120 40", ()),
+        ("mouse drag 10 10 to 200 220", "drag 10 10 200 220", ()),
+        ("mouse wheel 0 -300", "wheel 0 -300", ()),
+        ("mouse down", "down", ()),
+        ("click e4 button=right", None, (("button", "right"),)),
+        ('click css "canvas" at=120,40 keys=Shift', None, (("at", "120,40"), ("keys", "Shift"))),
+        ('type e3 "hello" delay=100', "hello", (("delay", "100"),)),
+    ],
+)
+def test_exact_mouse_and_keyboard_lines(line: str, value: str | None, options: tuple) -> None:
+    step = only(line)
+    assert isinstance(step, Action)
+    assert (step.value, step.options) == (value, options)
+
+
+@pytest.mark.parametrize(
+    ("line", "says"),
+    [
+        ("mouse click 120", "takes 2 numbers"),
+        ("mouse fly 1 2", "mouse takes click"),
+        ('fill e4 "x" delay=100', "fill takes nothing, not delay="),
+        ("click e4 speed=3", "click takes at=, button=, keys=, not speed="),
+    ],
+)
+def test_a_wrong_mouse_line_or_option_is_refused(line: str, says: str) -> None:
+    with pytest.raises(ProgramError, match=says):
+        program.parse(line)

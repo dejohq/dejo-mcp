@@ -18,6 +18,7 @@ Two rules hold throughout:
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -171,12 +172,41 @@ BESIDE_LEVELS = 5
 # Options named when the one asked for is not there: enough to see what kind of list it is.
 OPTIONS_NAMED = 30
 
+# The options every pointer action takes: where on the element (`at=10,20`, pixels from its
+# top left corner) and which keys are held (`keys=Shift+Control`).
+POINTER_OPTIONS = frozenset({"at", "keys"})
+
+# The mouse buttons a click can use.
+BUTTONS = frozenset({"left", "right", "middle"})
+
+# The longest pause between two typed keys. A slower typist than this is a mistake, and
+# every millisecond is paid again on every replay.
+MAX_KEY_DELAY_MS = 1000
+
 # Actions that press something, so they can buy, send or delete. The rest only move, type
 # or look.
-PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event"})
+PRESSES = frozenset({"click", "double_click", "tap", "dispatch_event", "mouse"})
 
 # How long a click gets to open the file chooser. A site opens it at once, or never.
 CHOOSER_WAIT_MS = 5000
+
+# What `mouse` can do, and how many numbers each takes.
+MOUSE_MOVES = {
+    "click": 2,
+    "dblclick": 2,
+    "right": 2,
+    "move": 2,
+    "down": 0,
+    "up": 0,
+    "wheel": 2,
+    "drag": 4,
+}
+
+# How many moves a mouse drag is made of. Enough that a page tracking the pointer (a slider,
+# a map, a signature box) sees it travel rather than jump.
+DRAG_STEPS = 10
+
+Options = dict[str, str]
 
 # Resolves once the browser has drawn twice, which is when a scroll has been committed.
 _TWO_FRAMES = "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
@@ -193,6 +223,9 @@ class ActionSpec:
     needs_second_target: bool = False
     recordable: bool = True
     verifies_with: str = OBSERVED
+    options: frozenset[str] = frozenset()
+    """The `KEY=VALUE` words a line may add, such as `button=right` or `delay=100`. Kept with
+    the step, so a replay presses the same button at the same spot at the same speed."""
     session_handled: bool = False
     """Carried out by the Session rather than here, because it needs something Playwright
     alone does not have — the list of tabs Dejo is keeping track of. Declared in the
@@ -207,6 +240,8 @@ class ActionSpec:
             parts.append("needs `to` as well as `ref`")
         if not self.needs_target:
             parts.append("no ref needed")
+        if self.options:
+            parts.append("options " + ", ".join(f"{name}=" for name in sorted(self.options)))
         return "; ".join(parts)
 
 
@@ -216,14 +251,17 @@ ACTIONS: dict[str, ActionSpec] = {
     "click": ActionSpec(
         "click",
         "click a link, button or anything clickable",
+        options=POINTER_OPTIONS | {"button"},
     ),
     "double_click": ActionSpec(
         "double_click",
         "double click, for grids and file lists that open on two clicks",
+        options=POINTER_OPTIONS,
     ),
     "hover": ActionSpec(
         "hover",
         "move the pointer over something, for menus that only open on hover",
+        options=POINTER_OPTIONS,
     ),
     "fill": ActionSpec(
         "fill",
@@ -237,6 +275,7 @@ ACTIONS: dict[str, ActionSpec] = {
         "which ignore a value that appears all at once because they listen for keystrokes",
         value_means="the text to type",
         verifies_with="value_is",
+        options=frozenset({"delay"}),
     ),
     "clear": ActionSpec(
         "clear",
@@ -328,6 +367,29 @@ ACTIONS: dict[str, ActionSpec] = {
         recordable=False,
     ),
     # ---- page level: these act on the whole page, so they take no element -------
+    "mouse": ActionSpec(
+        "mouse",
+        "the mouse itself, at a place on the screen counted in pixels from the top left. "
+        "For a chart, a map or a canvas, which has nothing inside it to name. Find the "
+        "place with look image",
+        needs_target=False,
+        value_means=(
+            '"click X Y", "dblclick X Y", "right X Y", "move X Y", "down", "up", '
+            '"wheel DX DY" or "drag X Y X2 Y2"'
+        ),
+    ),
+    "keydown": ActionSpec(
+        "keydown",
+        "hold a key down until keyup, so the clicks in between are made with it held",
+        needs_target=False,
+        value_means='a key such as "Shift" or "Control"',
+    ),
+    "keyup": ActionSpec(
+        "keyup",
+        "let go of a key held by keydown",
+        needs_target=False,
+        value_means='a key such as "Shift" or "Control"',
+    ),
     "goto": ActionSpec(
         "goto",
         "open a web address",
@@ -483,6 +545,7 @@ def perform(
     target: PWLocator | None = None,
     value: str | None = None,
     second: PWLocator | None = None,
+    options: dict[str, str] | None = None,
 ) -> Any:
     """Do one thing, and hand back whatever it answered.
 
@@ -499,6 +562,11 @@ def perform(
     if spec.value_means and value is None and action not in _VALUE_OPTIONAL:
         raise ActionNeedsMore(f"{action} needs a value: {spec.value_means}")
 
+    unknown = sorted(set(options or {}) - spec.options)
+    if unknown:
+        raise ActionNeedsMore(f"{action} takes no {', '.join(unknown)}=")
+    if spec.options:
+        return _RUNNERS[action](page, target, value, second, dict(options or {}))
     # Most actions answer nothing. `evaluate` does, so the return travels.
     return _RUNNERS[action](page, target, value, second)
 
@@ -508,26 +576,56 @@ def perform(
 _T = PWLocator
 
 
-def _click(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.click()
+def _click(page: Page, t: _T, value: str | None, second: _T | None, options: Options) -> None:
+    button = options.get("button", "left")
+    if button not in BUTTONS:
+        raise ActionNeedsMore(f"button= takes left, right or middle, not {button!r}")
+    t.click(button=button, **_pointer(options))  # type: ignore[arg-type]
 
 
-def _double_click(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.dblclick()
+def _double_click(
+    page: Page, t: _T, value: str | None, second: _T | None, options: Options
+) -> None:
+    t.dblclick(**_pointer(options))
 
 
-def _hover(page: Page, t: _T, value: str | None, second: _T | None) -> None:
-    t.hover()
+def _hover(page: Page, t: _T, value: str | None, second: _T | None, options: Options) -> None:
+    t.hover(**_pointer(options))
+
+
+def _pointer(options: Options) -> dict[str, Any]:
+    """Playwright's own arguments for `at=` and `keys=`."""
+    found: dict[str, Any] = {}
+    if "at" in options:
+        x, y = _numbers(options["at"], 2, "at= takes two numbers, like at=120,40")
+        found["position"] = {"x": x, "y": y}
+    if "keys" in options:
+        found["modifiers"] = [key for key in options["keys"].split("+") if key]
+    return found
+
+
+def _numbers(written: str, count: int, wanted: str) -> list[float]:
+    parts = [part for part in re.split(r"[,\s]+", written.strip()) if part]
+    try:
+        numbers = [float(part) for part in parts]
+    except ValueError:
+        raise ActionNeedsMore(wanted) from None
+    if len(numbers) != count:
+        raise ActionNeedsMore(wanted)
+    return numbers
 
 
 def _fill(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     t.fill(_lines_for(t, value or ""))
 
 
-def _type(page: Page, t: _T, value: str | None, second: _T | None) -> None:
+def _type(page: Page, t: _T, value: str | None, second: _T | None, options: Options) -> None:
     # One key at a time. Search and autocomplete boxes listen for keystrokes and ignore a
     # value that simply appears, which is exactly what `fill` does.
-    t.press_sequentially(_lines_for(t, value or ""))
+    (delay,) = _numbers(options.get("delay", "0"), 1, "delay= takes milliseconds, like delay=100")
+    if not 0 <= delay <= MAX_KEY_DELAY_MS:
+        raise ActionNeedsMore(f"delay= is at most {MAX_KEY_DELAY_MS} milliseconds a key")
+    t.press_sequentially(_lines_for(t, value or ""), delay=delay)
 
 
 def _lines_for(t: _T, text: str) -> str:
@@ -736,6 +834,46 @@ def _hide_highlight(page: Page, t: _T | None, value: str | None, second: _T | No
     page.hide_highlight()
 
 
+def _mouse(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    """The mouse at a place, not at an element. See `MOUSE_MOVES` for what can be written."""
+    words = (value or "").split()
+    move = words[0] if words else ""
+    counts = MOUSE_MOVES.get(move)
+    if counts is None:
+        raise ActionNeedsMore(
+            f"mouse takes {', '.join(MOUSE_MOVES)}, like: mouse click 120 40, not {value!r}"
+        )
+    numbers = _numbers(" ".join(words[1:]), counts, f"mouse {move} takes {counts} numbers")
+    mouse = page.mouse
+    if move in ("click", "dblclick", "right"):
+        button = "right" if move == "right" else "left"
+        mouse.click(*numbers, button=button, click_count=2 if move == "dblclick" else 1)
+    elif move == "move":
+        mouse.move(*numbers)
+    elif move == "down":
+        mouse.down()
+    elif move == "up":
+        mouse.up()
+    elif move == "wheel":
+        mouse.wheel(*numbers)
+        _wait_for_scroll(page)
+    else:
+        x, y, to_x, to_y = numbers
+        mouse.move(x, y)
+        mouse.down()
+        # In steps, so a page that follows the pointer sees it travel, as a hand would.
+        mouse.move(to_x, to_y, steps=DRAG_STEPS)
+        mouse.up()
+
+
+def _keydown(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    page.keyboard.down(value or "")
+
+
+def _keyup(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    page.keyboard.up(value or "")
+
+
 def _goto(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     page.goto(value or "")
 
@@ -847,6 +985,9 @@ _RUNNERS: dict[str, Any] = {
     "dispatch_event": _dispatch_event,
     "highlight": _highlight,
     "hide_highlight": _hide_highlight,
+    "mouse": _mouse,
+    "keydown": _keydown,
+    "keyup": _keyup,
     "goto": _goto,
     "back": _back,
     "forward": _forward,

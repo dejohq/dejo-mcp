@@ -1324,6 +1324,7 @@ class Executor:
             target=target,
             value=value,
             second=self._second_for(step) if spec.needs_second_target else None,
+            options=step.options,
         )
         self.browser.settle()
         if step.risky:

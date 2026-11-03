@@ -478,6 +478,9 @@ EXERCISED = {
     "set_time",
     # Covered in tests/test_parity.py, learned and replayed on the parity page.
     "dialog",
+    "mouse",
+    "keydown",
+    "keyup",
 }
 
 

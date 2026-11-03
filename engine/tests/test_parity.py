@@ -209,3 +209,96 @@ def test_the_requests_and_console_of_a_page_can_be_read(
     result = replay(browser, store, demo_server, task)
     assert len(result.answers["calls"]) == 1, "only this page's requests, not the last page's"
     assert "/parity/missing" in result.answers["calls"][0]
+
+
+# ------------------------------------------------------------------ mouse and keyboard
+
+
+def centre_of(browser: Browser, demo_server: str, selector: str) -> tuple[int, int]:
+    """Where an element sits on the screen, read before learning, as an agent reads it off
+    `look image`. The window is always the same size, so the spot is the same on replay."""
+    browser.page.goto(f"{demo_server}/parity")
+    box = browser.page.locator(selector).bounding_box()
+    assert box is not None
+    return round(box["x"] + box["width"] / 2), round(box["y"] + box["height"] / 2)
+
+
+def corner_of(browser: Browser, demo_server: str, selector: str) -> tuple[int, int]:
+    browser.page.goto(f"{demo_server}/parity")
+    box = browser.page.locator(selector).bounding_box()
+    assert box is not None
+    return round(box["x"]), round(box["y"])
+
+
+def test_a_click_at_a_place_on_a_canvas_replays(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """A chart has nothing inside it to name: only the place clicked says what was hit."""
+    left, top = corner_of(browser, demo_server, "#chart")
+    x, y = left + 100, top + 60  # inside the red box the chart draws at 50-150, 30-90
+    learn(
+        browser,
+        store,
+        "hit the box",
+        f'go {demo_server}/parity\nmouse click {x} {y}\nread css "#log" as log\n',
+    )
+    assert replay(browser, store, demo_server, "hit the box").answers == {"log": "hit the box"}
+
+
+def test_a_click_at_a_spot_on_an_element_replays(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    learn(
+        browser,
+        store,
+        "miss the box",
+        f'go {demo_server}/parity\nclick css "#chart" at=10,10\nread css "#log" as log\n',
+    )
+    assert replay(browser, store, demo_server, "miss the box").answers == {"log": "missed the box"}
+
+
+def test_a_right_click_and_a_click_with_shift_held_replay(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "right and shift",
+        f"go {demo_server}/parity\n"
+        'click css "#menu-zone" button=right\n'
+        'read css "#log" as first\n'
+        'click button "Shift me" keys=Shift\n'
+        'read css "#log" as second\n'
+        "keydown Shift\n"
+        'click button "Shift me"\n'
+        "keyup Shift\n"
+        'read css "#log" as third\n',
+    )
+    wanted = {"first": "right clicked", "second": "shift clicked", "third": "shift clicked"}
+    assert outcome.answers == wanted
+    assert replay(browser, store, demo_server, "right and shift").answers == wanted
+
+
+def test_typing_speed_is_kept(browser: Browser, store: DejoStore, demo_server: str) -> None:
+    learn(
+        browser,
+        store,
+        "type slowly",
+        f'go {demo_server}/parity\ntype label "Keys" "abcd" delay=150\nread css "#gaps" as gaps\n',
+    )
+    gaps = replay(browser, store, demo_server, "type slowly").answers["gaps"]
+    assert int(gaps.split()[-1]) >= 120, gaps
+
+
+def test_a_mouse_drag_between_two_places_replays(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    x, y = centre_of(browser, demo_server, "#drag")
+    to_x, to_y = centre_of(browser, demo_server, "#zone")
+    learn(
+        browser,
+        store,
+        "drag by hand",
+        f'go {demo_server}/parity\nmouse drag {x} {y} to {to_x} {to_y}\nread css "#log" as log\n',
+    )
+    assert replay(browser, store, demo_server, "drag by hand").answers == {"log": "dropped"}

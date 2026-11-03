@@ -370,6 +370,9 @@ class Step:
     "click OK" must never blindly accept a box that now reads "delete 400 rows?" — so on
     replay a changed message stops the run instead of answering it."""
 
+    options: dict[str, str] = field(default_factory=dict)
+    """How the step was done, beyond its value: `button=right`, `at=120,40`, `delay=100`."""
+
     dialog_answer: str | None = None
     """What was typed into a prompt box this step answered, when anything was.
 
@@ -516,6 +519,7 @@ class Step:
             "clears_away": self.clears_away,
             **({"second": [loc.to_dict() for loc in self.second]} if self.second else {}),
             **({"dialog_answer": self.dialog_answer} if self.dialog_answer is not None else {}),
+            **({"options": dict(self.options)} if self.options else {}),
             "health": round(self.health, 3),
         }
 
@@ -540,6 +544,7 @@ class Step:
             clears_away=raw.get("clears_away", False),
             second=[Locator.from_dict(loc) for loc in raw.get("second", [])],
             dialog_answer=raw.get("dialog_answer"),
+            options=dict(raw.get("options", {})),
         )
 
 

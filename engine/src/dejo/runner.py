@@ -543,6 +543,7 @@ class Runner:
             value=value,
             second=second,
             risky=step.risky,
+            options=dict(step.options),
         )
         self._last_entry = self.session.trace[-1] if len(self.session.trace) > written else None
         if step.action == "evaluate":

@@ -99,6 +99,8 @@ class TraceEntry:
     download: str | None = None
     second: list[Locator] | None = None
     """For a drag, the ways to find the element it was dropped on."""
+    options: dict[str, str] = field(default_factory=dict)
+    """The `KEY=VALUE` words the step was written with."""
     locators: list[Locator] | None = None
     """The ways to find the element chosen when the step ran, when they had to be
     narrowed. Replaces `element.locators()` in the trail. A read is narrowed to the
@@ -208,6 +210,7 @@ class Session:
         second: Element | None = None,
         expect: Postcondition | None = None,
         risky: bool = False,
+        options: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Do one thing to an element that has already been found, and report what changed.
 
@@ -234,7 +237,7 @@ class Session:
         held = self.browser.held_back(element) if sends and element is not None else []
 
         element, lasting, second = self._perform(
-            action, element=element, value=value, second=second
+            action, element=element, value=value, second=second, options=options
         )
 
         # An anchor was clicked and the address has not moved. Either it went nowhere, or
@@ -299,6 +302,7 @@ class Session:
             risky=risky,
             locators=lasting,
             second=second.locators() if second is not None else None,
+            options=dict(options or {}),
             left=left,
         )
         # An action that changes nothing is not a step. Replaying `highlight` would draw a
@@ -361,6 +365,7 @@ class Session:
         element: Element | None,
         value: str | None,
         second: Element | None = None,
+        options: dict[str, str] | None = None,
     ) -> tuple[Element | None, list[Locator] | None, Element | None]:
         """Describe the element, then hand the doing to the registry.
 
@@ -392,7 +397,12 @@ class Session:
 
         try:
             self.last_result = actions.perform(
-                action, page=self.browser.page, target=target, value=value, second=second_target
+                action,
+                page=self.browser.page,
+                target=target,
+                value=value,
+                second=second_target,
+                options=options,
             )
         except actions.ActionNeedsMore as incomplete:
             raise ActionFailed(str(incomplete)) from incomplete

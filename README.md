@@ -350,6 +350,9 @@ Every step, in one place:
 | `select T "option"`, `check T`, `uncheck T`, `set_checked T true` | choose |
 | `upload T "file"`, `drag T to T`, `focus T`, `blur T`, `select_text T` | everything else a hand does |
 | `scroll T`, `scroll down\|up\|top\|bottom\|PIXELS` | scroll |
+| `mouse click\|dblclick\|right\|move X Y`, `mouse drag X Y to X2 Y2`, `mouse down\|up`, `mouse wheel DX DY` | the mouse at a place on the screen, for a chart, map or canvas with nothing inside it to name |
+| `keydown KEY`, `keyup KEY` | hold a key while other steps run |
+| options at the end of a line: `at=X,Y`, `keys=Shift+Control`, `button=right\|middle`, `delay=MS` | click a spot on an element, hold keys while clicking, right click, type at a given speed (`type T "text" delay=100`) |
 | `wait T`, `wait text:WORDS`, `wait url:PART`, `wait gone:CSS`, `wait idle`, `wait SECONDS` | wait for something real |
 | `wait request:WORDS`, `wait response:WORDS` | wait until the page asked for, or got an answer from, an address with these words, since the step before |
 | `tab N\|latest\|main`, `tab new [URL]` | move between tabs |

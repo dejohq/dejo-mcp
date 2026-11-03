@@ -4,6 +4,13 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Exact mouse and keyboard control.** `mouse click 120 40` (also `dblclick`, `right`,
+  `move`, `down`, `up`, `wheel DX DY`, `drag X Y to X2 Y2`) uses the mouse at a place on the
+  screen, for a chart, map or canvas that has nothing inside it to name. `keydown Shift` and
+  `keyup Shift` hold a key across steps. A line can end with options: `at=10,20` clicks a
+  spot on the element, `keys=Shift+Control` holds keys while it clicks, `button=right` right
+  clicks, and `delay=100` types at that many milliseconds a key. All of it is kept in a trail
+  and replayed exactly.
 - **Dejo sees the page's network and console.** `read requests` lists every request the page
   made since it loaded (method, status, address; `read requests "/api/"` only those),
   `read response "/api/orders"` gives the body of the latest answer from that address, and

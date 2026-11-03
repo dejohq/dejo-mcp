@@ -136,6 +136,8 @@ READ_ALIASES = {"all": "all_text", "attr": "attribute"}
 
 # A Dejo ref as views print it: `e16` on the main page, `f1e3` inside the first iframe.
 REF = re.compile(r"^(?:f\d+)?e\d+$")
+# An option at the end of a line: `button=right`, `at=120,40`, `delay=100`.
+OPTION = re.compile(r"^[a-z]+=\S+$")
 GROUP = re.compile(r"^g\d+$")
 NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -180,6 +182,8 @@ class Action:
     target: Target | None = None
     value: str | None = None
     second: Target | None = None
+    options: tuple[tuple[str, str], ...] = ()
+    """`KEY=VALUE` words at the end of the line, such as `button=right` or `delay=100`."""
     risky: bool = False
     """Written with `!`: the agent says this buys, pays, sends, deletes or submits."""
     reason: str = ""
@@ -286,6 +290,8 @@ USAGE = {
     "dismiss_when_seen": 'dismiss css "SELECTOR"',
     "restart_trail": "restart",
     "evaluate": "js CODE  (alone)",
+    "mouse": "mouse click|dblclick|right|move X Y | mouse down|up | mouse wheel DX DY | "
+    "mouse drag X Y to X2 Y2",
     "goto": "go URL",
 }
 
@@ -298,6 +304,8 @@ def usage_of(spec: actions.ActionSpec) -> str:
     if spec.needs_second_target:
         words.append("to T")
     shown = " ".join(word for word in words if word)
+    if spec.options:
+        shown += " [" + " ".join(f"{name}=..." for name in sorted(spec.options)) + "]"
     return f"{shown}  (VALUE = {spec.value_means})" if spec.value_means else shown
 
 
@@ -311,6 +319,9 @@ def reference() -> str:
             'KIND "string" with KIND a role (link, button, ...), text, label, placeholder, '
             'alt, title, testid or css; then optionally first, last, nth N or has "words".',
             "Write VERB! (click!, fill!) for a step that buys, pays, sends, deletes or submits.",
+            "Options go at the end: at=X,Y (a spot on the element, from its top left), "
+            "keys=Shift+Control (held while it runs), button=right|middle, delay=MS (between "
+            "typed keys).",
             "",
             "ACTIONS:",
             *(f"  {usage_of(spec)} — {spec.summary}" for spec in actions.ACTIONS.values()),
@@ -416,7 +427,39 @@ def _action(head: str, reader: _Words, number: int, body: str, reason: str) -> A
 
     if name == "goto":
         value = _checked_address(value or "", number)
-    return Action(number, body, name, target, value, second, risky, reason)
+    if name == "mouse":
+        value = _mouse_value(value or "", reader, number)
+    options = _options(reader, spec, number)
+    return Action(number, body, name, target, value, second, options, risky, reason)
+
+
+def _mouse_value(first: str, reader: _Words, number: int) -> str:
+    """`mouse click 120 40`, `mouse drag 10 10 to 200 200`: the move and its numbers, as one
+    value. `to` in a drag only reads well; it is not kept."""
+    words = [first]
+    while reader.more() and (_is_signed_number(reader.peek() or "") or reader.peek() == "to"):
+        word = reader.take()
+        if word != "to":
+            words.append(word)
+    counts = actions.MOUSE_MOVES.get(first)
+    if counts is None:
+        raise ProgramError(number, f"mouse takes {', '.join(actions.MOUSE_MOVES)}, not {first!r}")
+    if len(words) - 1 != counts:
+        raise ProgramError(
+            number, f"mouse {first} takes {counts} numbers, like: mouse click 120 40"
+        )
+    return " ".join(words)
+
+
+def _options(reader: _Words, spec: actions.ActionSpec, number: int) -> tuple[tuple[str, str], ...]:
+    found: list[tuple[str, str]] = []
+    while reader.more() and OPTION.match(reader.peek() or ""):
+        key, _, value = reader.take().partition("=")
+        if key not in spec.options:
+            takes = ", ".join(f"{name}=" for name in sorted(spec.options)) or "nothing"
+            raise ProgramError(number, f"{spec.name} takes {takes}, not {key}=")
+        found.append((key, value))
+    return tuple(found)
 
 
 def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> Action:
@@ -663,6 +706,10 @@ def _check_after_risky(steps: list[Step]) -> None:
 
 
 # --------------------------------------------------------------------------- words
+
+
+def _is_signed_number(word: str) -> bool:
+    return bool(re.match(r"^-?\d+(\.\d+)?$", word))
 
 
 def _is_number(word: str) -> bool:
