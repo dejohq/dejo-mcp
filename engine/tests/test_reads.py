@@ -293,6 +293,8 @@ EXERCISED = {
     "requests",
     "response",
     "tabs",
+    "cookies",
+    "storage",
 }
 
 

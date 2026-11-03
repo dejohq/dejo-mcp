@@ -438,3 +438,68 @@ def test_no_network_makes_the_page_s_own_requests_fail(
         'read requests "/parity/data" as calls\n',
     )
     assert "ERR_INTERNET_DISCONNECTED" in outcome.answers["calls"]
+
+
+# ------------------------------------------------------- cookies, storage, sign-in state
+
+
+def test_cookies_and_storage_are_read_and_a_read_of_them_replays(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    task = "what the page keeps"
+    outcome = learn(
+        browser,
+        store,
+        task,
+        f"go {demo_server}/parity\n"
+        'read cookies "flavour" as cookies\n'
+        'read storage "theme" as theme\n',
+    )
+    assert outcome.answers == {"cookies": "flavour=ginger (127.0.0.1)", "theme": "green"}
+    assert replay(browser, store, demo_server, task).answers["theme"] == "green"
+
+
+def test_setting_and_clearing_cookies_and_storage_is_done_but_not_kept(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """A cookie's value is often a sign-in. The reply says the line is not kept, and why."""
+    outcome = learn(
+        browser,
+        store,
+        "change what the page keeps",
+        f"go {demo_server}/parity\n"
+        'cookie set colour "blue"\n'
+        'storage set theme "red"\n'
+        "cookie clear flavour\n"
+        "read cookies as cookies\n"
+        'read storage "theme" as theme\n',
+    )
+    assert outcome.answers["theme"] == "red"
+    assert "colour=blue" in outcome.answers["cookies"]
+    assert "flavour" not in outcome.answers["cookies"]
+    assert "is not kept in the trail, because a cookie's value is often a sign-in" in outcome.text()
+    assert outcome.saved is not None
+    assert [step.action for step in outcome.saved.steps] == ["goto", "read", "read"]
+
+
+def test_a_saved_state_is_written_to_a_file_and_loads_back(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """The way a sign-in moves to another machine, or comes from another tool: Playwright's
+    own storage-state file, written by name, loaded by name or by path."""
+    runner = Runner(Session(browser=browser, store=store), task="keep it", store=store)
+    saved = browser.states / "team.json"
+    outcome = runner.run(program.parse(f"go {demo_server}/parity\nstate save team\n"))
+    assert f"saved to {saved}" in outcome.text()
+    assert "flavour" in saved.read_text()
+    outcome = runner.run(
+        program.parse(
+            "cookie clear\n"
+            "storage clear\n"
+            f'state load "{saved}"\n'
+            f"go {demo_server}/blank\n"
+            'read cookies "flavour" as cookies\n'
+            'read storage "theme" as theme\n'
+        )
+    )
+    assert outcome.answers == {"cookies": "flavour=ginger (127.0.0.1)", "theme": "green"}

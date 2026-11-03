@@ -443,6 +443,9 @@ class Session:
                 raise ActionFailed(str(wrong)) from wrong
             self._snapshot = None
             return
+        if action == "state":
+            self.last_result = self._state(value or "")
+            return
         if action == "dismiss_when_seen":
             if not value:
                 raise ActionFailed("dismiss_when_seen needs a CSS selector")
@@ -453,6 +456,20 @@ class Session:
             self._loose_read = None
             return
         raise ActionFailed(f"{action} is marked session-handled but nothing handles it")
+
+    def _state(self, value: str) -> str:
+        """`save NAME` or `load NAME`: the file it wrote or read, for the reply."""
+        how, _, name = value.partition(" ")
+        name = name.strip()
+        if how not in ("save", "load") or not name:
+            raise ActionFailed("state takes: save NAME, or load NAME (or a path to a .json file)")
+        try:
+            where = (
+                self.browser.save_state(name) if how == "save" else self.browser.load_state(name)
+            )
+        except ValueError as wrong:
+            raise ActionFailed(str(wrong)) from wrong
+        return f"{'saved to' if how == 'save' else 'loaded from'} {where}"
 
     def remember_overlay(self, selector: str) -> None:
         """Clear an overlay from now on, and write it down so later runs do the same.

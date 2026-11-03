@@ -484,6 +484,9 @@ EXERCISED = {
     "scroll_in",
     "close_tab",
     "emulate",
+    "cookie",
+    "storage",
+    "state",
 }
 
 

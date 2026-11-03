@@ -111,6 +111,9 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "scroll_in": "scroll e4 down",
         "close_tab": "tab close",
         "emulate": "emulate color dark",
+        "cookie": "cookie clear",
+        "storage": "storage clear",
+        "state": "state save team",
     }
     if name in special:
         return special[name]
@@ -139,6 +142,9 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
         ("tab close 1", "close_tab", "1", None),
         ('emulate device "iPhone 13"', "emulate", "device iPhone 13", None),
         ("emulate timezone off", "emulate", "timezone off", None),
+        ('cookie set theme "dark mode"', "cookie", "set theme dark mode", None),
+        ("storage clear token", "storage", "clear token", None),
+        ("state load team", "state", "load team", None),
         ("dialog accept", "dialog", "accept", None),
         ('dialog accept "Rohit"', "dialog", "answer:Rohit", None),
         ("go /issues", "goto", "/issues", None),

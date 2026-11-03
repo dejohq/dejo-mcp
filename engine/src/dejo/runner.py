@@ -35,9 +35,9 @@ from urllib.parse import urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
+from . import actions, waits
 from . import program as language
 from . import view as pageview
-from . import waits
 from .actions import PRESSES
 from .browser import NoSuchElement, domain_of, on_site
 from .distill import distill, locators_for, postcondition_for
@@ -115,6 +115,8 @@ _MANY_READS = {
     "console_errors",
     "failed_requests",
     "tabs",
+    "cookies",
+    "storage",
 }
 
 # A read is one value the user asked for: a price, a date, a name, a short note. Past this it
@@ -584,6 +586,13 @@ class Runner:
         if step.risky:
             self._risky_ran[step.text] = datetime.now(UTC)
             out.after_sending.append(_after_sending(step, did))
+        spec = actions.spec_for(step.action)
+        if spec.not_kept:
+            done = f": {did['result']}" if did.get("result") else ""
+            out.after_sending.append(
+                f"line {step.line} ({step.action}{done}) is not kept in the trail, because "
+                f"{spec.not_kept}"
+            )
         if did.get("dialog"):
             out.after_sending.append(_answered(step, did["dialog"]))
         for tab in did.get("opened") or []:

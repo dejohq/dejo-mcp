@@ -4,6 +4,12 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Cookies, local storage and saved sign-in state.** `read cookies` and `read storage` read
+  them (a cookie the page itself cannot read keeps its value hidden); `cookie set`/`clear` and
+  `storage set`/`clear` change them; `state save team` writes every cookie and the local
+  storage to `~/.dejo/states/team.json`, Playwright's own storage-state file, and `state load`
+  puts one back, by name or by path. These change the browser, not the site, so they are not
+  kept in a trail, and the reply says so.
 - **Emulate another browser.** `emulate viewport 390x844`, `emulate device "iPhone 13"`,
   `emulate timezone Asia/Tokyo`, `emulate locale de-DE`, `emulate color dark`, `emulate media
   print`, `emulate motion reduce`, `emulate offline on`, `emulate network slow3g` (also

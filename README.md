@@ -298,6 +298,7 @@ All on your machine.
 | signed-in browser profiles | `~/.dejo/browser-profile`, `~/.dejo/profiles/` |
 | downloads | `~/.dejo/downloads` |
 | screenshots and PDFs | `~/.dejo/captures` |
+| saved sign-in states (`state save`) | `~/.dejo/states` |
 | passwords, if you choose to keep them in a file | `~/.dejo/secrets.json` |
 
 Being signed in is not the same as remembering. Forget a site and Dejo is still signed in, and
@@ -358,9 +359,11 @@ Every step, in one place:
 | `wait request:WORDS`, `wait response:WORDS` | wait until the page asked for, or got an answer from, an address with these words, since the step before |
 | `tab N\|latest\|main`, `tab new [URL]`, `tab close [N]` | move between tabs, open one, close one (`read tabs` lists them) |
 | `emulate viewport 390x844`, `emulate device "iPhone 13"`, `emulate timezone Asia/Tokyo`, `emulate locale de-DE`, `emulate color dark`, `emulate media print`, `emulate motion reduce`, `emulate offline on`, `emulate network slow3g`, `emulate cpu 4`, `emulate geolocation 18.52,73.85` | look like another browser from now on; `emulate KIND off` undoes one. Kept in the trail, and every replay starts from the browser as it is |
+| `cookie set NAME "VALUE"`, `cookie clear [NAME]`, `storage set KEY "VALUE"`, `storage clear [KEY]` | change the browser's cookies or this page's local storage (`read cookies`, `read storage` read them). Not kept in a trail: a cookie is often a sign-in |
+| `state save NAME`, `state load NAME\|"/path/state.json"` | save every cookie and the local storage to `~/.dejo/states/NAME.json` (Playwright's storage-state file), or load one: a sign-in to keep, move to another machine, or take from another tool |
 | `dialog dismiss`, `dialog accept ["answer"]` | how to answer the next alert, confirm or prompt box (Dejo accepts unless told) |
 | `screenshot [T\|full] [as NAME]`, `pdf [as NAME]` | save a picture of the screen, one element or the whole page, or the page as a PDF, under `~/.dejo/captures`. Kept in a trail, so every replay saves a new one |
-| `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `tabs`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
+| `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `tabs`, `cookies`, `storage`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
 | `expect url\|text\|see\|gone\|count\|value ...` | check the step before landed |
 | `look [WORDS\|from REF\|gN\|all\|raw]` | show the page |
 | `look image` | send a picture of the screen in the reply, for a chart, map or canvas; click a spot in it with `mouse click X Y` |

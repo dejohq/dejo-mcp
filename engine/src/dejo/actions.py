@@ -229,6 +229,9 @@ class ActionSpec:
     options: frozenset[str] = frozenset()
     """The `KEY=VALUE` words a line may add, such as `button=right` or `delay=100`. Kept with
     the step, so a replay presses the same button at the same spot at the same speed."""
+    not_kept: str = ""
+    """Why a line of this action is never written into a trail, said in the reply. Empty
+    for actions that are kept, and for those whose reason needs no saying."""
     session_handled: bool = False
     """Carried out by the Session rather than here, because it needs something Playwright
     alone does not have — the list of tabs Dejo is keeping track of. Declared in the
@@ -486,6 +489,34 @@ ACTIONS: dict[str, ActionSpec] = {
         "open a new empty tab and continue in it",
         needs_target=False,
         value_means="a url to open in it, or nothing for a blank tab",
+        session_handled=True,
+    ),
+    "cookie": ActionSpec(
+        "cookie",
+        "set a cookie for this site, or clear cookies",
+        needs_target=False,
+        value_means='"set NAME VALUE", "clear NAME", or "clear" for every cookie',
+        recordable=False,
+        not_kept="a cookie's value is often a sign-in, and a trail is shared and stored",
+        session_handled=True,
+    ),
+    "storage": ActionSpec(
+        "storage",
+        "set or clear a value in this page's local storage",
+        needs_target=False,
+        value_means='"set KEY VALUE", "clear KEY", or "clear" for all of it',
+        recordable=False,
+        not_kept="what a site keeps in its storage is often a sign-in token",
+        session_handled=True,
+    ),
+    "state": ActionSpec(
+        "state",
+        "save this browser's cookies and local storage to a file, or load one: to keep a "
+        "sign-in, move it to another machine, or take it from another tool",
+        needs_target=False,
+        value_means='"save NAME", "load NAME", or "load /path/to/state.json"',
+        recordable=False,
+        not_kept="a sign-in belongs to the profile, not to a task; dejo_profile keeps it",
         session_handled=True,
     ),
     "emulate": ActionSpec(
@@ -1011,6 +1042,21 @@ def _new_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> 
     raise AssertionError("new_tab should have been handled by the session")
 
 
+def _cookie(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: cookies belong to the context, so `Browser.do` handles this.
+    raise AssertionError("cookie should have been handled by the session")
+
+
+def _storage(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: `Browser.do` handles this beside cookies.
+    raise AssertionError("storage should have been handled by the session")
+
+
+def _state(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: the Session handles it, because it answers with the file's path.
+    raise AssertionError("state should have been handled by the session")
+
+
 def _emulate(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: emulation belongs to every tab, so `Browser.do` handles this.
     raise AssertionError("emulate should have been handled by the session")
@@ -1063,6 +1109,9 @@ _RUNNERS: dict[str, Any] = {
     "switch_tab": _switch_tab,
     "close_tab": _close_tab,
     "emulate": _emulate,
+    "cookie": _cookie,
+    "storage": _storage,
+    "state": _state,
     "new_tab": _new_tab,
     "dismiss_when_seen": _dismiss_when_seen,
     "restart_trail": _restart_trail,

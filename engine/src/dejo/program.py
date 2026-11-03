@@ -133,6 +133,13 @@ ROLES = INTERACTIVE_ROLES | frozenset(
     }
 )
 
+# Verbs whose value is a sub-command and its words, and how many words each may take.
+SETTING_VERBS: dict[str, dict[str, int]] = {
+    "cookie": {"set": 2, "clear": 1},
+    "storage": {"set": 2, "clear": 1},
+    "state": {"save": 1, "load": 1},
+}
+
 # The words that scroll the page itself rather than name an element.
 PAGE_SCROLLS = frozenset({"down", "up", "left", "right", "top", "bottom"})
 
@@ -293,6 +300,9 @@ USAGE = {
     "switch_tab": "tab N|latest|main",
     "new_tab": "tab new [URL]",
     "close_tab": "tab close [N|latest]",
+    "cookie": 'cookie set NAME "VALUE" | cookie clear [NAME]',
+    "storage": 'storage set KEY "VALUE" | storage clear [KEY]',
+    "state": 'state save NAME | state load NAME|"/path/state.json"',
     "emulate": "emulate KIND SETTING  (see EMULATE below)",
     "dialog": 'dialog dismiss | dialog accept ["answer"]',
     "dismiss_when_seen": 'dismiss css "SELECTOR"',
@@ -444,6 +454,8 @@ def _action(head: str, reader: _Words, number: int, body: str, reason: str) -> A
         value = _mouse_value(value or "", reader, number)
     if name == "emulate":
         value = _emulate_value(value or "", reader, number)
+    if name in SETTING_VERBS:
+        value = _setting_value(name, value or "", reader, number)
     options = _options(reader, spec, number)
     return Action(number, body, name, target, value, second, options, risky, reason)
 
@@ -463,6 +475,21 @@ def _mouse_value(first: str, reader: _Words, number: int) -> str:
         raise ProgramError(
             number, f"mouse {first} takes {counts} numbers, like: mouse click 120 40"
         )
+    return " ".join(words)
+
+
+def _setting_value(name: str, how: str, reader: _Words, number: int) -> str:
+    """`cookie set NAME VALUE`, `storage clear`, `state save NAME`: the words as one value."""
+    shapes = SETTING_VERBS[name]
+    if how not in shapes:
+        raise ProgramError(number, f"{name} takes {' or '.join(shapes)}, not {how!r}")
+    words = [how]
+    for _ in range(shapes[how]):
+        if not reader.more() or OPTION.match(reader.peek() or ""):
+            break
+        words.append(reader.take())
+    if how in ("set", "save", "load") and len(words) - 1 < shapes[how]:
+        raise ProgramError(number, f"{name} {how} needs {shapes[how]} more words, in quotes")
     return " ".join(words)
 
 

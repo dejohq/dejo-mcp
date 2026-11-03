@@ -156,7 +156,24 @@ MAIN_TAB = "main"
 # Registry actions done to the browser as a whole rather than to one page, so `Browser.do`
 # carries them out, the same way while learning and on replay. Replay used to hand them to
 # the page-level registry, which could not do them: a saved `tab latest` failed every time.
-BROWSER_ACTIONS = frozenset({"switch_tab", "new_tab", "close_tab", "set_time", "dialog", "emulate"})
+BROWSER_ACTIONS = frozenset(
+    {"switch_tab", "new_tab", "close_tab", "set_time", "dialog", "emulate", "cookie", "storage"}
+)
+
+# What `state save NAME` writes, one JSON file each, beside the profiles: Playwright's own
+# storage-state format, so the same file loads into Playwright, Playwright MCP or Dejo.
+STATE_SUFFIX = ".json"
+
+# Sets the saved local storage of one origin whenever a page of it loads, for `state load`.
+_LOAD_STORAGE_JS = """
+(saved) => {
+  for (const origin of saved) {
+    if (origin.origin !== location.origin) continue;
+    for (const item of origin.localStorage) localStorage.setItem(item.name, item.value);
+  }
+}
+"""
+
 
 # How a `dialog` line writes "accept and type this into the prompt".
 ANSWER_PREFIX = "answer:"
@@ -705,6 +722,11 @@ def _log_failure(page: Page, request: Any) -> None:
     if entry is not None:
         entry["failed"] = request.failure or "failed"
         entry["answered"] = time.monotonic()
+
+
+def _file_name(name: str) -> str:
+    """A name a person chose, made safe to be a file name on every system."""
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", name).strip("-.") or "state"
 
 
 def _track_work(page: Page, request: Any, *, started: bool) -> None:
@@ -1402,6 +1424,10 @@ class Browser:
             self.close_tab(value or "")
         elif action == "emulate":
             self.emulate(value or "")
+        elif action == "cookie":
+            self.cookie(value or "")
+        elif action == "storage":
+            self.storage(value or "")
         elif action == "set_time":
             if not value:
                 raise ValueError('set_time needs a date, such as "2026-09-15"')
@@ -1466,6 +1492,69 @@ class Browser:
             self._emulation.pop(kind, None)
         else:
             self._emulation[kind] = setting
+
+    def cookie(self, value: str) -> None:
+        """`set NAME VALUE` for this page's site, or `clear [NAME]`."""
+        assert self._context is not None
+        how, _, rest = value.partition(" ")
+        name, _, said = rest.strip().partition(" ")
+        if how == "set" and name and said:
+            self._context.add_cookies([{"name": name, "value": said, "url": self.page.url}])
+        elif how == "clear":
+            self._context.clear_cookies(**({"name": name} if name else {}))
+        else:
+            raise ValueError('cookie takes: set NAME "VALUE", or clear [NAME]')
+
+    def storage(self, value: str) -> None:
+        """`set KEY VALUE` in this page's local storage, or `clear [KEY]`."""
+        how, _, rest = value.partition(" ")
+        key, _, said = rest.strip().partition(" ")
+        if how == "set" and key and said:
+            self.page.evaluate("([k, v]) => localStorage.setItem(k, v)", [key, said])
+        elif how == "clear" and key:
+            self.page.evaluate("(k) => localStorage.removeItem(k)", key)
+        elif how == "clear":
+            self.page.evaluate("() => localStorage.clear()")
+        else:
+            raise ValueError('storage takes: set KEY "VALUE", or clear [KEY]')
+
+    def save_state(self, name: str) -> Path:
+        """Write this browser's cookies and local storage to a file: a sign-in to keep, to
+        move to another machine, or to hand to another tool."""
+        assert self._context is not None
+        where = self.states / f"{_file_name(name)}{STATE_SUFFIX}"
+        where.parent.mkdir(parents=True, exist_ok=True)
+        self._context.storage_state(path=where)
+        return where
+
+    def load_state(self, name: str) -> Path:
+        """Put a saved state's cookies and local storage into this browser. A name means a
+        file `state save` wrote; a path ending in .json is any storage-state file."""
+        assert self._context is not None
+        where = (
+            Path(name)
+            if name.endswith(STATE_SUFFIX)
+            else self.states / f"{_file_name(name)}{STATE_SUFFIX}"
+        )
+        if not where.is_file():
+            saved = sorted(path.stem for path in self.states.glob(f"*{STATE_SUFFIX}"))
+            known = f" Saved states: {', '.join(saved)}." if saved else ""
+            raise ValueError(f"no saved state at {where}.{known}")
+        state = json.loads(where.read_text(encoding="utf-8"))
+        if state.get("cookies"):
+            self._context.add_cookies(state["cookies"])
+        origins = state.get("origins") or []
+        if origins:
+            self._context.add_init_script(f"({_LOAD_STORAGE_JS})({json.dumps(origins)})")
+            for page in self.tabs:
+                with suppress(PlaywrightError):
+                    page.evaluate(_LOAD_STORAGE_JS, origins)
+        return where
+
+    @property
+    def states(self) -> Path:
+        """Where saved sign-in states are kept: beside the downloads, under ~/.dejo."""
+        return self._downloads.parent / "states"
 
     def clear_emulation(self) -> None:
         """Back to this browser as it is, before a trail sets its own. A replay of a task that

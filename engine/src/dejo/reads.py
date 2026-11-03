@@ -206,6 +206,21 @@ READS: dict[str, ReadSpec] = {
         "a list of urls with their status",
         needs_target=False,
     ),
+    "cookies": ReadSpec(
+        "cookies",
+        "the browser's cookies, as NAME=VALUE (site). With words, only cookies whose name or "
+        "site has them. A cookie the page itself cannot read (httpOnly) shows no value",
+        "a list of cookies",
+        needs_target=False,
+        optional_attribute=True,
+    ),
+    "storage": ReadSpec(
+        "storage",
+        "this page's local storage, as KEY=VALUE; with a key, only its value",
+        "a list, or text for one key",
+        needs_target=False,
+        optional_attribute=True,
+    ),
     "tabs": ReadSpec(
         "tabs",
         "every open tab: its number for `tab N`, its title and address, and which is in use",
@@ -396,6 +411,26 @@ def _failed_requests(page: Page, t: PWLocator | None, attribute: str | None) -> 
     return list(getattr(page, "_dejo_failures", []))
 
 
+def _cookies(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    said = []
+    for cookie in page.context.cookies():
+        if attribute and attribute not in cookie["name"] and attribute not in cookie["domain"]:
+            continue
+        # A cookie the site marked httpOnly is one its own page cannot read: a sign-in. Its
+        # value stays in the browser, here as there.
+        value = "(hidden: httpOnly)" if cookie.get("httpOnly") else cookie["value"]
+        said.append(f"{cookie['name']}={value} ({cookie['domain']})")
+    return said
+
+
+def _storage(page: Page, t: PWLocator | None, attribute: str | None) -> list[str] | str:
+    if attribute:
+        return page.evaluate("(k) => localStorage.getItem(k) || ''", attribute)
+    return page.evaluate(
+        "() => Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k))"
+    )
+
+
 def _tabs(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
     live = [tab for tab in page.context.pages if not tab.is_closed()]
     return [
@@ -499,6 +534,8 @@ _READERS: dict[str, Any] = {
     "response": _response,
     "dialog": _dialog,
     "tabs": _tabs,
+    "cookies": _cookies,
+    "storage": _storage,
     "screenshot": _screenshot,
     "pdf": _pdf,
 }
