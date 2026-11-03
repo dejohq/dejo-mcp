@@ -31,6 +31,7 @@ def distill(trace: list[TraceEntry], *, domain: str, task: str) -> Playbook:
             secret=entry.secret,
             postcondition=entry.expect or postcondition_for(entry),
             locators=locators_for(entry),
+            second=list(entry.second or []),
             # Where this step happened. A goto has no "before", and needs none: it names
             # its own destination.
             page=href_path(entry.url_before) if entry.url_before else "",

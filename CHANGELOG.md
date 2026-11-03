@@ -2,6 +2,13 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **A saved drag and a saved switch to another tab replay.** A drag kept what it picked up
+  but not where it dropped it, and `tab latest` could not be done on replay at all, so both
+  failed every later run. The drop target is now kept with the step, and replay waits for a
+  tab that is still opening.
+
 ## 0.3.1 — 2026-11-03
 
 - **Dejo now finds and uses the right element on 47 of 50 real websites, up from 25.** A new

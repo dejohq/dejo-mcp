@@ -145,6 +145,11 @@ DISMISS = "dismiss"
 LATEST_TAB = "latest"
 MAIN_TAB = "main"
 
+# Registry actions done to the browser as a whole rather than to one page, so `Browser.do`
+# carries them out, the same way while learning and on replay. Replay used to hand them to
+# the page-level registry, which could not do them: a saved `tab latest` failed every time.
+BROWSER_ACTIONS = frozenset({"switch_tab", "new_tab", "set_time"})
+
 # A tab opened by the SITE arrives on an event, not on the call that caused it, so there is
 # a gap between `window.open` returning and Dejo knowing the tab exists. Poll for it
 # rather than guessing one fixed delay — the same shape as the download grace period, and
@@ -1299,6 +1304,20 @@ class Browser:
         else:
             dialog.dismiss()
 
+    def do(self, action: str, value: str | None) -> None:
+        """One of `BROWSER_ACTIONS`. Raises ValueError, in words a person can act on, when
+        the value it needs is missing."""
+        if action == "switch_tab":
+            self.switch_tab(value or LATEST_TAB)
+        elif action == "new_tab":
+            self.new_tab(value or None)
+        elif action == "set_time":
+            if not value:
+                raise ValueError('set_time needs a date, such as "2026-09-15"')
+            self.set_time(value)
+        else:
+            raise ValueError(f"{action} is not something done to the whole browser")
+
     # ------------------------------------------------------------------ tabs
 
     def switch_tab(self, which: str = LATEST_TAB) -> Page:
@@ -1309,6 +1328,12 @@ class Browser:
         if which not in (LATEST_TAB, MAIN_TAB):
             with suppress(ValueError):
                 self._await_tab(int(which) + 1)
+        live = [page for page in self.tabs if not page.is_closed()]
+        if which == LATEST_TAB and live and live[-1] is self._page:
+            # Already in the newest tab, so the one meant is still opening. On replay the
+            # click that opens it returns before the tab exists, and `latest` used to pick
+            # the tab the click was made in.
+            self._await_tab(len(live) + 1)
 
         self.tabs = [page for page in self.tabs if not page.is_closed()]
         if not self.tabs:

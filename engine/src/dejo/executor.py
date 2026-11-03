@@ -35,7 +35,7 @@ from urllib.parse import parse_qsl, urljoin, urlparse
 from playwright.sync_api import Error as PlaywrightError
 
 from . import actions, reads
-from .browser import ACCEPT, Browser
+from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
     DriftDetected,
     Emitter,
@@ -1313,11 +1313,16 @@ class Executor:
         spec = actions.spec_for(step.action)
         value = self._value_for(step, domain) if spec.name in _TEXT_ENTRY else step.value
         was = self.browser.page.url
+        if step.action in BROWSER_ACTIONS:
+            self.browser.do(step.action, value)
+            self.browser.settle()
+            return True
         actions.perform(
             step.action,
             page=self.browser.page,
             target=target,
             value=value,
+            second=self._second_for(step) if spec.needs_second_target else None,
         )
         self.browser.settle()
         if step.risky:
@@ -1330,6 +1335,16 @@ class Executor:
         if moved and self.browser.await_url_change(was):
             self.browser.settle()
         return True
+
+    def _second_for(self, step: Step) -> Any:
+        """The element a drag drops onto, found by the ways the trail kept for it.
+
+        A miss is the browser's kind of failure, so it counts as drift like any other."""
+        for locator in sorted(step.second, key=lambda loc: loc.confidence, reverse=True):
+            found = self.browser.resolve(locator)
+            if found is not None:
+                return found
+        raise PlaywrightError("the element this step drops onto is no longer on the page")
 
     def _retire(self, playbook: Playbook, started: float) -> ReplayResult:
         """Throw the trail away, keep what is known about the site, and say so.

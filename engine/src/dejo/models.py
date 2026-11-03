@@ -409,6 +409,12 @@ class Step:
     the banner is not shown at all there is nothing to clear, so a replay that finds nothing
     for this step skips it, as long as the next step can go ahead without it (bench T07)."""
 
+    second: list[Locator] = field(default_factory=list)
+    """For a step that needs two elements (`drag e4 to e9`), the ways to find the second.
+
+    Without these a saved drag knew what to pick up and not where to put it, so every replay
+    of it failed before it moved anything."""
+
     hits: int = 0
     misses: int = 0
     """This step's own record, used only when it has no locators to speak for it.
@@ -502,6 +508,7 @@ class Step:
             "dialog_choice": self.dialog_choice,
             "risky": self.risky,
             "clears_away": self.clears_away,
+            **({"second": [loc.to_dict() for loc in self.second]} if self.second else {}),
             "health": round(self.health, 3),
         }
 
@@ -524,6 +531,7 @@ class Step:
             dialog_choice=raw.get("dialog_choice"),
             risky=raw.get("risky", False),
             clears_away=raw.get("clears_away", False),
+            second=[Locator.from_dict(loc) for loc in raw.get("second", [])],
         )
 
 

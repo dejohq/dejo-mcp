@@ -24,7 +24,7 @@ from playwright.sync_api import Error as PlaywrightError
 
 from . import actions, reads
 from . import snapshot as aria
-from .browser import LATEST_TAB, Browser, Element, Snapshot, domain_of
+from .browser import BROWSER_ACTIONS, Browser, Element, Snapshot, domain_of
 from .events import Emitter, MemoryWrite
 from .models import (
     Control,
@@ -97,6 +97,8 @@ class TraceEntry:
     step that used to answer is drift, not success — and reporting it as success is how a
     warm run "works" while handing back nothing."""
     download: str | None = None
+    second: list[Locator] | None = None
+    """For a drag, the ways to find the element it was dropped on."""
     locators: list[Locator] | None = None
     """The ways to find the element chosen when the step ran, when they had to be
     narrowed. Replaces `element.locators()` in the trail. A read is narrowed to the
@@ -230,7 +232,9 @@ class Session:
         sends = element is not None and (action in actions.PRESSES or enter)
         held = self.browser.held_back(element) if sends and element is not None else []
 
-        element, lasting = self._perform(action, element=element, value=value, second=second)
+        element, lasting, second = self._perform(
+            action, element=element, value=value, second=second
+        )
 
         # An anchor was clicked and the address has not moved. Either it went nowhere, or
         # this is a single-page app that will change the URL in a moment — a React Router
@@ -293,6 +297,7 @@ class Session:
             expect=expect,
             risky=risky,
             locators=lasting,
+            second=second.locators() if second is not None else None,
             left=left,
         )
         # An action that changes nothing is not a step. Replaying `highlight` would draw a
@@ -355,30 +360,32 @@ class Session:
         element: Element | None,
         value: str | None,
         second: Element | None = None,
-    ) -> tuple[Element | None, list[Locator] | None]:
+    ) -> tuple[Element | None, list[Locator] | None, Element | None]:
         """Describe the element, then hand the doing to the registry.
 
         Finding things is Dejo's job because a durable descriptor has to be recorded at the
         same moment. Performing is Playwright's job. This method is the seam between them.
-        Returns the described element, and the ways of finding it the trail should keep.
+        Returns the described element, the ways of finding it the trail should keep, and the
+        described second element of a drag.
         """
         spec = self._spec(action)
         if spec.session_handled:
             self._do_here(action, value)
-            return None, None
+            return None, None, None
         if action == "goto":
             # Through the browser, as replay does, so the page's HTTP status is kept. The
             # registry's goto dropped it, so an error page (or a 403 from a site that turns
             # automated browsers away) was learned on as if it were the page (22 Oct 2026).
             self.browser.goto(value or "")
             self.browser.settle()
-            return None, None
+            return None, None, None
 
         # Describe before acting. The durable descriptors have to be read while the
         # element is still on the page as it was — a click can navigate away, and then
         # there is nothing left to describe.
         element = self.browser.describe(element) if element is not None else None
         lasting = self._only_ones(element)
+        second = self.browser.describe(second) if second is not None else None
         target = self.browser.locate(element) if element else None
         second_target = self.browser.locate(second) if second is not None else None
 
@@ -392,7 +399,7 @@ class Session:
         # Every action, not a chosen few. A download event can arrive after the click has
         # already returned, and a select can navigate just as a click can.
         self.browser.settle()
-        return element, lasting
+        return element, lasting, second
 
     def _only_ones(self, element: Element | None) -> list[Locator] | None:
         """The ways of finding this element that match it and nothing else on the page.
@@ -418,12 +425,11 @@ class Session:
 
     def _do_here(self, action: str, value: str | None) -> None:
         """The few actions that need Dejo's own state rather than just the page."""
-        if action == "switch_tab":
-            self.browser.switch_tab(value or LATEST_TAB)
-            self._snapshot = None
-            return
-        if action == "new_tab":
-            self.browser.new_tab(value or None)
+        if action in BROWSER_ACTIONS:
+            try:
+                self.browser.do(action, value)
+            except ValueError as wrong:
+                raise ActionFailed(str(wrong)) from wrong
             self._snapshot = None
             return
         if action == "dismiss_when_seen":
@@ -434,11 +440,6 @@ class Session:
         if action == "restart_trail":
             self.trace.clear()
             self._loose_read = None
-            return
-        if action == "set_time":
-            if not value:
-                raise ActionFailed('set_time needs a date, such as "2026-09-15"')
-            self.browser.set_time(value)
             return
         raise ActionFailed(f"{action} is marked session-handled but nothing handles it")
 
