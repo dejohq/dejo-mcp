@@ -531,6 +531,8 @@ def _read_with_kind(reader: _Words, number: int, body: str, reason: str) -> Read
     attribute = None
     if spec.needs_attribute:
         attribute = reader.string(f"read {word} needs {spec.attribute_means}")
+    elif spec.optional_attribute and reader.peek() != "as":
+        attribute = reader.take()
     target = reader.target() if spec.needs_target else None
     if spec.optional_target and reader.peek() == reads.FULL_PAGE:
         attribute = reader.take()

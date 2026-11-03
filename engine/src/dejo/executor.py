@@ -818,6 +818,7 @@ class Executor:
         # same choice, the same words in a prompt. Any page-level step can open one too.
         self.browser.expect_dialog(step.dialog_choice or ACCEPT, step.dialog_answer)
         self.browser.last_dialog = None
+        self.browser.step_begins()
 
         # Are we even on the page this step belongs to? Asked FIRST, before a single
         # locator is tried, because everything that follows assumes we are.

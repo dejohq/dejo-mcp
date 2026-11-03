@@ -141,6 +141,13 @@ _HONEST_AGENTS: dict[str | None, str | None] = {}
 ACCEPT = "accept"
 DISMISS = "dismiss"
 
+# How many requests one tab remembers for `read requests`. A dashboard that polls makes
+# thousands an hour; the newest few hundred hold anything a step just caused.
+REQUESTS_KEPT = 500
+
+# How many console messages one tab remembers for `read console`, for the same reason.
+CONSOLE_KEPT = 500
+
 # Which tab to continue in.
 LATEST_TAB = "latest"
 MAIN_TAB = "main"
@@ -668,6 +675,35 @@ def _keep(kept: list[str], line: str) -> None:
     kept.append(line)
     if len(kept) > MAX_DIAGNOSTICS:
         del kept[0]
+
+
+def _log_request(page: Page, request: Any) -> None:
+    """Write down every request the page makes, with when, for `read requests` and for
+    `wait response:...`. Bounded: a page that polls would otherwise grow without end."""
+    log = page._dejo_requests  # type: ignore[attr-defined]
+    if request.is_navigation_request() and request.frame == page.main_frame:
+        # A new page in this tab: what the old one asked for is not this page's.
+        log.clear()
+        page._dejo_by_request.clear()  # type: ignore[attr-defined]
+    log.append({"at": time.monotonic(), "request": request, "response": None, "failed": ""})
+    page._dejo_by_request[request] = log[-1]  # type: ignore[attr-defined]
+    if len(log) > REQUESTS_KEPT:
+        gone = log.pop(0)
+        page._dejo_by_request.pop(gone["request"], None)  # type: ignore[attr-defined]
+
+
+def _log_response(page: Page, response: Any) -> None:
+    entry = page._dejo_by_request.get(response.request)  # type: ignore[attr-defined]
+    if entry is not None:
+        entry["response"] = response
+        entry["answered"] = time.monotonic()
+
+
+def _log_failure(page: Page, request: Any) -> None:
+    entry = page._dejo_by_request.get(request)  # type: ignore[attr-defined]
+    if entry is not None:
+        entry["failed"] = request.failure or "failed"
+        entry["answered"] = time.monotonic()
 
 
 def _track_work(page: Page, request: Any, *, started: bool) -> None:
@@ -1262,6 +1298,13 @@ class Browser:
         # can find them without knowing anything about Dejo.
         page._dejo_captures = self.captures  # type: ignore[attr-defined]
         page._dejo_console = []  # type: ignore[attr-defined]
+        page._dejo_messages = []  # type: ignore[attr-defined]
+        page._dejo_requests = []  # type: ignore[attr-defined]
+        page._dejo_by_request = {}  # type: ignore[attr-defined]
+        page._dejo_since = time.monotonic()  # type: ignore[attr-defined]
+        page.on("request", lambda request: _log_request(page, request))
+        page.on("response", lambda response: _log_response(page, response))
+        page.on("requestfailed", lambda request: _log_failure(page, request))
         page._dejo_failures = []  # type: ignore[attr-defined]
         page.on("console", lambda message: self._remember_console(page, message))
         page.on("pageerror", lambda error: _keep(page._dejo_console, f"error: {error}"))  # type: ignore[attr-defined]
@@ -1276,7 +1319,11 @@ class Browser:
             self._arm_overlay(page, selector)
 
     def _remember_console(self, page: Page, message: Any) -> None:
-        """Only the errors and warnings. A chatty site logs hundreds of ordinary lines."""
+        """Every message for `read console`, and the errors and warnings apart from the rest
+        for `read console_errors`: a chatty site logs hundreds of ordinary lines."""
+        messages = page._dejo_messages  # type: ignore[attr-defined]
+        messages.append(f"{message.type}: {message.text}")
+        del messages[:-CONSOLE_KEPT]
         if message.type in ("error", "warning"):
             _keep(page._dejo_console, f"{message.type}: {message.text}")  # type: ignore[attr-defined]
 
@@ -1286,6 +1333,16 @@ class Browser:
             if self._failed_while_watching is not None:
                 failed = f"{response.status} {response.request.method} {response.url}"
                 _keep(self._failed_while_watching, failed)
+
+    def step_begins(self) -> None:
+        """Mark the moment a step starts, on every tab. `wait response:...` after a click
+        counts what that click caused, even a response that came back before the wait began.
+
+        The wait is itself a step, so the moment of the step BEFORE it is kept too."""
+        now = time.monotonic()
+        for page in self.tabs:
+            page._dejo_since_before = getattr(page, "_dejo_since", now)  # type: ignore[attr-defined]
+            page._dejo_since = now  # type: ignore[attr-defined]
 
     def set_time(self, when: str) -> None:
         """Tell every page it is a different date.

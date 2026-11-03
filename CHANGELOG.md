@@ -4,6 +4,12 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Dejo sees the page's network and console.** `read requests` lists every request the page
+  made since it loaded (method, status, address; `read requests "/api/"` only those),
+  `read response "/api/orders"` gives the body of the latest answer from that address, and
+  `read console` every console message, not only errors. `wait response:/api/orders` and
+  `wait request:...` wait for the page's own calls, counting one that already came back
+  after the step before. All of them are kept in a trail and replayed.
 - **Screenshots and PDFs are steps a trail keeps.** `screenshot` (what is on screen),
   `screenshot full`, `screenshot css "#chart"` and `pdf` save a file under `~/.dejo/captures`
   and answer its path; a trail that ends in one is saved, and every replay saves a new one,

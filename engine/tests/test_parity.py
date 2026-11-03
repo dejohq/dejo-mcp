@@ -7,7 +7,11 @@ program on `/parity` and then replays it, and checks the page shows the step rea
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
+
+from tests.demo_site.parity import DATA
 
 from dejo import program
 from dejo.browser import Browser, domain_of
@@ -157,3 +161,51 @@ def test_a_whole_page_screenshot_and_a_pdf(
 def test_pictures_are_kept_beside_the_downloads(browser: Browser, tmp_path: Path) -> None:
     """Everything Dejo writes lives in one folder: ~/.dejo, or wherever downloads were sent."""
     assert browser.captures == tmp_path / "captures"
+
+
+# ------------------------------------------------------------------------------ network
+
+
+def test_waiting_for_a_response_then_reading_it_replays(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """The page fills itself in from its own API a moment after the click. Waiting for that
+    answer is the real wait; reading the answer itself gives the data without the page."""
+    task = "the weather data"
+    outcome = learn(
+        browser,
+        store,
+        task,
+        f"go {demo_server}/parity\n"
+        'click button "Load slowly"\n'
+        "wait response:/parity/slow-data\n"
+        'read response "/parity/slow-data" as data\n'
+        'read css "#log" as log\n',
+    )
+    assert json.loads(outcome.answers["data"]) == DATA
+    assert outcome.answers["log"] == "weather: Pune 31"
+    result = replay(browser, store, demo_server, task)
+    assert json.loads(result.answers["data"]) == DATA
+    assert result.answers["log"] == "weather: Pune 31"
+
+
+def test_the_requests_and_console_of_a_page_can_be_read(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    task = "what the page asked for"
+    outcome = learn(
+        browser,
+        store,
+        task,
+        f"go {demo_server}/parity\n"
+        'click button "Ask for nothing"\n'
+        "wait request:/parity/missing\n"
+        'click button "Talk"\n'
+        'read requests "/parity/missing" as calls\n'
+        "read console as said\n",
+    )
+    assert re.search(r"GET (404|waiting) http://\S+/parity/missing", outcome.answers["calls"])
+    assert "log: hello from the page" in outcome.answers["said"]
+    result = replay(browser, store, demo_server, task)
+    assert len(result.answers["calls"]) == 1, "only this page's requests, not the last page's"
+    assert "/parity/missing" in result.answers["calls"][0]

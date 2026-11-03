@@ -220,6 +220,7 @@ class Session:
         self.browser.last_download = None
         self.browser.last_download_path = None
         self.browser.last_dialog = None
+        self.browser.step_begins()
         self.last_result = None
         if risky:
             self.browser.watch_for_messages()

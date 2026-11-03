@@ -108,6 +108,7 @@ RUN_DESCRIPTION = (
     "look words       (show the page, these words first)\n"
     'Also: back, hover T, wait T, upload T "file", tab N, dialog dismiss,\n'
     "screenshot [T], pdf (saved, path given back).\n"
+    "wait response:/api | read response \"/api\" | read requests\n"
     "help    (every other step)\n"
     'T is a ref, or role "name" (link "Travel"), text "...", label "...", css "...". '
     "Add first, last or nth 3 to mean that place in a list, not that item.\n"

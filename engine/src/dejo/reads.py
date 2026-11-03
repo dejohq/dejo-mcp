@@ -41,6 +41,10 @@ FULL_PAGE = "full"
 # folder (see `Browser._watch`), and this is only for a page Dejo did not open.
 CAPTURES = HOME / "captures"
 
+# The most of a response body handed back. An API answer can be megabytes; past this it
+# is no longer one answer, and it would crowd the reply.
+LONGEST_BODY = 20_000
+
 # A markdown heading: `## Pricing`.
 _HEADING = re.compile(r"^(#{1,6})\s")
 
@@ -72,6 +76,8 @@ class ReadSpec:
     """What the extra word a read needs is, for a message about it missing."""
     optional_target: bool = False
     """Takes an element when one is named, and the whole page when not."""
+    optional_attribute: bool = False
+    """Takes the extra word when one is given, and reads everything when not."""
     many: bool = False
     """Does this read WANT more than one match?
 
@@ -169,6 +175,29 @@ READS: dict[str, ReadSpec] = {
         "is usually why — read it before guessing",
         "a list of messages",
         needs_target=False,
+    ),
+    "console": ReadSpec(
+        "console",
+        "every message the page wrote to its console, newest last, not only the errors",
+        "a list of messages",
+        needs_target=False,
+    ),
+    "requests": ReadSpec(
+        "requests",
+        "every request the page made, as METHOD STATUS ADDRESS. With words, only those whose "
+        'address has them: read requests "/api/" as calls',
+        "a list of requests",
+        needs_target=False,
+        optional_attribute=True,
+    ),
+    "response": ReadSpec(
+        "response",
+        "the body of the latest answer to an address with these words in it, such as the "
+        "JSON a page draws its table from",
+        "text",
+        needs_target=False,
+        needs_attribute=True,
+        attribute_means='words in the address, like: read response "/api/orders" as orders',
     ),
     "failed_requests": ReadSpec(
         "failed_requests",
@@ -399,6 +428,42 @@ def _capture_path(page: Page, suffix: str) -> Path:
     return folder / f"{site}-{moment}.{suffix}"
 
 
+def _console(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    return list(getattr(page, "_dejo_messages", []))
+
+
+def _requests(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    said = []
+    for entry in getattr(page, "_dejo_requests", []):
+        request = entry["request"]
+        if attribute and attribute not in request.url:
+            continue
+        response = entry["response"]
+        status = str(response.status) if response is not None else entry["failed"] or "waiting"
+        said.append(f"{request.method} {status} {request.url}")
+    return said
+
+
+def _response(page: Page, t: PWLocator | None, attribute: str | None) -> str:
+    for entry in reversed(getattr(page, "_dejo_requests", [])):
+        response = entry["response"]
+        if response is None or (attribute or "") not in entry["request"].url:
+            continue
+        try:
+            body = response.text()
+        except PlaywrightError:
+            # A body is gone once its page has moved on. Said plainly: the fix is to read it
+            # straight after the step that fetched it.
+            raise ReadNeedsMore(
+                f"the answer from {response.url} can no longer be read: the page has moved on "
+                "since. Read it in the line right after the step that fetched it."
+            ) from None
+        if len(body) > LONGEST_BODY:
+            return body[:LONGEST_BODY] + f" ... ({len(body):,} characters in all)"
+        return body
+    return ""
+
+
 _READERS: dict[str, Any] = {
     "text": _text,
     "all_text": _all_text,
@@ -415,6 +480,9 @@ _READERS: dict[str, Any] = {
     "page_text": _page_text,
     "console_errors": _console_errors,
     "failed_requests": _failed_requests,
+    "console": _console,
+    "requests": _requests,
+    "response": _response,
     "dialog": _dialog,
     "screenshot": _screenshot,
     "pdf": _pdf,

@@ -107,7 +107,7 @@ _NAMING_LOCATORS = _WORDED_LOCATORS | {"test_id", "structural"}
 _PART_READS = frozenset({"passage"})
 
 # Reads that answer about many elements at once, so several matches are the point.
-_MANY_READS = {"count", "all_text"}
+_MANY_READS = {"count", "all_text", "console", "requests", "console_errors", "failed_requests"}
 
 # A read is one value the user asked for: a price, a date, a name, a short note. Past this it
 # is a section or the whole page, and every replay would hand all of it back. Seen 23 Oct:

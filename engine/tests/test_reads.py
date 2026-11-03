@@ -289,6 +289,9 @@ EXERCISED = {
     "dialog",
     "screenshot",
     "pdf",
+    "console",
+    "requests",
+    "response",
 }
 
 

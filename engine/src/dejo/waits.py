@@ -86,6 +86,16 @@ WAITS: dict[str, WaitSpec] = {
         "wait until the address contains this. Single-page apps change the address without "
         "loading a new page, so this is often the only signal that a move happened",
     ),
+    "request": WaitSpec(
+        "request",
+        "wait until the page has asked for an address with these words in it, since the "
+        "step before. For a click whose only sign of working is a call to the server",
+    ),
+    "response": WaitSpec(
+        "response",
+        "wait until an answer has come back for an address with these words in it, since "
+        "the step before. The right wait for a page that fills itself in from its own API",
+    ),
     "idle": WaitSpec(
         "idle",
         "wait until the network goes quiet. Use for a dashboard that is blank until its "
@@ -188,6 +198,33 @@ def _wait_url(page: Page, subject: str, timeout_ms: int) -> None:
     page.wait_for_url(f"**{subject}**", timeout=timeout_ms)
 
 
+def _wait_request(page: Page, subject: str, timeout_ms: int) -> None:
+    _wait_network(page, subject, timeout_ms, answered=False)
+
+
+def _wait_response(page: Page, subject: str, timeout_ms: int) -> None:
+    _wait_network(page, subject, timeout_ms, answered=True)
+
+
+def _wait_network(page: Page, subject: str, timeout_ms: int, *, answered: bool) -> None:
+    """Done at once when the page already made (or was answered for) such a request since
+    the step before this wait began; otherwise wait for the next one.
+
+    Asked in that order on purpose. A click that fetches data is usually answered before
+    the next line starts, and Playwright's own `expect_response` must be set up BEFORE the
+    click, which a step line written after the click cannot do."""
+    since = getattr(page, "_dejo_since_before", 0.0)
+    for entry in getattr(page, "_dejo_requests", []):
+        if subject not in entry["request"].url:
+            continue
+        if not answered and entry["at"] >= since:
+            return
+        if answered and entry["response"] is not None and entry.get("answered", 0) >= since:
+            return
+    event = "response" if answered else "request"
+    page.wait_for_event(event, lambda seen: subject in seen.url, timeout=timeout_ms)
+
+
 def _wait_idle(page: Page, subject: str, timeout_ms: int) -> None:
     page.wait_for_load_state("networkidle", timeout=timeout_ms)
 
@@ -198,6 +235,8 @@ _WAITERS: dict[str, Any] = {
     "gone": _wait_gone,
     "text": _wait_text,
     "url": _wait_url,
+    "request": _wait_request,
+    "response": _wait_response,
     "idle": _wait_idle,
 }
 
