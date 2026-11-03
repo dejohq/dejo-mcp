@@ -41,9 +41,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   only the first element, so a saved count answered 1 on every later run.
 - **Drive a browser that is already running.** `DEJO_CDP_URL=http://127.0.0.1:9222` (or
   `dejo run --cdp URL`) connects over the Chrome DevTools Protocol to a cloud browser, or to
-  your own Chrome started with `--remote-debugging-port`, instead of starting one. Its tabs and
-  sign-ins are used as they are; trails learn and replay there the same way, and Dejo
-  disconnects at the end, leaving it running.
+  your own Chrome started with `--remote-debugging-port`, instead of starting one. Its sign-ins
+  are used as they are; trails learn and replay there the same way. Dejo works in a tab of its
+  own, never one you have open, and at the end closes that tab and disconnects, leaving the
+  browser running.
 - **A plain step log.** Every line learned and every step replayed is written to
   `~/.dejo/logs/DATE.log`, in words: what it did, how it found its element, how long it took,
   and why a run stopped. A person can see what their agent did without asking it.
@@ -57,7 +58,8 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   `DEJO_RECORD=video,trace` records every replay, and the reply names the files, also when a
   replay broke.
 - **Cookies, local storage and saved sign-in state.** `read cookies` and `read storage` read
-  them (a cookie the page itself cannot read keeps its value hidden); `cookie set`/`clear` and
+  them, for the page Dejo is on only (a cookie the page itself cannot read keeps its value
+  hidden); `cookie set`/`clear` and
   `storage set`/`clear` change them; `state save team` writes every cookie and the local
   storage to `~/.dejo/states/team.json`, Playwright's own storage-state file, and `state load`
   puts one back, by name or by path. These change the browser, not the site, so they are not

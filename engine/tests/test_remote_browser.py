@@ -74,6 +74,21 @@ def test_a_task_is_learned_and_replayed_in_a_browser_dejo_did_not_start(
         assert again.page is not None
 
 
+def test_the_owners_tabs_are_left_as_they_were_and_dejos_own_tab_is_closed(
+    running_chrome: str, demo_server: str, tmp_path: Path
+) -> None:
+    """Dejo works in a tab of its own. The owner's tab keeps its page, and when Dejo stops,
+    only the owner's tabs are left."""
+    with Browser(cdp_url=running_chrome, downloads=tmp_path / "d") as theirs:
+        owners = [tab for tab in theirs.page.context.pages if tab is not theirs.page]
+        assert [tab.url for tab in owners] == ["about:blank"]
+        theirs.goto(f"{demo_server}/parity")
+        assert [tab.url for tab in owners] == ["about:blank"]
+    with Browser(cdp_url=running_chrome, downloads=tmp_path / "d") as again:
+        left = [tab.url for tab in again.page.context.pages if tab is not again.page]
+        assert left == ["about:blank"]
+
+
 def test_a_browser_that_is_not_there_is_named_with_what_to_do(tmp_path: Path) -> None:
     with pytest.raises(ProfileUnavailable, match="remote-debugging-port"):
         Browser(cdp_url="http://127.0.0.1:9", downloads=tmp_path / "d").start()

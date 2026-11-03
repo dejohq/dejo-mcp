@@ -1145,8 +1145,9 @@ class Browser:
             self._browser = self._connect()
             contexts = self._browser.contexts
             self._context = contexts[0] if contexts else self._browser.new_context()
-            pages = self._context.pages
-            self._page = pages[0] if pages else self._context.new_page()
+            # A tab of its own: the tabs already open are the owner's. On 3 Nov Dejo took the
+            # first one and moved it to another site, losing what the person had open there.
+            self._page = self._context.new_page()
         elif self._profile is not None:
             self._profile.mkdir(parents=True, exist_ok=True)
             self._hold_profile()
@@ -1957,8 +1958,12 @@ class Browser:
             with suppress(PlaywrightError):
                 self.stop_recording()
         self.keep_session_cookies()
-        # A browser Dejo only connected to is someone else's: disconnect and leave it, and
-        # every tab in it, running.
+        # A browser Dejo only connected to is someone else's: close the tabs Dejo worked in,
+        # then disconnect and leave the browser, and every tab of its owner, running.
+        if self._cdp_url:
+            for tab in self.tabs:
+                with suppress(PlaywrightError):
+                    tab.close()
         closers = (self._browser,) if self._cdp_url else (self._context, self._browser)
         for closer in closers:
             if closer is not None:
