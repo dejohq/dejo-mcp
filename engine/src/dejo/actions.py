@@ -542,6 +542,25 @@ ACTIONS: dict[str, ActionSpec] = {
         value_means='permission names, like "notifications clipboard-read", or "off"',
         session_handled=True,
     ),
+    "mock": ActionSpec(
+        "mock",
+        "answer the page's requests to an address with a made-up response, to test a page "
+        "against an answer its server could give. `mock off` stops it",
+        needs_target=False,
+        value_means='an address pattern, a status and a body: mock "**/api/user" 200 "{}"',
+        recordable=False,
+        not_kept="a made-up answer changes what the site is; a trail replays the real site",
+        session_handled=True,
+    ),
+    "script": ActionSpec(
+        "script",
+        "run your own JavaScript in every page from now on, before the page's own scripts",
+        needs_target=False,
+        value_means="the JavaScript",
+        recordable=False,
+        not_kept="a step made of code cannot be repaired when the site changes",
+        session_handled=True,
+    ),
     "block": ActionSpec(
         "block",
         "stop the page loading anything whose address matches a pattern: images, fonts, an "
@@ -1109,6 +1128,16 @@ def _allow(page: Page, t: _T | None, value: str | None, second: _T | None) -> No
     raise AssertionError("allow should have been handled by the session")
 
 
+def _mock(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: routes belong to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("mock should have been handled by the session")
+
+
+def _script(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: init scripts belong to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("script should have been handled by the session")
+
+
 def _block(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: blocking belongs to the whole browser, so `Browser.do` handles this.
     raise AssertionError("block should have been handled by the session")
@@ -1172,6 +1201,8 @@ _RUNNERS: dict[str, Any] = {
     "close_tab": _close_tab,
     "emulate": _emulate,
     "block": _block,
+    "mock": _mock,
+    "script": _script,
     "allow": _allow,
     "header": _header,
     "record": _record,

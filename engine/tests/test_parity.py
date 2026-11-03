@@ -735,3 +735,28 @@ def test_a_permission_granted_by_a_step_is_granted_again_on_replay(
     )
     browser.do("allow", "off")
     assert replay(browser, store, demo_server, "allowed to notify").answers == {"notify": "granted"}
+
+
+def test_a_made_up_answer_and_an_init_script_are_used_but_not_kept(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """Testing a page against an answer its server could give: done, and never replayed,
+    because a trail replays the real site."""
+    outcome = learn(
+        browser,
+        store,
+        "the page with fake weather",
+        """script "addEventListener('load', () => { document.title = 'from script'; })"\n"""
+        """mock "**/parity/data" 200 '{"city": "Mumbai", "temperature": 29}'\n"""
+        f"go {demo_server}/parity\n"
+        'click button "Load data"\n'
+        'wait "text:weather: Mumbai"\n'
+        'read css "#log" as log\n'
+        "read title as title\n",
+    )
+    assert outcome.answers == {"log": "weather: Mumbai 29", "title": "from script"}
+    said = outcome.text()
+    assert "a made-up answer changes what the site is" in said
+    assert "a step made of code cannot be repaired" in said
+    assert outcome.saved is not None
+    assert "mock" not in [step.action for step in outcome.saved.steps]

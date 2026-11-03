@@ -491,6 +491,8 @@ EXERCISED = {
     "block",
     "header",
     "allow",
+    "mock",
+    "script",
 }
 
 

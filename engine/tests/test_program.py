@@ -117,6 +117,8 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "record": "record video",
         "block": 'block "**/*.png"',
         "allow": "allow notifications",
+        "mock": 'mock "**/api" 200 "{}"',
+        "script": 'script "window.tour = false"',
         "header": "header clear",
     }
     if name in special:

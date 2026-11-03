@@ -361,6 +361,8 @@ Every step, in one place:
 | `wait "text:Saved\|Error"` | wait for whichever words come first |
 | `block "**/*.png"`, `block off [PATTERN]` | stop the page loading what matches (images, an ad, a chat widget that slows every run). Kept in the trail |
 | `allow notifications clipboard-read ...`, `allow off` | grant permissions to every site (Dejo grants none unasked). Kept in the trail |
+| `mock "**/api/user" 200 '{"name": "Asha"}'`, `mock off` | answer the page's requests to an address with a made-up response, to test a page. Not kept in a trail: a trail replays the real site |
+| `script "JAVASCRIPT"` | run your own JavaScript in every page from now on, before the page's own. Not kept, like `js` |
 | `header set NAME "VALUE"`, `header clear` | send a header with every request, such as a test server's key. Not kept in a trail |
 | `wait request:WORDS`, `wait response:WORDS` | wait until the page asked for, or got an answer from, an address with these words, since the step before |
 | `tab N\|latest\|main`, `tab new [URL]`, `tab close [N]` | move between tabs, open one, close one (`read tabs` lists them) |

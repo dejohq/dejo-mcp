@@ -4,6 +4,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Made-up answers and init scripts, for testing.** `mock "**/api/user" 200 '{...}'`
+  answers the page's requests to an address with a response you write, and `script "..."`
+  runs your JavaScript in every page before its own. Both are done and never kept in a
+  trail, and the reply says why: a trail replays the real site.
 - **An element's place and markup, and permissions.** `read box T` gives where an element is
   on the screen and its size, in the numbers `mouse click X Y` uses; `read html T` its HTML.
   `allow notifications clipboard-read` grants permissions to every site (Dejo grants none

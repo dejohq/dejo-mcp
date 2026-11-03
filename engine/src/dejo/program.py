@@ -311,6 +311,8 @@ USAGE = {
     "record": "record video|trace|performance (one or more) | record stop",
     "block": 'block "**/*.png" | block off [PATTERN]',
     "header": 'header set NAME "VALUE" | header clear',
+    "mock": 'mock "PATTERN" STATUS "BODY" | mock off [PATTERN]',
+    "script": 'script "JAVASCRIPT"',
     "emulate": "emulate KIND SETTING  (see EMULATE below)",
     "dialog": 'dialog dismiss | dialog accept ["answer"]',
     "dismiss_when_seen": 'dismiss css "SELECTOR"',
@@ -462,6 +464,8 @@ def _action(head: str, reader: _Words, number: int, body: str, reason: str) -> A
         value = _mouse_value(value or "", reader, number)
     if name == "block" and value == "off" and reader.more():
         value = f"off {reader.take()}"
+    if name == "mock":
+        value = _mock_value(value or "", reader, number)
     if name == "allow":
         while reader.more() and not OPTION.match(reader.peek() or ""):
             value = f"{value} {reader.take()}"
@@ -507,6 +511,17 @@ def _setting_value(name: str, how: str, reader: _Words, number: int) -> str:
     if how in ("set", "save", "load") and len(words) - 1 < shapes[how]:
         raise ProgramError(number, f"{name} {how} needs {shapes[how]} more words, in quotes")
     return " ".join(words)
+
+
+def _mock_value(pattern: str, reader: _Words, number: int) -> str:
+    """`mock "**/api/user" 200 '{"name": "Asha"}'`, or `mock off [PATTERN]`."""
+    if pattern == "off":
+        return f"off {reader.take()}" if reader.more() else "off"
+    status = reader.string('mock needs a status after the address, like: mock "**/api" 200 "{}"')
+    if not status.isdigit():
+        raise ProgramError(number, f"mock needs a status number like 200, not {status!r}")
+    body = reader.string("mock needs a body after the status, in quotes")
+    return "\t".join([pattern, status, body])
 
 
 def _emulate_value(kind: str, reader: _Words, number: int) -> str:

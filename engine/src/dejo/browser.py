@@ -169,8 +169,13 @@ BROWSER_ACTIONS = frozenset(
         "block",
         "header",
         "allow",
+        "mock",
+        "script",
     }
 )
+
+# Between the address, the status and the body of a `mock` line, as one value.
+MOCK_SPLIT = "\t"
 
 # How a `block` line lets things through again.
 OFF_WORD = "off"
@@ -1531,6 +1536,10 @@ class Browser:
             self.header(value or "")
         elif action == "allow":
             self.allow(value or "")
+        elif action == "mock":
+            self.mock(value or "")
+        elif action == "script":
+            self.script(value or "")
         elif action == "set_time":
             if not value:
                 raise ValueError('set_time needs a date, such as "2026-09-15"')
@@ -1655,6 +1664,32 @@ class Browser:
             raise ValueError(
                 f"the browser does not know {' or '.join(wanted)}: {refused}"
             ) from None
+
+    def mock(self, value: str) -> None:
+        """Answer requests to an address with a made-up response: `PATTERN<tab>STATUS<tab>BODY`,
+        or stop with `off [PATTERN]`. For testing a page against an answer its server would
+        give; a JSON body is sent as JSON."""
+        assert self._context is not None
+        if value.split()[:1] == [OFF_WORD]:
+            self.block(value)
+            return
+        pattern, _, rest = value.partition(MOCK_SPLIT)
+        status, _, body = rest.partition(MOCK_SPLIT)
+        if not pattern or not status.isdigit():
+            raise ValueError('mock takes an address, a status and a body: mock "**/api" 200 "{}"')
+        kind = "application/json" if body.lstrip()[:1] in ("{", "[") else "text/plain"
+        self._context.route(
+            pattern,
+            lambda route: route.fulfill(status=int(status), body=body, content_type=kind),
+        )
+        self._blocked.append(pattern)
+
+    def script(self, code: str) -> None:
+        """Run this JavaScript in every page from now on, before the page's own scripts."""
+        assert self._context is not None
+        if not code.strip():
+            raise ValueError('script takes JavaScript, like: script "window.tour = false"')
+        self._context.add_init_script(code)
 
     def clear_blocks(self) -> None:
         """Let everything load again, before a trail sets its own blocks."""
