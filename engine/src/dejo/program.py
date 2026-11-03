@@ -28,7 +28,7 @@ import shlex
 from dataclasses import dataclass, field, replace
 from typing import Literal
 
-from . import actions, reads, waits
+from . import actions, emulation, reads, waits
 from .snapshot import INTERACTIVE_ROLES
 
 # Limits on one program. Thirty lines is several times the longest task measured on 20 Oct
@@ -293,6 +293,7 @@ USAGE = {
     "switch_tab": "tab N|latest|main",
     "new_tab": "tab new [URL]",
     "close_tab": "tab close [N|latest]",
+    "emulate": "emulate KIND SETTING  (see EMULATE below)",
     "dialog": 'dialog dismiss | dialog accept ["answer"]',
     "dismiss_when_seen": 'dismiss css "SELECTOR"',
     "restart_trail": "restart",
@@ -341,6 +342,9 @@ def reference() -> str:
             "",
             "FILES: screenshot [T | full] [as NAME] and pdf [as NAME] save a picture or a PDF and "
             "answer its path. Kept in a trail, so every replay saves a new one.",
+            "EMULATE (emulate KIND SETTING; emulate KIND off undoes it):",
+            emulation.catalogue(),
+            "",
             "CHECKS: expect url|text|see|gone|count|value ... checks the action just before.",
             "LOOK: look [WORDS | from REF | gN | all | raw | image]. look image sends a picture "
             "of the screen, for a page with nothing inside to name (a chart, a map, a canvas).",
@@ -438,6 +442,8 @@ def _action(head: str, reader: _Words, number: int, body: str, reason: str) -> A
         value = _checked_address(value or "", number)
     if name == "mouse":
         value = _mouse_value(value or "", reader, number)
+    if name == "emulate":
+        value = _emulate_value(value or "", reader, number)
     options = _options(reader, spec, number)
     return Action(number, body, name, target, value, second, options, risky, reason)
 
@@ -458,6 +464,16 @@ def _mouse_value(first: str, reader: _Words, number: int) -> str:
             number, f"mouse {first} takes {counts} numbers, like: mouse click 120 40"
         )
     return " ".join(words)
+
+
+def _emulate_value(kind: str, reader: _Words, number: int) -> str:
+    """`emulate timezone Asia/Tokyo`: the kind, then its setting, checked before anything runs."""
+    value = f"{kind} {reader.string(f'emulate {kind} needs a setting, or off')}"
+    try:
+        emulation.parse(value)
+    except emulation.EmulationError as wrong:
+        raise ProgramError(number, str(wrong)) from None
+    return value
 
 
 def _options(reader: _Words, spec: actions.ActionSpec, number: int) -> tuple[tuple[str, str], ...]:

@@ -347,3 +347,94 @@ def test_closing_a_tab_and_listing_tabs_replay(
     result = replay(browser, store, demo_server, task)
     assert browser.page.url.endswith("/parity")
     assert not any("/books" in tab for tab in result.answers["after"])
+
+
+# ---------------------------------------------------------------------------- emulation
+
+SETTINGS = (
+    'click button "Show settings"\n'
+    'wait "text:settings shown"\n'
+    'read css "#size" as size\n'
+    'read css "#tz" as zone\n'
+    'read css "#lang" as language\n'
+    'read css "#scheme" as scheme\n'
+    'read css "#online" as online\n'
+)
+
+
+def test_emulating_another_browser_is_kept_and_replayed(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    task = "the page in Tokyo"
+    wanted = {
+        "size": "500x700",
+        "zone": "Asia/Tokyo",
+        "language": "de-DE",
+        "scheme": "dark",
+        "online": "offline",
+    }
+    outcome = learn(
+        browser,
+        store,
+        task,
+        f"go {demo_server}/parity\n"
+        "emulate viewport 500x700\n"
+        "emulate timezone Asia/Tokyo\n"
+        "emulate locale de-DE\n"
+        "emulate color dark\n"
+        "emulate offline on\n" + SETTINGS,
+    )
+    assert outcome.answers == wanted
+    browser.clear_emulation()
+    assert replay(browser, store, demo_server, task).answers == wanted
+
+
+def test_a_replay_starts_from_the_browser_as_it_is(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """A trail that emulated nothing must not run in the time zone the last one set."""
+    learn(browser, store, "settings", f"go {demo_server}/parity\n" + SETTINGS)
+    browser.emulate("timezone Asia/Tokyo")
+    browser.emulate("offline on")
+    answers = replay(browser, store, demo_server, "settings").answers
+    assert answers["zone"] != "Asia/Tokyo"
+    assert answers["online"] == "online"
+
+
+def test_a_phone_a_slow_network_a_slow_computer_and_a_place(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    task = "the page on a phone"
+    outcome = learn(
+        browser,
+        store,
+        task,
+        f"go {demo_server}/parity\n"
+        'emulate device "iPhone 13"\n'
+        "emulate network fast3g\n"
+        "emulate cpu 2\n"
+        "emulate geolocation 18.52,73.85\n"
+        'click button "Show settings"\n'
+        "wait text:18.52\n"
+        'read css "#mobile" as mobile\n'
+        'read css "#where" as where\n',
+    )
+    assert outcome.answers == {"mobile": "mobile", "where": "18.52,73.85"}
+    assert browser.emulating["device"] == "iPhone 13"
+    assert replay(browser, store, demo_server, task).answers == outcome.answers
+
+
+def test_no_network_makes_the_page_s_own_requests_fail(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    outcome = learn(
+        browser,
+        store,
+        "load with no network",
+        f"go {demo_server}/parity\n"
+        "emulate network offline\n"
+        'click button "Load data"\n'
+        "wait 1\n"
+        'read requests "/parity/data" as calls\n',
+    )
+    assert "ERR_INTERNET_DISCONNECTED" in outcome.answers["calls"]

@@ -43,6 +43,7 @@ from playwright.sync_api import Locator as PWLocator
 from playwright.sync_api import Page, sync_playwright
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
+from . import emulation
 from . import snapshot as aria
 from .home import HOME, PROFILE_OWNER, setting
 from .locks import ProfileHeld, ProfileLock
@@ -155,7 +156,7 @@ MAIN_TAB = "main"
 # Registry actions done to the browser as a whole rather than to one page, so `Browser.do`
 # carries them out, the same way while learning and on replay. Replay used to hand them to
 # the page-level registry, which could not do them: a saved `tab latest` failed every time.
-BROWSER_ACTIONS = frozenset({"switch_tab", "new_tab", "close_tab", "set_time", "dialog"})
+BROWSER_ACTIONS = frozenset({"switch_tab", "new_tab", "close_tab", "set_time", "dialog", "emulate"})
 
 # How a `dialog` line writes "accept and type this into the prompt".
 ANSWER_PREFIX = "answer:"
@@ -1028,6 +1029,7 @@ class Browser:
         self._cookies_kept_at = 0.0
         self._hold: ProfileLock | None = None
         self._failed_while_watching: list[str] | None = None
+        self._emulation: dict[str, str] = {}
 
     # ------------------------------------------------------------- lifecycle
 
@@ -1318,6 +1320,11 @@ class Browser:
         for selector in self._overlays:
             self._arm_overlay(page, selector)
 
+        # And whatever the browser is emulating: a CDP setting belongs to one page.
+        for kind, chosen in self._emulation.items():
+            with suppress(PlaywrightError, emulation.EmulationError):
+                emulation.apply(page, self._context, kind, chosen, self._devices())
+
     def _remember_console(self, page: Page, message: Any) -> None:
         """Every message for `read console`, and the errors and warnings apart from the rest
         for `read console_errors`: a chatty site logs hundreds of ordinary lines."""
@@ -1393,6 +1400,8 @@ class Browser:
             self.new_tab(value or None)
         elif action == "close_tab":
             self.close_tab(value or "")
+        elif action == "emulate":
+            self.emulate(value or "")
         elif action == "set_time":
             if not value:
                 raise ValueError('set_time needs a date, such as "2026-09-15"')
@@ -1444,6 +1453,33 @@ class Browser:
         self._page = chosen
         chosen.bring_to_front()
         return chosen
+
+    def emulate(self, value: str) -> None:
+        """Look like another browser from now on, in every tab: `timezone Asia/Tokyo`.
+        Raises ValueError, in words, for a line that cannot be done."""
+        kind, setting = emulation.parse(value)
+        if self._context is None:
+            raise RuntimeError("the browser is not running")
+        for page in [page for page in self.tabs if not page.is_closed()]:
+            emulation.apply(page, self._context, kind, setting, self._devices())
+        if setting.lower() == emulation.OFF:
+            self._emulation.pop(kind, None)
+        else:
+            self._emulation[kind] = setting
+
+    def clear_emulation(self) -> None:
+        """Back to this browser as it is, before a trail sets its own. A replay of a task that
+        emulated a phone must not leave the next task on a phone."""
+        for kind in list(self._emulation):
+            self.emulate(f"{kind} {emulation.OFF}")
+
+    @property
+    def emulating(self) -> dict[str, str]:
+        """What this browser is pretending to be right now, kind by kind."""
+        return dict(self._emulation)
+
+    def _devices(self) -> Any:
+        return self._playwright.devices if self._playwright is not None else {}
 
     def close_tab(self, which: str = "") -> None:
         """Close a tab, the one in use when none is named, and carry on in the newest left.

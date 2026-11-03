@@ -110,6 +110,7 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "mouse": "mouse click 120 40",
         "scroll_in": "scroll e4 down",
         "close_tab": "tab close",
+        "emulate": "emulate color dark",
     }
     if name in special:
         return special[name]
@@ -136,6 +137,8 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
         ("dialog dismiss", "dialog", "dismiss", None),
         ("tab close", "close_tab", None, None),
         ("tab close 1", "close_tab", "1", None),
+        ('emulate device "iPhone 13"', "emulate", "device iPhone 13", None),
+        ("emulate timezone off", "emulate", "timezone off", None),
         ("dialog accept", "dialog", "accept", None),
         ('dialog accept "Rohit"', "dialog", "answer:Rohit", None),
         ("go /issues", "goto", "/issues", None),
@@ -540,6 +543,8 @@ def test_exact_mouse_and_keyboard_lines(line: str, value: str | None, options: t
         ("mouse fly 1 2", "mouse takes click"),
         ('fill e4 "x" delay=100', "fill takes nothing, not delay="),
         ("click e4 speed=3", "click takes at=, button=, keys=, not speed="),
+        ("emulate weather sunny", "cannot emulate 'weather'"),
+        ("emulate timezone", "emulate timezone needs a setting"),
     ],
 )
 def test_a_wrong_mouse_line_or_option_is_refused(line: str, says: str) -> None:

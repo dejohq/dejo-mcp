@@ -4,6 +4,12 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Emulate another browser.** `emulate viewport 390x844`, `emulate device "iPhone 13"`,
+  `emulate timezone Asia/Tokyo`, `emulate locale de-DE`, `emulate color dark`, `emulate media
+  print`, `emulate motion reduce`, `emulate offline on`, `emulate network slow3g` (also
+  `fast3g`, `slow4g`, `fast4g`), `emulate cpu 4` and `emulate geolocation 18.52,73.85`, each
+  undone with `off`. The settings reach every tab, are kept in the trail, and a replay starts
+  from the browser as it is, so one task's phone never leaks into the next.
 - **Close a tab and list the open ones.** `tab close` closes the tab in use (or `tab close
   1` another) and carries on in the newest tab left; a page that asks "leave this page?" gets
   its dialog. `read tabs` lists every tab with its number, title and address.

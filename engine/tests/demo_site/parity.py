@@ -39,8 +39,6 @@ PARITY_PAGE = f"""<!doctype html>
   .zone {{ border: 1px solid #999; padding: 12px; min-height: 32px; margin: 4px 0; }}
   #scroller {{ height: 100px; width: 300px; overflow: auto; border: 1px solid #999; }}
   #scroller .inside {{ height: 1200px; width: 900px; }}
-  @media (prefers-color-scheme: dark) {{ #scheme::after {{ content: "dark"; }} }}
-  @media (prefers-color-scheme: light) {{ #scheme::after {{ content: "light"; }} }}
 </style>
 </head>
 <body>
@@ -135,6 +133,7 @@ PARITY_PAGE = f"""<!doctype html>
     document.getElementById('tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
     document.getElementById('lang').textContent = navigator.language;
     document.getElementById('online').textContent = navigator.onLine ? 'online' : 'offline';
+    document.getElementById('scheme').textContent = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     document.getElementById('mobile').textContent = /Mobile/.test(navigator.userAgent) ? 'mobile' : 'desktop';
     navigator.geolocation.getCurrentPosition(
       p => {{ document.getElementById('where').textContent = p.coords.latitude + ',' + p.coords.longitude; }},

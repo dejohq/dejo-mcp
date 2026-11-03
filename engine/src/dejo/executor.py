@@ -471,6 +471,9 @@ class Executor:
         self._skipped: list[str] = []
         self._signed_in_already: list[str] = []
         playbook = self._load(domain, task)
+        # The browser as it is, not as the last task left it: a trail that emulates a phone
+        # says so in its own steps.
+        self.browser.clear_emulation()
         if start_url and _leaves_out_of(start_url, playbook):
             start_url = None
 

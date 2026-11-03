@@ -488,6 +488,19 @@ ACTIONS: dict[str, ActionSpec] = {
         value_means="a url to open in it, or nothing for a blank tab",
         session_handled=True,
     ),
+    "emulate": ActionSpec(
+        "emulate",
+        "make the browser look like another one from now on: a phone, a window size, another "
+        "time zone or language, dark mode, print, offline, a slow network or a slow computer. "
+        "Kept in the trail, so replay does the same; `emulate KIND off` undoes one",
+        needs_target=False,
+        value_means=(
+            'KIND SETTING: viewport 390x844, device "iPhone 13", timezone Asia/Tokyo, locale '
+            "de-DE, color dark, media print, motion reduce, offline on, network slow3g, cpu 4, "
+            "geolocation 18.52,73.85"
+        ),
+        session_handled=True,
+    ),
     "close_tab": ActionSpec(
         "close_tab",
         "close a tab, the one in use unless another is named, and carry on in the newest "
@@ -998,6 +1011,11 @@ def _new_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> 
     raise AssertionError("new_tab should have been handled by the session")
 
 
+def _emulate(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: emulation belongs to every tab, so `Browser.do` handles this.
+    raise AssertionError("emulate should have been handled by the session")
+
+
 def _close_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: the Browser owns the tab list, so `Browser.do` handles this.
     raise AssertionError("close_tab should have been handled by the session")
@@ -1044,6 +1062,7 @@ _RUNNERS: dict[str, Any] = {
     "wait_for": _wait_for,
     "switch_tab": _switch_tab,
     "close_tab": _close_tab,
+    "emulate": _emulate,
     "new_tab": _new_tab,
     "dismiss_when_seen": _dismiss_when_seen,
     "restart_trail": _restart_trail,

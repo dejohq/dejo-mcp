@@ -483,6 +483,7 @@ EXERCISED = {
     "keyup",
     "scroll_in",
     "close_tab",
+    "emulate",
 }
 
 
