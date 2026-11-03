@@ -4,6 +4,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Close a tab and list the open ones.** `tab close` closes the tab in use (or `tab close
+  1` another) and carries on in the newest tab left; a page that asks "leave this page?" gets
+  its dialog. `read tabs` lists every tab with its number, title and address.
 - **Scroll inside one element.** `scroll css "#messages" down 300` (or `up`, `left`,
   `right`) turns the wheel over that box, for a list, table or chat that scrolls on its own
   while the page stays still. The page itself now scrolls `left` and `right` too.

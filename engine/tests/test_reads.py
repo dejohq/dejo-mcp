@@ -292,6 +292,7 @@ EXERCISED = {
     "console",
     "requests",
     "response",
+    "tabs",
 }
 
 

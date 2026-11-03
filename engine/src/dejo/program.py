@@ -71,6 +71,7 @@ DESCRIBED = frozenset(
         "back",
         "switch_tab",
         "new_tab",
+        "close_tab",
         "dialog",
     }
 )
@@ -270,7 +271,7 @@ def verbs_help() -> str:
     plain = sorted(set(actions.ACTIONS) - DESCRIBED - set(ALIASES.values()) - ALONE)
     return (
         "Verbs: go URL, click T, fill T TEXT, select T OPTION, press KEY [T], scroll T|down, "
-        "wait T|SECONDS, tab N|new [URL], dialog accept [ANSWER]|dismiss, back, "
+        "wait T|SECONDS, tab N|new [URL]|close [N], dialog accept [ANSWER]|dismiss, back, "
         + ", ".join(plain)
         + "; "
         "read [KIND] [T] as NAME; expect url|text|see|gone|count|value ...; "
@@ -291,6 +292,7 @@ USAGE = {
     "wait_for": "wait T | wait KIND:SUBJECT",
     "switch_tab": "tab N|latest|main",
     "new_tab": "tab new [URL]",
+    "close_tab": "tab close [N|latest]",
     "dialog": 'dialog dismiss | dialog accept ["answer"]',
     "dismiss_when_seen": 'dismiss css "SELECTOR"',
     "restart_trail": "restart",
@@ -510,7 +512,14 @@ def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> A
         return _dialog(reader, number, body, reason)
 
     # tab N | tab latest | tab main | tab new [URL]
-    word = reader.string('tab needs a number, "latest", "main" or "new"')
+    word = reader.string('tab needs a number, "latest", "main", "new" or "close"')
+    if word == "close":
+        which = reader.optional_string() or ""
+        if which and which not in ("latest", "main") and not which.isdigit():
+            raise ProgramError(
+                number, f'tab close takes a number, "latest" or "main", not {which!r}'
+            )
+        return Action(number, body, "close_tab", None, which or None, reason=reason)
     if word == "new":
         url = reader.optional_string()
         return Action(

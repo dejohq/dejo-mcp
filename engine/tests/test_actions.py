@@ -482,6 +482,7 @@ EXERCISED = {
     "keydown",
     "keyup",
     "scroll_in",
+    "close_tab",
 }
 
 

@@ -322,3 +322,28 @@ def test_scrolling_inside_one_element_replays(
         'read css "#scrolled" as at\n',
     )
     assert replay(browser, store, demo_server, "scroll the box").answers == {"at": "120,300"}
+
+
+# ----------------------------------------------------------------------------- tabs
+
+
+def test_closing_a_tab_and_listing_tabs_replay(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    task = "close the books tab"
+    outcome = learn(
+        browser,
+        store,
+        task,
+        f"go {demo_server}/parity\n"
+        'click link "Open the books in a new tab"\n'
+        "tab latest\n"
+        "read tabs as before\n"
+        "tab close\n"
+        "read tabs as after\n",
+    )
+    assert len(outcome.answers["before"].split(", ")) == 2
+    assert outcome.answers["after"].endswith("/parity (in use)")
+    result = replay(browser, store, demo_server, task)
+    assert browser.page.url.endswith("/parity")
+    assert not any("/books" in tab for tab in result.answers["after"])

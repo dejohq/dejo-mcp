@@ -356,10 +356,10 @@ Every step, in one place:
 | options at the end of a line: `at=X,Y`, `keys=Shift+Control`, `button=right\|middle`, `delay=MS` | click a spot on an element, hold keys while clicking, right click, type at a given speed (`type T "text" delay=100`) |
 | `wait T`, `wait text:WORDS`, `wait url:PART`, `wait gone:CSS`, `wait idle`, `wait SECONDS` | wait for something real |
 | `wait request:WORDS`, `wait response:WORDS` | wait until the page asked for, or got an answer from, an address with these words, since the step before |
-| `tab N\|latest\|main`, `tab new [URL]` | move between tabs |
+| `tab N\|latest\|main`, `tab new [URL]`, `tab close [N]` | move between tabs, open one, close one (`read tabs` lists them) |
 | `dialog dismiss`, `dialog accept ["answer"]` | how to answer the next alert, confirm or prompt box (Dejo accepts unless told) |
 | `screenshot [T\|full] [as NAME]`, `pdf [as NAME]` | save a picture of the screen, one element or the whole page, or the page as a PDF, under `~/.dejo/captures`. Kept in a trail, so every replay saves a new one |
-| `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
+| `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `tabs`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
 | `expect url\|text\|see\|gone\|count\|value ...` | check the step before landed |
 | `look [WORDS\|from REF\|gN\|all\|raw]` | show the page |
 | `look image` | send a picture of the screen in the reply, for a chart, map or canvas; click a spot in it with `mouse click X Y` |

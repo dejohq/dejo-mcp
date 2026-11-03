@@ -155,7 +155,7 @@ MAIN_TAB = "main"
 # Registry actions done to the browser as a whole rather than to one page, so `Browser.do`
 # carries them out, the same way while learning and on replay. Replay used to hand them to
 # the page-level registry, which could not do them: a saved `tab latest` failed every time.
-BROWSER_ACTIONS = frozenset({"switch_tab", "new_tab", "set_time", "dialog"})
+BROWSER_ACTIONS = frozenset({"switch_tab", "new_tab", "close_tab", "set_time", "dialog"})
 
 # How a `dialog` line writes "accept and type this into the prompt".
 ANSWER_PREFIX = "answer:"
@@ -1391,6 +1391,8 @@ class Browser:
             self.switch_tab(value or LATEST_TAB)
         elif action == "new_tab":
             self.new_tab(value or None)
+        elif action == "close_tab":
+            self.close_tab(value or "")
         elif action == "set_time":
             if not value:
                 raise ValueError('set_time needs a date, such as "2026-09-15"')
@@ -1442,6 +1444,44 @@ class Browser:
         self._page = chosen
         chosen.bring_to_front()
         return chosen
+
+    def close_tab(self, which: str = "") -> None:
+        """Close a tab, the one in use when none is named, and carry on in the newest left.
+
+        Closed the way a person closes one, so a page that asks "leave this page?" gets its
+        dialog, answered as any other is."""
+        live = [page for page in self.tabs if not page.is_closed()]
+        closing = self._page if which in ("", "current") else self._tab_named(which, live)
+        if len(live) <= 1:
+            raise ValueError("this is the only tab, so it stays open; open another first")
+        assert closing is not None
+        closing.close(run_before_unload=True)
+        self._await_close(closing)
+        self.tabs = [page for page in self.tabs if not page.is_closed()]
+        if self._page is closing or self._page is None or self._page.is_closed():
+            self._page = self.tabs[-1]
+            self._page.bring_to_front()
+
+    def _await_close(self, closing: Page) -> None:
+        """A page with a "leave this page?" box closes only once the box is answered, which
+        happens on an event a moment after `close` returns."""
+        waited = 0
+        while not closing.is_closed() and waited < TAB_GRACE_MS:
+            with suppress(PlaywrightError):
+                self.tabs[0 if self.tabs[0] is not closing else -1].wait_for_timeout(TAB_POLL_MS)
+            waited += TAB_POLL_MS
+
+    def _tab_named(self, which: str, live: list[Page]) -> Page:
+        if which == LATEST_TAB:
+            return live[-1]
+        if which == MAIN_TAB:
+            return live[0]
+        try:
+            return live[int(which)]
+        except (ValueError, IndexError):
+            raise NoSuchTab(
+                f"no tab {which!r}. There are {len(live)} open, numbered from 0"
+            ) from None
 
     def _await_tab(self, count: int) -> None:
         """Give a tab that is still opening its moment to arrive.

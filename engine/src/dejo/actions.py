@@ -488,6 +488,14 @@ ACTIONS: dict[str, ActionSpec] = {
         value_means="a url to open in it, or nothing for a blank tab",
         session_handled=True,
     ),
+    "close_tab": ActionSpec(
+        "close_tab",
+        "close a tab, the one in use unless another is named, and carry on in the newest "
+        "tab left. A page that asks to leave gets its dialog",
+        needs_target=False,
+        value_means='a tab number from 0, "latest", or nothing for the tab in use',
+        session_handled=True,
+    ),
     "switch_tab": ActionSpec(
         "switch_tab",
         'continue in another tab. A site that opens a new tab — "open in new tab", most '
@@ -990,6 +998,11 @@ def _new_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> 
     raise AssertionError("new_tab should have been handled by the session")
 
 
+def _close_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: the Browser owns the tab list, so `Browser.do` handles this.
+    raise AssertionError("close_tab should have been handled by the session")
+
+
 def _switch_tab(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: `Session._perform` handles every `session_handled` action before it gets
     # here. Present so the registry and the runner table stay in step.
@@ -1030,6 +1043,7 @@ _RUNNERS: dict[str, Any] = {
     "wait": _wait,
     "wait_for": _wait_for,
     "switch_tab": _switch_tab,
+    "close_tab": _close_tab,
     "new_tab": _new_tab,
     "dismiss_when_seen": _dismiss_when_seen,
     "restart_trail": _restart_trail,
@@ -1040,6 +1054,7 @@ _RUNNERS: dict[str, Any] = {
 
 # These have a sensible default, so a missing value is not an error.
 _VALUE_OPTIONAL = {
+    "close_tab",
     "press",
     "dispatch_event",
     "scroll",

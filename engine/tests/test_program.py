@@ -109,6 +109,7 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "dialog": "dialog dismiss",
         "mouse": "mouse click 120 40",
         "scroll_in": "scroll e4 down",
+        "close_tab": "tab close",
     }
     if name in special:
         return special[name]
@@ -133,6 +134,8 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
     ("line", "action", "value", "target"),
     [
         ("dialog dismiss", "dialog", "dismiss", None),
+        ("tab close", "close_tab", None, None),
+        ("tab close 1", "close_tab", "1", None),
         ("dialog accept", "dialog", "accept", None),
         ('dialog accept "Rohit"', "dialog", "answer:Rohit", None),
         ("go /issues", "goto", "/issues", None),

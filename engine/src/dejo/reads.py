@@ -206,6 +206,12 @@ READS: dict[str, ReadSpec] = {
         "a list of urls with their status",
         needs_target=False,
     ),
+    "tabs": ReadSpec(
+        "tabs",
+        "every open tab: its number for `tab N`, its title and address, and which is in use",
+        "a list of tabs",
+        needs_target=False,
+    ),
     "dialog": ReadSpec(
         "dialog",
         "the words of the last alert, confirm or prompt box this page showed",
@@ -390,6 +396,14 @@ def _failed_requests(page: Page, t: PWLocator | None, attribute: str | None) -> 
     return list(getattr(page, "_dejo_failures", []))
 
 
+def _tabs(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
+    live = [tab for tab in page.context.pages if not tab.is_closed()]
+    return [
+        f"{at} {tab.title() or '(no title)'} {tab.url}" + (" (in use)" if tab is page else "")
+        for at, tab in enumerate(live)
+    ]
+
+
 def _dialog(page: Page, t: PWLocator | None, attribute: str | None) -> str:
     return getattr(page, "_dejo_dialog", "")
 
@@ -484,6 +498,7 @@ _READERS: dict[str, Any] = {
     "requests": _requests,
     "response": _response,
     "dialog": _dialog,
+    "tabs": _tabs,
     "screenshot": _screenshot,
     "pdf": _pdf,
 }
