@@ -390,6 +390,7 @@ before a `dejo` command. All are optional.
 |---|---|
 | `DEJO_HEADED=1` | show the browser window, to watch every run live. Headless otherwise. `dejo run --headed` does the same for one run |
 | `DEJO_RECORD=video,trace` | record every replay: a video, a Playwright trace, or both, under `~/.dejo/recordings` |
+| `DEJO_CDP_URL=http://127.0.0.1:9222` | drive a browser that is already running instead of starting one: a cloud browser, or your own Chrome started with `--remote-debugging-port=9222`. Its window, tabs and sign-ins are used as they are, and Dejo leaves it running. `dejo run --cdp URL` does the same for one run |
 | `DEJO_LOG=off` | stop writing the step log, `~/.dejo/logs/DATE.log`: one plain line for each step learned or replayed, what it did, how it found its element, and why it stopped |
 | `DEJO_PROFILE`, `DEJO_PROFILES_DIR` | where the browser profiles live |
 | `DEJO_DB` | which memory file |

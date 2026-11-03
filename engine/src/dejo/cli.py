@@ -43,7 +43,7 @@ from .browser import (
 from .doctor import cmd_doctor
 from .events import Emitter, Event
 from .executor import Executor, NoTrailError, ReplayResult
-from .home import OldHomeNotMoved, adopt_old_home
+from .home import OldHomeNotMoved, adopt_old_home, setting
 from .models import SiteMap
 from .store import DejoStore, OldMemoryUnreadable, TrailAlreadyHere, adopt_old_memory
 
@@ -194,7 +194,11 @@ def cmd_run(args: argparse.Namespace) -> int:
         emitter.subscribe(render)
     store = _store(args)
 
-    browser = Browser(headless=not args.headed, profile=_profile_path(args))
+    browser = Browser(
+        headless=not args.headed,
+        profile=_profile_path(args),
+        cdp_url=args.cdp or setting("DEJO_CDP_URL"),
+    )
     try:
         browser.start()
         result = Executor(
@@ -586,6 +590,9 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--site", required=True, help="domain or full url")
     run.add_argument("--url", default=None, help="override where the first step goes")
     run.add_argument("--headed", action="store_true", help="watch it happen")
+    run.add_argument(
+        "--cdp", default=None, help="drive a running browser at this CDP address instead"
+    )
     run.add_argument(
         "--json",
         action="store_true",

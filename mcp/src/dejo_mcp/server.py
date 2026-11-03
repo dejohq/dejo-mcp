@@ -264,8 +264,10 @@ class DejoTools:
         profile: str | None = None,
         profiles_dir: str | None = None,
         agent: str | None = None,
+        cdp_url: str | None = None,
     ):
         self.store = DejoStore(db_path=db_path, agent=agent)
+        self.cdp_url = cdp_url
         # What `default` means on this machine: whatever was already in use, so naming
         # profiles never moves an existing sign-in.
         self.profile = profile if profile is not None else str(DEFAULT_PROFILE)
@@ -292,6 +294,7 @@ class DejoTools:
                 headless=self.headless,
                 downloads=self.downloads,
                 profile=self.path_for(self.active),
+                cdp_url=self.cdp_url,
             )
             self._workers[self.active] = running
         return running
@@ -994,6 +997,7 @@ def build_server(
     profile: str | None = None,
     profiles_dir: str | None = None,
     agent: str | None = None,
+    cdp_url: str | None = None,
 ) -> DejoServer:
     """Wire the tools. Kept in a function so tests can build a server without running it."""
     return DejoServer(
@@ -1004,6 +1008,7 @@ def build_server(
             downloads=downloads,
             profile=profile,
             agent=agent,
+            cdp_url=cdp_url,
         )
     )
 
@@ -1018,6 +1023,7 @@ def from_environment() -> dict[str, Any]:
         # Headless unless asked: a window that opens on every task is in the way of the
         # person whose machine it is. Asked for, it shows each run as it happens.
         "headless": not switched_on("DEJO_HEADED"),
+        "cdp_url": setting("DEJO_CDP_URL"),
     }
 
 
@@ -1035,6 +1041,8 @@ def run_stdio() -> None:
                       trail gets from one to the other.
         DEJO_HEADED   1 to show the browser window, to watch a run live. Headless otherwise.
         DEJO_RECORD   video, trace or both (video,trace): record every replay.
+        DEJO_CDP_URL  drive a browser that is already running, such as a cloud browser or
+                      Chrome started with --remote-debugging-port=9222.
 
     The old CAIRN_ names are still read when the DEJO_ one is not set.
     """

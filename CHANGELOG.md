@@ -4,6 +4,11 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Drive a browser that is already running.** `DEJO_CDP_URL=http://127.0.0.1:9222` (or
+  `dejo run --cdp URL`) connects over the Chrome DevTools Protocol to a cloud browser, or to
+  your own Chrome started with `--remote-debugging-port`, instead of starting one. Its tabs and
+  sign-ins are used as they are; trails learn and replay there the same way, and Dejo
+  disconnects at the end, leaving it running.
 - **A plain step log.** Every line learned and every step replayed is written to
   `~/.dejo/logs/DATE.log`, in words: what it did, how it found its element, how long it took,
   and why a run stopped. A person can see what their agent did without asking it.

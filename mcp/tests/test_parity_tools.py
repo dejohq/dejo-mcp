@@ -38,3 +38,10 @@ def test_the_window_is_hidden_unless_dejo_headed_asks(monkeypatch) -> None:
     assert from_environment()["headless"] is False
     monkeypatch.setenv("DEJO_HEADED", "no")
     assert from_environment()["headless"] is True
+
+
+def test_a_running_browser_is_driven_when_dejo_cdp_url_names_it(monkeypatch) -> None:
+    from dejo_mcp.server import from_environment
+
+    monkeypatch.setenv("DEJO_CDP_URL", "http://127.0.0.1:9222")
+    assert from_environment()["cdp_url"] == "http://127.0.0.1:9222"

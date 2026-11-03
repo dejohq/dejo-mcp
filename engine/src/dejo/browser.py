@@ -996,8 +996,13 @@ class Browser:
         permissions: list[str] | None = None,
         geolocation: tuple[float, float] | None = None,
         timeout_ms: int = DEFAULT_WAIT_MS,
+        cdp_url: str | None = None,
     ):
         """`profile=None` means a clean browser every time. Pass a path to stay signed in.
+
+        `cdp_url` drives a browser that is already running instead of starting one: a cloud
+        browser, or a Chrome started with --remote-debugging-port. Its own window, profile
+        and sign-ins are used as they are, and stopping Dejo leaves it running.
 
         `touch=True` makes this a touch device, which is what the `tap` action needs. It is
         off by default on purpose: some sites serve a different, mobile layout the moment
@@ -1024,6 +1029,7 @@ class Browser:
             self._permissions.append(GEOLOCATION)
         self._downloads = Path(downloads) if downloads is not None else DEFAULT_DOWNLOADS
         self._profile = Path(profile) if profile is not None else None
+        self._cdp_url = cdp_url
         self._playwright = None
         self._browser = None
         self._context = None
@@ -1084,7 +1090,13 @@ class Browser:
 
     def _open(self) -> Browser:
         """Everything after the driver is up. Never called except through `start`."""
-        if self._profile is not None:
+        if self._cdp_url:
+            self._browser = self._connect()
+            contexts = self._browser.contexts
+            self._context = contexts[0] if contexts else self._browser.new_context()
+            pages = self._context.pages
+            self._page = pages[0] if pages else self._context.new_page()
+        elif self._profile is not None:
             self._profile.mkdir(parents=True, exist_ok=True)
             self._hold_profile()
             self._context = self._open_profile()
@@ -1115,6 +1127,23 @@ class Browser:
         # continues in is a decision to record, not to guess.
         self._context.on("page", self._remember_tab)
         return self
+
+    def _connect(self) -> Any:
+        """Attach to the browser at `cdp_url`, or say plainly why not and what to do."""
+        try:
+            return self._playwright.chromium.connect_over_cdp(self._cdp_url)
+        except PlaywrightError as refused:
+            said = str(refused).splitlines()[0]
+            raise ProfileUnavailable(
+                f"Dejo could not reach a browser at {self._cdp_url} ({said}). Start Chrome with "
+                "--remote-debugging-port=9222 (or start the cloud browser) and check the "
+                "address, or unset DEJO_CDP_URL to let Dejo start its own browser."
+            ) from refused
+
+    @property
+    def remote(self) -> bool:
+        """Driving a browser Dejo did not start, over CDP."""
+        return bool(self._cdp_url)
 
     def _launch_options(self) -> dict[str, Any]:
         """How every browser Dejo starts is launched."""
@@ -1739,7 +1768,10 @@ class Browser:
             with suppress(PlaywrightError):
                 self.stop_recording()
         self.keep_session_cookies()
-        for closer in (self._context, self._browser):
+        # A browser Dejo only connected to is someone else's: disconnect and leave it, and
+        # every tab in it, running.
+        closers = (self._browser,) if self._cdp_url else (self._context, self._browser)
+        for closer in closers:
             if closer is not None:
                 closer.close()
         if self._playwright is not None:
