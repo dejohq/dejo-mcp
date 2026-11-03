@@ -4,6 +4,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **`look image` shows the agent the screen as a picture.** The reply carries a PNG of what
+  is on screen, in the page's own pixels, for a chart, a map or a canvas that has nothing in
+  it to name; a spot read off the picture is clicked with `mouse click X Y`.
 - **Exact mouse and keyboard control.** `mouse click 120 40` (also `dblclick`, `right`,
   `move`, `down`, `up`, `wheel DX DY`, `drag X Y to X2 Y2`) uses the mouse at a place on the
   screen, for a chart, map or canvas that has nothing inside it to name. `keydown Shift` and

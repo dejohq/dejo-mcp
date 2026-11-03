@@ -142,7 +142,7 @@ GROUP = re.compile(r"^g\d+$")
 NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 PickKind = Literal["first", "last", "nth", "has"]
-LookMode = Literal["page", "words", "from", "group", "all", "raw", "help"]
+LookMode = Literal["page", "words", "from", "group", "all", "raw", "help", "image"]
 
 
 class ProgramError(ValueError):
@@ -335,7 +335,9 @@ def reference() -> str:
             "FILES: screenshot [T | full] [as NAME] and pdf [as NAME] save a picture or a PDF and "
             "answer its path. Kept in a trail, so every replay saves a new one.",
             "CHECKS: expect url|text|see|gone|count|value ... checks the action just before.",
-            'LOOK: look [WORDS | from REF | gN | all | raw]. NOTE: note "a fact about the site".',
+            "LOOK: look [WORDS | from REF | gN | all | raw | image]. look image sends a picture "
+            "of the screen, for a page with nothing inside to name (a chart, a map, a canvas).",
+            'NOTE: note "a fact about the site".',
         ]
     )
     return shapes
@@ -656,6 +658,9 @@ def _look(reader: _Words, number: int, body: str, reason: str) -> Look:
     if word == "all" and not reader.more(2):
         reader.take()
         return Look(number, body, "all", reason=reason)
+    if word == "image" and not reader.more(2):
+        reader.take()
+        return Look(number, body, "image", reason=reason)
     if word == "raw":
         reader.take()
         if reader.more():

@@ -361,6 +361,7 @@ Every step, in one place:
 | `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |
 | `expect url\|text\|see\|gone\|count\|value ...` | check the step before landed |
 | `look [WORDS\|from REF\|gN\|all\|raw]` | show the page |
+| `look image` | send a picture of the screen in the reply, for a chart, map or canvas; click a spot in it with `mouse click X Y` |
 | `dismiss css "..."`, `note "fact"`, `restart`, `set_time "2026-09-15"`, `js CODE` | site knowledge and escape hatches |
 
 It handles what breaks recorded flows: shadow DOM, iframes, `div`s pretending to be buttons,

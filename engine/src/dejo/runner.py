@@ -176,6 +176,8 @@ class Outcome:
     after_sending: list[str] = field(default_factory=list)
     """For each `!` line, what the page said while it settled, which may be gone by now; and
     for any line that opened a tab, which tab."""
+    images: list[bytes] = field(default_factory=list)
+    """Pictures of the screen from `look image`, sent to the agent beside the text."""
     js_result: str | None = None
     """What a `js` line returned, as JSON. Not an answer: it is never saved or replayed."""
     trail_total: int = 0
@@ -305,6 +307,8 @@ class Runner:
         """The `js` lines that changed the page since the trail began. See `_code_in_the_way`."""
         self._stood = ""
         """The address this task left the tab at. See `_back_to_its_page`."""
+        self._image: bytes | None = None
+        """The picture the latest `look image` took, until the reply takes it."""
 
     # ------------------------------------------------------------------- looking
 
@@ -317,6 +321,8 @@ class Runner:
         into the site's map, exactly as `Session.look` does."""
         if mode == "help":
             return language.reference()
+        if mode == "image":
+            return self._picture()
         raw, frames = self.browser.raw_snapshot()
         url, title = self.browser.page.url, self.browser.page.title()
         self._stood = url
@@ -349,6 +355,22 @@ class Runner:
         )
         return self._view
 
+    def _picture(self) -> str:
+        """The screen as a picture for the reply, and what its numbers mean.
+
+        For a page whose content is drawn rather than built (a chart, a map, a canvas game),
+        the list of controls has nothing in it to name, and a picture is the only way to see
+        it. The picture is in the page's own pixels, so a spot read off it is the spot
+        `mouse click X Y` clicks."""
+        page = self.browser.page
+        self._image = page.screenshot(type="png", scale="css")
+        size = page.viewport_size or {"width": 0, "height": 0}
+        return (
+            f"picture of the screen sent: {size['width']}x{size['height']} pixels, "
+            f'"{page.title()}" {page.url}. A spot in it, counted from the top left, is '
+            "clicked with: mouse click X Y"
+        )
+
     # ------------------------------------------------------------------- running
 
     def run(self, written: Program, *, done: bool = False) -> Outcome:
@@ -375,7 +397,7 @@ class Runner:
                     # that asks for something (`look g2`, `look raw from e5`) is shown where
                     # it stands: only the last one used to be.
                     if step.mode != "page":
-                        outcome.looks.append(self._shown(step))
+                        outcome.looks.append(self._shown_in(step, outcome))
                     outcome.passed.append(step)
                     continue
                 if isinstance(step, Look):
@@ -765,6 +787,12 @@ class Runner:
             out.raw = shown
         else:
             out.view = shown
+        self._hand_over_picture(out)
+
+    def _hand_over_picture(self, out: Outcome) -> None:
+        if self._image is not None:
+            out.images.append(self._image)
+            self._image = None
 
     def _shown(self, step: Look) -> str:
         """What a look in the middle of a program shows, as text."""
@@ -773,6 +801,11 @@ class Runner:
         except pageview.ViewError as wrong:
             raise _Stopped(str(wrong)) from None
         return shown if isinstance(shown, str) else shown.text
+
+    def _shown_in(self, step: Look, out: Outcome) -> str:
+        shown = self._shown(step)
+        self._hand_over_picture(out)
+        return shown
 
     # ------------------------------------------------------------------- finding
 

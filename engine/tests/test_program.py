@@ -470,6 +470,11 @@ def test_lines_agents_really_wrote_get_the_right_hint(line: str, says: str) -> N
 # ------------------------------------------------------------------------ help
 
 
+def test_look_image_asks_for_a_picture() -> None:
+    assert only("look image").mode == "image"
+    assert only("look image prices").mode == "words", "two words are words to look for"
+
+
 def test_help_is_a_line_of_its_own() -> None:
     assert only("help").mode == "help"
 

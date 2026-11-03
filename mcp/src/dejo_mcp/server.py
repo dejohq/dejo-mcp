@@ -26,11 +26,12 @@ Never print to stdout: stdio is the MCP transport and a stray print corrupts it.
 
 from __future__ import annotations
 
+import base64
 import contextlib
 import functools
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -105,10 +106,10 @@ RUN_DESCRIPTION = (
     "(in a multi-line box, \\n in the text starts a new line)\n"
     "read T as name   (the value you will report)\n"
     'expect url "part" | expect text "words" | expect see T\n'
-    "look words       (show the page, these words first)\n"
+    "look words       (show the page, these words first; look image: a picture)\n"
     'Also: back, hover T, wait T, upload T "file", tab N, dialog dismiss,\n'
     "screenshot [T], pdf (saved, path given back).\n"
-    "wait response:/api | read response \"/api\" | read requests\n"
+    'wait response:/api | read response "/api" | read requests\n'
     "mouse click X Y | click T button=right keys=Shift at=X,Y\n"
     "help    (every other step)\n"
     'T is a ref, or role "name" (link "Travel"), text "...", label "...", css "...". '
@@ -240,6 +241,8 @@ class Reply:
 
     text: str
     error: bool = False
+    images: list[bytes] = field(default_factory=list)
+    """PNG pictures of the page, sent after the text, for `look image`."""
 
 
 class DejoTools:
@@ -474,7 +477,7 @@ def _run_steps(
         # The fix held and the rest of the trail stopped later on. Why it stopped is said
         # exactly as for any replay, including a second "broke at step".
         said += "\n" + _after_replay(tools, key, task, outcome.tail).text
-    return Reply(_with_header(tools, said, resumed))
+    return Reply(_with_header(tools, said, resumed), images=outcome.images)
 
 
 def _replay_or_look(
@@ -971,9 +974,12 @@ class DejoServer:
 
 
 def _result(reply: Reply) -> types.CallToolResult:
-    return types.CallToolResult(
-        content=[types.TextContent(type="text", text=reply.text)], isError=reply.error
+    content: list[Any] = [types.TextContent(type="text", text=reply.text)]
+    content.extend(
+        types.ImageContent(type="image", data=base64.b64encode(png).decode(), mimeType="image/png")
+        for png in reply.images
     )
+    return types.CallToolResult(content=content, isError=reply.error)
 
 
 def build_server(
