@@ -1352,9 +1352,6 @@ class Browser:
     def _context_options(self) -> dict[str, Any]:
         """The context settings that are the same however the browser was launched."""
         options: dict[str, Any] = {"permissions": self._permissions}
-        here = machine_locale()
-        if here:
-            options["locale"] = here
         if self._geolocation is not None:
             latitude, longitude = self._geolocation
             options["geolocation"] = {"latitude": latitude, "longitude": longitude}
@@ -1447,9 +1444,24 @@ class Browser:
                 self._film(page)
 
         # And whatever the browser is emulating: a CDP setting belongs to one page.
-        for kind, chosen in self._emulation.items():
+        for kind, chosen in self._settings().items():
             with suppress(PlaywrightError, emulation.EmulationError):
                 emulation.apply(page, self._context, kind, chosen, self._devices())
+
+    def _settings(self) -> dict[str, str]:
+        """What every tab is set to: the machine's own language, then what is emulated.
+
+        The machine's language is set through the same DevTools session as `emulate locale`,
+        not as Playwright's `locale` option. Chrome lets only one session override the
+        locale, so with that option `emulate locale` failed on every machine that names its
+        language (all of Windows and macOS: "Another locale override is already in effect").
+        A device is set before the language, because it replaces the user agent override
+        that carries the language the sites are told."""
+        settings = {kind: chosen for kind, chosen in self._emulation.items() if kind != "locale"}
+        language = self._emulation.get("locale") or machine_locale()
+        if language:
+            settings["locale"] = language
+        return settings
 
     def _remember_console(self, page: Page, message: Any) -> None:
         """Every message for `read console`, and the errors and warnings apart from the rest
@@ -1600,12 +1612,19 @@ class Browser:
         kind, setting = emulation.parse(value)
         if self._context is None:
             raise RuntimeError("the browser is not running")
-        for page in [page for page in self.tabs if not page.is_closed()]:
+        live = [page for page in self.tabs if not page.is_closed()]
+        for page in live:
             emulation.apply(page, self._context, kind, setting, self._devices())
         if setting.lower() == emulation.OFF:
             self._emulation.pop(kind, None)
         else:
             self._emulation[kind] = setting
+        # Off means back to this machine, and a device brings its own user agent: either way
+        # the language every tab is set to goes back on top.
+        language = self._settings().get("locale")
+        if language and kind in ("locale", "device"):
+            for page in live:
+                emulation.apply(page, self._context, "locale", language, self._devices())
 
     def cookie(self, value: str) -> None:
         """`set NAME VALUE` for this page's site, or `clear [NAME]`."""

@@ -683,6 +683,19 @@ class TestTheBrowserSaysWhereTheMachineIs:
         monkeypatch.setenv("DEJO_LOCALE", "en-IN")
         assert self._language(tmp_path) == ["en-IN", "en-IN"]
 
+    def test_another_language_can_be_emulated_and_switched_off_again(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        """On 3 Nov `emulate locale` failed on Windows and macOS, where the machine names its
+        language: Chrome allows one locale override, and Playwright's option held it."""
+        monkeypatch.setenv("DEJO_LOCALE", "en-IN")
+        ask = "() => [navigator.language, Intl.DateTimeFormat().resolvedOptions().locale]"
+        with Browser(headless=True, downloads=tmp_path / "d") as running:
+            running.emulate("locale de-DE")
+            assert running.page.evaluate(ask) == ["de-DE", "de-DE"]
+            running.emulate("locale off")
+            assert running.page.evaluate(ask) == ["en-IN", "en-IN"]
+
     def test_the_c_locale_names_no_language(self) -> None:
         from dejo.browser import _language_tag
 
