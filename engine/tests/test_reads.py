@@ -298,6 +298,8 @@ EXERCISED = {
     "fields",
     "table",
     "metrics",
+    "box",
+    "html",
 }
 
 

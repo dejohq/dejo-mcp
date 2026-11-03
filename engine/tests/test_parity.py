@@ -699,3 +699,39 @@ def test_a_company_proxy_and_its_own_certificates_are_settings(monkeypatch, tmp_
     browser._channel = None
     assert browser._launch_options()["proxy"] == {"server": "http://proxy.corp:8080"}
     assert browser._context_options()["ignore_https_errors"] is True
+
+
+# ------------------------------------------------- where an element is, its markup, grants
+
+
+def test_an_element_s_place_and_markup_are_read_and_replayed(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    learn(
+        browser,
+        store,
+        "where the chart is",
+        f"go {demo_server}/parity\n"
+        'read box css "#chart" as box\n'
+        'read html css "#prices thead" as markup\n',
+    )
+    answers = replay(browser, store, demo_server, "where the chart is").answers
+    x, y, width, height = (int(number) for number in answers["box"].split())
+    assert (width, height) == (302, 152), "the canvas, with its border"
+    assert answers["markup"].startswith("<thead><tr><th>Item</th>")
+
+
+def test_a_permission_granted_by_a_step_is_granted_again_on_replay(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    learn(
+        browser,
+        store,
+        "allowed to notify",
+        f"go {demo_server}/parity\n"
+        "allow notifications\n"
+        'click button "Show settings"\n'
+        'read css "#notify" as notify\n',
+    )
+    browser.do("allow", "off")
+    assert replay(browser, store, demo_server, "allowed to notify").answers == {"notify": "granted"}

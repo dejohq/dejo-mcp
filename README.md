@@ -360,6 +360,7 @@ Every step, in one place:
 | `wait T`, `wait text:WORDS`, `wait url:PART`, `wait gone:CSS`, `wait idle`, `wait SECONDS` | wait for something real |
 | `wait "text:Saved\|Error"` | wait for whichever words come first |
 | `block "**/*.png"`, `block off [PATTERN]` | stop the page loading what matches (images, an ad, a chat widget that slows every run). Kept in the trail |
+| `allow notifications clipboard-read ...`, `allow off` | grant permissions to every site (Dejo grants none unasked). Kept in the trail |
 | `header set NAME "VALUE"`, `header clear` | send a header with every request, such as a test server's key. Not kept in a trail |
 | `wait request:WORDS`, `wait response:WORDS` | wait until the page asked for, or got an answer from, an address with these words, since the step before |
 | `tab N\|latest\|main`, `tab new [URL]`, `tab close [N]` | move between tabs, open one, close one (`read tabs` lists them) |
@@ -370,6 +371,7 @@ Every step, in one place:
 | `dialog dismiss`, `dialog accept ["answer"]` | how to answer the next alert, confirm or prompt box (Dejo accepts unless told) |
 | `screenshot [T\|full] [as NAME]`, `pdf [as NAME]` | save a picture of the screen, one element or the whole page, or the page as a PDF, under `~/.dejo/captures`. Kept in a trail, so every replay saves a new one |
 | `read fields '{"name": "h3", "price": ".price", "link": "a@href"}' css "article" as items` | many fields of every matching element at once, as JSON: the agent names each field with CSS inside the element (`@attr` for an attribute). No model involved, and it replays |
+| `read box T as where`, `read html T as markup` | where an element is on the screen (X Y WIDTH HEIGHT, the numbers `mouse click` uses), or its HTML |
 | `read metrics as speed` | how fast the page loaded: first byte, first and largest paint, ready, load, layout shift, requests and bytes |
 | `read table T as rows` | a whole table as JSON, one object per row, named by its headings |
 | `read [KIND] T as NAME` | the answer: KIND is `text`, `all_text`, `value`, `checked`, `visible`, `enabled`, `editable`, `attr NAME`, `passage "words"`, `count`; page-wide `url`, `title`, `tabs`, `cookies`, `storage`, `dialog`, `console`, `console_errors`, `requests ["words"]`, `response "words"` (the body of the latest answer from that address), `failed_requests` |

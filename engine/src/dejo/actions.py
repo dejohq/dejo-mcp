@@ -533,6 +533,15 @@ ACTIONS: dict[str, ActionSpec] = {
         ),
         session_handled=True,
     ),
+    "allow": ActionSpec(
+        "allow",
+        "grant permissions to every site from now on: notifications, clipboard-read, "
+        "clipboard-write, camera, microphone, geolocation, midi. `allow off` takes them back. "
+        "Kept in the trail",
+        needs_target=False,
+        value_means='permission names, like "notifications clipboard-read", or "off"',
+        session_handled=True,
+    ),
     "block": ActionSpec(
         "block",
         "stop the page loading anything whose address matches a pattern: images, fonts, an "
@@ -1095,6 +1104,11 @@ def _record(page: Page, t: _T | None, value: str | None, second: _T | None) -> N
     raise AssertionError("record should have been handled by the session")
 
 
+def _allow(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
+    # Unreachable: permissions belong to the whole browser, so `Browser.do` handles this.
+    raise AssertionError("allow should have been handled by the session")
+
+
 def _block(page: Page, t: _T | None, value: str | None, second: _T | None) -> None:
     # Unreachable: blocking belongs to the whole browser, so `Browser.do` handles this.
     raise AssertionError("block should have been handled by the session")
@@ -1158,6 +1172,7 @@ _RUNNERS: dict[str, Any] = {
     "close_tab": _close_tab,
     "emulate": _emulate,
     "block": _block,
+    "allow": _allow,
     "header": _header,
     "record": _record,
     "cookie": _cookie,

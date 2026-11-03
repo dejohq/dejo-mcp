@@ -4,6 +4,10 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **An element's place and markup, and permissions.** `read box T` gives where an element is
+  on the screen and its size, in the numbers `mouse click X Y` uses; `read html T` its HTML.
+  `allow notifications clipboard-read` grants permissions to every site (Dejo grants none
+  unasked) and is kept in the trail; `allow off` takes them back.
 - **The reliability benchmark covers the new steps.** R51-R61 run dialogs, a right click, a
   whole table and many fields as JSON, closing a tab, a page's own API answer, another
   language, a phone, a cookie and a PDF on practice sites and test services, through Dejo and

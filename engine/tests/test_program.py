@@ -116,6 +116,7 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "state": "state save team",
         "record": "record video",
         "block": 'block "**/*.png"',
+        "allow": "allow notifications",
         "header": "header clear",
     }
     if name in special:
@@ -154,6 +155,7 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
         ('block "**/*.png"', "block", "**/*.png", None),
         ('block off "**/*.png"', "block", "off **/*.png", None),
         ('header set X-Team "blue"', "header", "set X-Team blue", None),
+        ("allow notifications clipboard-read", "allow", "notifications clipboard-read", None),
         ("dialog accept", "dialog", "accept", None),
         ('dialog accept "Rohit"', "dialog", "answer:Rohit", None),
         ("go /issues", "goto", "/issues", None),

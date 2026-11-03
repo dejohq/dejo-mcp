@@ -462,6 +462,9 @@ def _action(head: str, reader: _Words, number: int, body: str, reason: str) -> A
         value = _mouse_value(value or "", reader, number)
     if name == "block" and value == "off" and reader.more():
         value = f"off {reader.take()}"
+    if name == "allow":
+        while reader.more() and not OPTION.match(reader.peek() or ""):
+            value = f"{value} {reader.take()}"
     if name == "emulate":
         value = _emulate_value(value or "", reader, number)
     if name in SETTING_VERBS:

@@ -180,6 +180,17 @@ READS: dict[str, ReadSpec] = {
         "text",
         needs_target=False,
     ),
+    "box": ReadSpec(
+        "box",
+        "where an element is on the screen and how big: X Y WIDTH HEIGHT in pixels from the top "
+        "left, the numbers mouse click X Y uses",
+        "text",
+    ),
+    "html": ReadSpec(
+        "html",
+        "the HTML of one element, for markup no other read shows. Long markup is cut",
+        "text",
+    ),
     "count": ReadSpec(
         "count",
         'how many elements match — "there are 3 unpaid invoices"',
@@ -566,6 +577,20 @@ def _metrics(page: Page, t: PWLocator | None, attribute: str | None) -> str:
     return ", ".join(parts)
 
 
+def _box(page: Page, t: PWLocator, attribute: str | None) -> str:
+    found = t.bounding_box(timeout=READ_TIMEOUT_MS)
+    if found is None:
+        return ""
+    return " ".join(str(round(found[side])) for side in ("x", "y", "width", "height"))
+
+
+def _html(page: Page, t: PWLocator, attribute: str | None) -> str:
+    markup = t.evaluate("el => el.outerHTML", timeout=READ_TIMEOUT_MS)
+    if len(markup) > LONGEST_BODY:
+        return markup[:LONGEST_BODY] + f" ... ({len(markup):,} characters in all)"
+    return markup
+
+
 def _dialog(page: Page, t: PWLocator | None, attribute: str | None) -> str:
     return getattr(page, "_dejo_dialog", "")
 
@@ -661,6 +686,8 @@ _READERS: dict[str, Any] = {
     "response": _response,
     "dialog": _dialog,
     "tabs": _tabs,
+    "box": _box,
+    "html": _html,
     "metrics": _metrics,
     "fields": _fields,
     "table": _table,

@@ -168,6 +168,7 @@ BROWSER_ACTIONS = frozenset(
         "storage",
         "block",
         "header",
+        "allow",
     }
 )
 
@@ -1528,6 +1529,8 @@ class Browser:
             self.block(value or "")
         elif action == "header":
             self.header(value or "")
+        elif action == "allow":
+            self.allow(value or "")
         elif action == "set_time":
             if not value:
                 raise ValueError('set_time needs a date, such as "2026-09-15"')
@@ -1634,6 +1637,24 @@ class Browser:
             raise ValueError('block takes an address pattern, like: block "**/*.png"')
         self._context.route(value, lambda route: route.abort("blockedbyclient"))
         self._blocked.append(value)
+
+    def allow(self, value: str) -> None:
+        """Grant permissions (`notifications`, `clipboard-read`, `camera`...) to every site in
+        this browser, or take every grant back with `off`. Dejo grants nothing unasked: a
+        permission prompt covers the page and blocks every step behind it."""
+        assert self._context is not None
+        if value.strip() == OFF_WORD:
+            self._context.clear_permissions()
+            return
+        wanted = [name for name in value.replace(",", " ").split() if name]
+        if not wanted:
+            raise ValueError("allow takes permissions, like: allow notifications clipboard-read")
+        try:
+            self._context.grant_permissions(wanted)
+        except PlaywrightError as refused:
+            raise ValueError(
+                f"the browser does not know {' or '.join(wanted)}: {refused}"
+            ) from None
 
     def clear_blocks(self) -> None:
         """Let everything load again, before a trail sets its own blocks."""

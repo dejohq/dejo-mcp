@@ -106,7 +106,7 @@ _NAMING_LOCATORS = _WORDED_LOCATORS | {"test_id", "structural"}
 
 # Reads whose answer is a whole document by design: an API's JSON answer is long, and it is
 # the answer itself, not a page with the answer buried in it (quotes.toscrape.com/scroll).
-_DOCUMENT_READS = frozenset({"response"})
+_DOCUMENT_READS = frozenset({"response", "html"})
 
 # Reads that hand back only a part of their element, so the element may be the whole page.
 _PART_READS = frozenset({"passage"})

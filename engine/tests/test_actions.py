@@ -490,6 +490,7 @@ EXERCISED = {
     "record",
     "block",
     "header",
+    "allow",
 }
 
 

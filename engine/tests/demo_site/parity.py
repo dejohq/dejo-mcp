@@ -78,6 +78,7 @@ PARITY_PAGE = f"""<!doctype html>
   <dt>scheme</dt><dd id="scheme"></dd>
   <dt>mobile</dt><dd id="mobile"></dd>
   <dt>where</dt><dd id="where"></dd>
+  <dt>notifications</dt><dd id="notify"></dd>
 </dl>
 
 <table id="prices">
@@ -134,6 +135,7 @@ PARITY_PAGE = f"""<!doctype html>
     document.getElementById('lang').textContent = navigator.language;
     document.getElementById('online').textContent = navigator.onLine ? 'online' : 'offline';
     document.getElementById('scheme').textContent = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.getElementById('notify').textContent = Notification.permission;
     document.getElementById('mobile').textContent = /Mobile/.test(navigator.userAgent) ? 'mobile' : 'desktop';
     navigator.geolocation.getCurrentPosition(
       p => {{ document.getElementById('where').textContent = p.coords.latitude + ',' + p.coords.longitude; }},
