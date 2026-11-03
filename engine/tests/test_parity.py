@@ -460,6 +460,21 @@ def test_cookies_and_storage_are_read_and_a_read_of_them_replays(
     assert replay(browser, store, demo_server, task).answers["theme"] == "green"
 
 
+def test_read_cookies_shows_only_the_cookies_of_the_page_it_is_on(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """On 3 Nov a read on github.com listed every Wikipedia cookie the profile held. A task
+    on one site must never see, or keep, another site's cookies."""
+    browser.page.context.add_cookies(
+        [{"name": "elsewhere", "value": "secret", "domain": "example.com", "path": "/"}]
+    )
+    outcome = learn(
+        browser, store, "this site's cookies", f"go {demo_server}/parity\nread cookies as c\n"
+    )
+    assert "flavour=ginger" in outcome.answers["c"]
+    assert "elsewhere" not in outcome.answers["c"]
+
+
 def test_setting_and_clearing_cookies_and_storage_is_done_but_not_kept(
     browser: Browser, store: DejoStore, demo_server: str
 ) -> None:

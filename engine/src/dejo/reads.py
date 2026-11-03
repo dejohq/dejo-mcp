@@ -261,7 +261,7 @@ READS: dict[str, ReadSpec] = {
     ),
     "cookies": ReadSpec(
         "cookies",
-        "the browser's cookies, as NAME=VALUE (site). With words, only cookies whose name or "
+        "this page's cookies, as NAME=VALUE (site). With words, only cookies whose name or "
         "site has them. A cookie the page itself cannot read (httpOnly) shows no value",
         "a list of cookies",
         needs_target=False,
@@ -466,7 +466,9 @@ def _failed_requests(page: Page, t: PWLocator | None, attribute: str | None) -> 
 
 def _cookies(page: Page, t: PWLocator | None, attribute: str | None) -> list[str]:
     said = []
-    for cookie in page.context.cookies():
+    # Only the cookies this page's address would send: a task on one site never sees, or
+    # keeps in its trail, the cookies another site left in the same profile.
+    for cookie in page.context.cookies(page.url):
         if attribute and attribute not in cookie["name"] and attribute not in cookie["domain"]:
             continue
         # A cookie the site marked httpOnly is one its own page cannot read: a sign-in. Its
