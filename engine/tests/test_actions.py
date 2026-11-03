@@ -481,6 +481,7 @@ EXERCISED = {
     "mouse",
     "keydown",
     "keyup",
+    "scroll_in",
 }
 
 

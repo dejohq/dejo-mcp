@@ -108,6 +108,7 @@ def _sample(name: str, spec: actions.ActionSpec) -> str:
         "new_tab": "tab new https://example.com/",
         "dialog": "dialog dismiss",
         "mouse": "mouse click 120 40",
+        "scroll_in": "scroll e4 down",
     }
     if name in special:
         return special[name]
@@ -138,6 +139,9 @@ def test_every_registry_action_has_a_verb(name: str) -> None:
         ("press Enter e4", "press", "Enter", Target("ref", "e4")),
         ("press Escape", "press", "Escape", None),
         ("scroll bottom", "scroll", "bottom", None),
+        ("scroll right", "scroll", "right", None),
+        ('scroll css "#list" down 300', "scroll_in", "down 300", Target("css", "#list")),
+        ("scroll e4 left", "scroll_in", "left", Target("ref", "e4")),
         ("scroll 400", "scroll", "400", None),
         ('wait css "#x"', "wait_for", None, Target("css", "#x")),
         ("wait 0.5", "wait", "0.5", None),

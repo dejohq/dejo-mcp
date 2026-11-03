@@ -349,7 +349,8 @@ Every step, in one place:
 | `fill T "text"`, `type T "text"`, `clear T`, `press KEY [T]` | type; `press Control+A` sends a chord |
 | `select T "option"`, `check T`, `uncheck T`, `set_checked T true` | choose |
 | `upload T "file"`, `drag T to T`, `focus T`, `blur T`, `select_text T` | everything else a hand does |
-| `scroll T`, `scroll down\|up\|top\|bottom\|PIXELS` | scroll |
+| `scroll T`, `scroll down\|up\|left\|right\|top\|bottom\|PIXELS` | bring an element into view, or scroll the page |
+| `scroll T down\|up\|left\|right [PIXELS]` | scroll inside one element: a list, table or chat in its own box |
 | `mouse click\|dblclick\|right\|move X Y`, `mouse drag X Y to X2 Y2`, `mouse down\|up`, `mouse wheel DX DY` | the mouse at a place on the screen, for a chart, map or canvas with nothing inside it to name |
 | `keydown KEY`, `keyup KEY` | hold a key while other steps run |
 | options at the end of a line: `at=X,Y`, `keys=Shift+Control`, `button=right\|middle`, `delay=MS` | click a spot on an element, hold keys while clicking, right click, type at a given speed (`type T "text" delay=100`) |

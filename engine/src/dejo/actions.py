@@ -208,6 +208,9 @@ DRAG_STEPS = 10
 
 Options = dict[str, str]
 
+# Which way the wheel turns for each written direction, as (across, down).
+SCROLL_WAYS = {"down": (0, 1), "up": (0, -1), "left": (-1, 0), "right": (1, 0)}
+
 # Resolves once the browser has drawn twice, which is when a scroll has been committed.
 _TWO_FRAMES = "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
 
@@ -326,6 +329,12 @@ ACTIONS: dict[str, ActionSpec] = {
         "scroll until something is on screen, for long or lazily loaded lists",
         verifies_with="element_visible",
     ),
+    "scroll_in": ActionSpec(
+        "scroll_in",
+        "scroll inside one element: a list, a table or a chat that scrolls in its own box "
+        "while the page stays still",
+        value_means='"down", "up", "left" or "right", then pixels if not most of the box',
+    ),
     "drag": ActionSpec(
         "drag",
         "drag one element onto another, for reordering and kanban boards",
@@ -418,7 +427,7 @@ ACTIONS: dict[str, ActionSpec] = {
         "scroll",
         "scroll the page itself, for feeds that load more as you go",
         needs_target=False,
-        value_means='"down", "up", "top", "bottom", or a number of pixels',
+        value_means='"down", "up", "left", "right", "top", "bottom", or a number of pixels',
     ),
     "evaluate": ActionSpec(
         "evaluate",
@@ -793,6 +802,25 @@ def _scroll_to(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     t.scroll_into_view_if_needed()
 
 
+def _scroll_in(page: Page, t: _T, value: str | None, second: _T | None) -> None:
+    """Turn the wheel over the element, the way a person scrolls a box: the wheel moves the
+    nearest thing under the pointer that can scroll."""
+    words = (value or "down").split()
+    way = words[0].lower()
+    if way not in SCROLL_WAYS:
+        raise ActionNeedsMore(f"scroll inside takes down, up, left or right, not {words[0]!r}")
+    if len(words) > 1:
+        (amount,) = _numbers(words[1], 1, "scroll takes a number of pixels after the way")
+    else:
+        size = t.bounding_box() or {"width": 0, "height": 0}
+        across = way in ("left", "right")
+        amount = (size["width"] if across else size["height"]) * SCREENS_PER_SCROLL
+    dx, dy = SCROLL_WAYS[way]
+    t.hover()
+    page.mouse.wheel(dx * amount, dy * amount)
+    _wait_for_scroll(page)
+
+
 def _drag(page: Page, t: _T, value: str | None, second: _T | None) -> None:
     assert second is not None  # guaranteed by perform()
     t.drag_to(second)
@@ -896,7 +924,12 @@ def _scroll(page: Page, t: _T | None, value: str | None, second: _T | None) -> N
     # top-left corner. Centring it also means the wheel lands on the main panel rather than
     # on some narrow strip at the edge of the page.
     page.mouse.move(size["width"] / 2, size["height"] / 2)
-    page.mouse.wheel(0, _scroll_amount(page, value))
+    across = (value or "").strip().lower()
+    if across in ("left", "right"):
+        width = size["width"] * SCREENS_PER_SCROLL
+        page.mouse.wheel(width if across == "right" else -width, 0)
+    else:
+        page.mouse.wheel(0, _scroll_amount(page, value))
     _wait_for_scroll(page)
 
 
@@ -977,6 +1010,7 @@ _RUNNERS: dict[str, Any] = {
     "select": _select,
     "upload": _upload,
     "scroll_to": _scroll_to,
+    "scroll_in": _scroll_in,
     "drag": _drag,
     "focus": _focus,
     "blur": _blur,

@@ -65,6 +65,7 @@ DESCRIBED = frozenset(
         "press",
         "scroll",
         "scroll_to",
+        "scroll_in",
         "wait",
         "wait_for",
         "back",
@@ -130,6 +131,9 @@ ROLES = INTERACTIVE_ROLES | frozenset(
         "tree",
     }
 )
+
+# The words that scroll the page itself rather than name an element.
+PAGE_SCROLLS = frozenset({"down", "up", "left", "right", "top", "bottom"})
 
 # Short read kinds, as the design names them, for registry entries with longer names.
 READ_ALIASES = {"all": "all_text", "attr": "attribute"}
@@ -280,8 +284,9 @@ def verbs_help() -> str:
 # How a line writes the registry actions whose verb or arguments differ from their name.
 USAGE = {
     "press": "press KEY [T]",
-    "scroll": "scroll down|up|top|bottom|PIXELS",
+    "scroll": "scroll down|up|left|right|top|bottom|PIXELS",
     "scroll_to": "scroll T",
+    "scroll_in": "scroll T down|up|left|right [PIXELS]",
     "wait": "wait SECONDS",
     "wait_for": "wait T | wait KIND:SUBJECT",
     "switch_tab": "tab N|latest|main",
@@ -473,9 +478,16 @@ def _shaped(verb: str, reader: _Words, number: int, body: str, reason: str) -> A
 
     if verb == "scroll":
         word = reader.peek()
-        if word in ("down", "up", "top", "bottom") or (word or "").isdigit():
+        if word in PAGE_SCROLLS or (word or "").isdigit():
             return Action(number, body, "scroll", None, reader.take(), reason=reason)
-        return Action(number, body, "scroll_to", reader.target(), reason=reason)
+        target = reader.target()
+        if reader.peek() in actions.SCROLL_WAYS:
+            # `scroll css "#list" down 300`: inside the element, not the page to it.
+            way = reader.take()
+            amount = reader.take() if (reader.peek() or "").isdigit() else ""
+            value = f"{way} {amount}".strip()
+            return Action(number, body, "scroll_in", target, value, reason=reason)
+        return Action(number, body, "scroll_to", target, reason=reason)
 
     if verb == "wait":
         word = reader.peek() or ""

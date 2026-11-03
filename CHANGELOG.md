@@ -4,6 +4,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Scroll inside one element.** `scroll css "#messages" down 300` (or `up`, `left`,
+  `right`) turns the wheel over that box, for a list, table or chat that scrolls on its own
+  while the page stays still. The page itself now scrolls `left` and `right` too.
 - **`look image` shows the agent the screen as a picture.** The reply carries a PNG of what
   is on screen, in the page's own pixels, for a chart, a map or a canvas that has nothing in
   it to name; a spot read off the picture is clicked with `mouse click X Y`.

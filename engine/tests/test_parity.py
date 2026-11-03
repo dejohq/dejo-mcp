@@ -302,3 +302,23 @@ def test_a_mouse_drag_between_two_places_replays(
         f'go {demo_server}/parity\nmouse drag {x} {y} to {to_x} {to_y}\nread css "#log" as log\n',
     )
     assert replay(browser, store, demo_server, "drag by hand").answers == {"log": "dropped"}
+
+
+# --------------------------------------------------------------- scrolling inside a box
+
+
+def test_scrolling_inside_one_element_replays(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """A list in its own box scrolls while the page stays still: the page scroll cannot
+    reach it, and `scroll T` only brings the box into view."""
+    learn(
+        browser,
+        store,
+        "scroll the box",
+        f"go {demo_server}/parity\n"
+        'scroll css "#scroller" down 300\n'
+        'scroll css "#scroller" right 120\n'
+        'read css "#scrolled" as at\n',
+    )
+    assert replay(browser, store, demo_server, "scroll the box").answers == {"at": "120,300"}
