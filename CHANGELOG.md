@@ -2,6 +2,39 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **A target finds an element by words in its name, the way Playwright does.** A name had to
+  match exactly, so `link "Belt Sander"` found nothing on a shop card whose link says "Belt
+  Sander $73.59", and `checkbox "Best Current Practice"` missed the filter called "Best
+  Current Practice 337". The whole name is still tried first; only when nothing is called
+  exactly that does Dejo look for the words inside a name, in any case, like Playwright's
+  `get_by_role(name=...)`. Two such matches are refused, never guessed, and the trail keeps
+  the words so a changed price or count does not break it.
+- **A target finds an element inside an iframe, and its replay does too.** `css`, `role` and
+  `text` targets only looked at the page itself, while the view drew the inside of every
+  iframe. A rich text editor, a date picker or a widget demo in an iframe was shown, and then
+  "nothing on this page" was all a target found. The page is searched first, then each
+  iframe in order, frames inside frames too, and the trail remembers which frame. A step's
+  own check after it ran (that its element is still there) now looks inside the same frame,
+  where before it looked at the page and called every framed step broken on replay.
+- **An old frameset page can be looked at.** A page made only of `<frameset>` and `<frame>`s
+  has no body, and every look failed with "Selector body does not match any element". The
+  look now starts from the page's root when there is no body, and shows what the frames hold.
+- **An exact match inside an iframe beats a longer text on the page that only contains the
+  words.** On jqueryui.com's autocomplete demo `click text "JavaScript"` matched the page's
+  own description ("a simple JavaScript array") instead of the suggestion in the demo's
+  iframe, and was refused as ambiguous.
+- **A link a site hid from screen readers, but shows on the screen, can be clicked.**
+  doververmont.com draws its whole news carousel inside `aria-hidden="true"`. The view showed
+  its links, and `link "2026 Transfer Station Rates & Fees"` then found nothing, because a
+  role target skips what `aria-hidden` hides. When nothing else matches, a role target now
+  also looks there, and takes only what is really visible.
+- **A read picked by its place, whose words are its own answer, is kept.** `read heading
+  "Ada Lovelace" first` was refused as "a read nobody could find again", because its place
+  is named by the very words it reads. Dejo now keeps it by the heading's own path on the
+  page when that path finds only it.
+
 ## 0.3.0 — 2026-10-31
 
 - **`select` on a combobox names a matching button that was already beside it.** The reply

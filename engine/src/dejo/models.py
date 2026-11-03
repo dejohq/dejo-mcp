@@ -16,6 +16,20 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 from urllib.parse import urlparse, urlunparse
 
+# How Playwright itself writes "now look inside this frame" in a selector, between the
+# iframe's selector and what is inside it. A frame inside a frame is two of these, and both
+# `page.frame_locator` and `page.locator` take the whole chain as one selector.
+ENTER_FRAME = " >> internal:control=enter-frame >> "
+
+
+def in_frame(frame: str | None, selector: str) -> str:
+    """One selector for an element inside a frame, that `page.locator` can resolve alone.
+
+    A check after a step (`element_present "#deep"`) used to be looked for on the page
+    itself, so every step on an element inside an iframe failed its own check on replay."""
+    return f"{frame}{ENTER_FRAME}{selector}" if frame else selector
+
+
 LocatorKind = Literal[
     "test_id",
     "structural",
@@ -208,6 +222,21 @@ class Locator:
 
     Without it the locator is unresolvable: `page.locator` does not look inside iframes, so
     a selector recorded in one would simply find nothing on the next run."""
+    exact: bool = True
+    """Whether the words must be the element's whole name or text, or only appear in it.
+
+    Exact is tried first and is what nearly every step stores. A step is stored with
+    `exact=False` only when the words an agent wrote were part of the name and not all of
+    it, the way Playwright's own `get_by_role(name=...)` matches by default: a product
+    card's link is called "Belt Sander $73.59", and the agent writes `link "Belt Sander"`.
+    Kept loose on replay too, because the part the agent left out (a price, a count) is
+    exactly the part that changes."""
+    include_hidden: bool = False
+    """For a role: also match elements a site hid from screen readers with `aria-hidden`,
+    as long as they are visible on the screen. Playwright's `get_by_role` skips them, while
+    the view, like Playwright MCP's snapshot, shows them: doververmont.com draws its whole
+    news carousel inside `aria-hidden="true"`, and every link in it was shown and then
+    "nothing on this page". Only tried when nothing else matched."""
     hits: int = 0
     misses: int = 0
     last_ok: str | None = None
@@ -241,6 +270,10 @@ class Locator:
         written = f"{self.kind}={self.value}"
         if self.frame:
             written = f"in frame {self.frame} {written}"
+        if not self.exact:
+            written += " (words in its name)"
+        if self.include_hidden:
+            written += " (hidden from screen readers)"
         if self.has_text:
             written += f" containing {self.has_text!r}"
         if self.nth is not None:
@@ -254,6 +287,8 @@ class Locator:
             **({"nth": self.nth} if self.nth is not None else {}),
             **({"has_text": self.has_text} if self.has_text else {}),
             **({"frame": self.frame} if self.frame else {}),
+            **({"exact": False} if not self.exact else {}),
+            **({"include_hidden": True} if self.include_hidden else {}),
             "hits": self.hits,
             "misses": self.misses,
             "last_ok": self.last_ok,
@@ -267,6 +302,8 @@ class Locator:
             nth=raw.get("nth"),
             has_text=raw.get("has_text"),
             frame=raw.get("frame"),
+            exact=raw.get("exact", True),
+            include_hidden=raw.get("include_hidden", False),
             hits=raw.get("hits", 0),
             misses=raw.get("misses", 0),
             last_ok=raw.get("last_ok"),
@@ -432,7 +469,12 @@ class Step:
             return self.postcondition
 
         where = self.postcondition.target or next(
-            (locator.value for locator in self.locators if locator.kind == "css"), ""
+            (
+                in_frame(locator.frame, locator.value)
+                for locator in self.locators
+                if locator.kind == "css"
+            ),
+            "",
         )
         if where:
             return Postcondition("element_present", where)

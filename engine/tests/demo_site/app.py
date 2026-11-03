@@ -869,6 +869,99 @@ def book(request: Request, index: int, variant: str | None = Query(None)) -> HTM
     )
 
 
+# A tool shop laid out the way real shops are: the whole card is one link, so each link's
+# name is the product AND its price, and a filter's name carries its count. An agent names
+# them by the words it means, "Belt Sander" or "Sander", never by the price.
+TOOLS = [("Belt Sander", "73.59"), ("Sheet Sander", "58.48"), ("Claw Hammer", "12.01")]
+
+
+@app.get("/tools", response_class=HTMLResponse)
+def tools(request: Request, late: int = 0, variant: str | None = Query(None)) -> HTMLResponse:
+    """`?late=1` draws the cards a moment after the page, the way a shop's own code does."""
+    cards = "".join(
+        f'<a class="card" href="/tools/{index}"><h5>{name}</h5><span>${price}</span></a>'
+        for index, (name, price) in enumerate(TOOLS)
+    )
+    pages = "".join(f'<a href="/tools?page={number}">{number}</a> ' for number in (1, 5, 15))
+    shown = (
+        f"<script>setTimeout(() => {{ document.getElementById('cards').innerHTML = "
+        f"{cards!r}; }}, 600);</script>"
+        if late
+        else ""
+    )
+    return page(
+        "Tools",
+        "<h1>Package: tools (1:1.0.51-13)</h1>"
+        '<label><input type="checkbox" name="sanders"> Sander (2)</label>'
+        f'<div id="cards">{"" if late else cards}</div>{shown}<p class="pages">{pages}</p>'
+        # A news strip a site hid from screen readers and still shows on the screen, beside
+        # an old copy that is hidden for everyone.
+        '<div class="news" aria-hidden="true"><a href="/tools/2">Hammer news: back in stock</a>'
+        '</div><div aria-hidden="true" style="display:none"><a href="/tools/1">Hammer news: '
+        "old</a></div>",
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/tools/{index}", response_class=HTMLResponse)
+def tool(request: Request, index: int, variant: str | None = Query(None)) -> HTMLResponse:
+    name, price = TOOLS[index]
+    return page(
+        name,
+        f'<h1 id="title">{name}</h1><p class="price" id="price">${price}</p>',
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/framed", response_class=HTMLResponse)
+def framed(request: Request, variant: str | None = Query(None)) -> HTMLResponse:
+    """A page whose working parts live in iframes, the way editors, date pickers and widget
+    demos do: a form in one frame, and a frame inside another frame."""
+    return page(
+        "Framed",
+        "<h1>Framed</h1><p>The form is in the frame below. Press Show the city list there.</p>"
+        '<iframe id="form-frame" src="/framed/form" title="form"></iframe>'
+        '<iframe id="outer-frame" src="/framed/outer" title="outer"></iframe>',
+        variant=variant_of(request, variant),
+    )
+
+
+@app.get("/framed/form", response_class=HTMLResponse)
+def framed_form() -> HTMLResponse:
+    return HTMLResponse(
+        "<!doctype html><html><body><h2>Inside the frame</h2>"
+        '<label>City <input id="city"></label>'
+        '<a href="/framed/done">Show the city list</a></body></html>'
+    )
+
+
+@app.get("/framed/outer", response_class=HTMLResponse)
+def framed_outer() -> HTMLResponse:
+    return HTMLResponse(
+        '<!doctype html><html><body><p>Outer</p><iframe id="inner-frame" '
+        'src="/framed/inner"></iframe></body></html>'
+    )
+
+
+@app.get("/framed/inner", response_class=HTMLResponse)
+def framed_inner() -> HTMLResponse:
+    return HTMLResponse('<!doctype html><html><body><p id="deep">Deep inside</p></body></html>')
+
+
+@app.get("/framed/done", response_class=HTMLResponse)
+def framed_done() -> HTMLResponse:
+    return HTMLResponse('<!doctype html><html><body><p id="cities">Lagos, Lima</p></body></html>')
+
+
+@app.get("/frameset", response_class=HTMLResponse)
+def frameset() -> HTMLResponse:
+    """An old frameset page: no body at all, only frames."""
+    return HTMLResponse(
+        '<!doctype html><html><frameset rows="50%,50%"><frame name="top" src="/framed/inner">'
+        '<frame name="bottom" src="/framed/form"></frameset></html>'
+    )
+
+
 @app.get("/tickets", response_class=HTMLResponse)
 def tickets(request: Request, open_count: int = Query(3, alias="open")) -> HTMLResponse:
     """GitHub's issue list in miniature: the count lives in a link NAMED by the count, under

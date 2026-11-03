@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import re
 import tempfile
+from collections.abc import Iterator
 from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
@@ -597,9 +598,12 @@ class Runner:
         A wait is for something that is not there yet. Looked up first, the way every other
         line is, `wait css "..."` failed at once with "nothing on this page matches" while
         saashub.com's list still said "Loading..."."""
-        found = self.browser.matches(
-            Locator("css", target.value) if target.kind == "css" else _locator_for(target)
-        )
+        wanted = Locator("css", target.value) if target.kind == "css" else _locator_for(target)
+        found = self.browser.matches(wanted)
+        if found is not None and _has_words(wanted):
+            # Whichever comes first: the whole name, or the words inside one (`_matching`).
+            loose = self.browser.matches(replace(wanted, exact=False))
+            found = found.or_(loose) if loose is not None else found
         try:
             if found is None:
                 raise PlaywrightError("not a target this page can be asked for")
@@ -686,7 +690,7 @@ class Runner:
         entry = self.session.trace[-1] if self.session.trace else None
         kept = entry.element if entry is not None else None
         if entry is not None and kept is not None and step.kind not in _MANY_READS:
-            entry.locators = self._lasting(kept.locators(), answer)
+            entry.locators = self._lasting(kept.locators(), answer) or self._own_path(kept, answer)
         if (
             element is not None
             and kept is not None
@@ -707,6 +711,18 @@ class Runner:
         out.answers[step.name] = ", ".join(answer) if isinstance(answer, list) else str(answer)
         where = _css_hint(element) if element is not None else step.kind
         out.sources[step.name] = f'read from {where} on "{self.browser.page.title()}"'
+
+    def _own_path(self, element: Element, answer: Any) -> list[Locator]:
+        """For a read picked by its place whose words are its answer, the element's own path.
+
+        `read heading "Ada Lovelace" first` is kept by its place, and that place is named by
+        the very words it reads, so `_lasting` drops it and the read was refused as one
+        nobody could find again (en.wikipedia.org, 2 Nov 2026). The page's own path to the
+        element, when it finds only that element, is what a replay can follow."""
+        if not element.by_place or not element.css:
+            return []
+        own = replace(element, by_place=False).locators()
+        return self._lasting([locator for locator in own if locator.kind == "css"], answer)
 
     def _lasting(self, found: list[Locator], answer: Any) -> list[Locator]:
         """The ways of finding a read's element that will still find it tomorrow.
@@ -761,9 +777,36 @@ class Runner:
         if target.kind == "ref":
             return self._by_ref(target)
         if target.kind == "css" and target.pick is None:
+            framed = self._css_in_a_frame(target, many=many)
+            if framed is not None:
+                return framed
             self._one_css_match(target, many=many)
             return self.session.element_by_selector(target.value, one=not many)
         return self._by_locator(target, many=many)
+
+    def _css_in_a_frame(self, target: language.Target, *, many: bool) -> Element | None:
+        """A css target the page itself does not have, found inside one of its iframes."""
+        try:
+            if self.browser.page.locator(target.value).count():
+                return None
+        except PlaywrightError:
+            return None  # not a selector; `_one_css_match` says so in its own words
+        framed = self.browser.in_frames(Locator("css", target.value))
+        if framed is None:
+            return None
+        matched = self.browser.matches(framed)
+        count = matched.count() if matched is not None else 0
+        if count > 1 and not many:
+            raise _Stopped(_too_many(target, count, matched), "add first, last or nth N")
+        return Element(
+            ref=target.value,
+            role="",
+            name="",
+            selector=target.value,
+            css=target.value,
+            found_by=framed,
+            frame=framed.frame,
+        )
 
     def _one_css_match(self, target: language.Target, *, many: bool) -> None:
         """Refuse a css target that matches several elements, in this language's words.
@@ -870,10 +913,7 @@ class Runner:
         return element
 
     def _by_locator(self, target: language.Target, *, many: bool) -> Element:
-        base = _locator_for(target)
-        matched = self.browser.matches(base)
-        self.browser.resolve(base, visible=False)  # waits for a late element, briefly
-        count = matched.count() if matched is not None else 0
+        base, matched, count = self._matching(target)
         if count == 0:
             raise _Stopped(
                 f"nothing on this page is {_target_words(target)}",
@@ -891,7 +931,13 @@ class Runner:
             if count > 1 and not many:
                 raise _Stopped(_too_many(target, count, matched), "add first, last or nth N")
             return Element(
-                ref=_target_words(target), role=_role(target), name=target.value, found_by=base
+                ref=_target_words(target),
+                role=_role(target),
+                name=target.value,
+                found_by=base,
+                exact_name=base.exact,
+                hidden_from_readers=base.include_hidden,
+                frame=base.frame,
             )
         wanted = _wanted_index(pick, count)
         if not 0 <= wanted < count:
@@ -903,7 +949,56 @@ class Runner:
             name=target.value,
             found_by=base,
             by_place=True,
+            exact_name=base.exact,
+            hidden_from_readers=base.include_hidden,
+            frame=base.frame,
         )
+
+    def _matching(self, target: language.Target) -> tuple[Locator, Any, int]:
+        """The locator a target names, what it matches on the page, and how many.
+
+        The whole name first, and only when nothing is called exactly that, the words inside
+        a name, in any case: Playwright's own default for `get_by_role(name=...)`, and what
+        an agent means by `link "Belt Sander"` on a card whose link says "Belt Sander $73.59".
+        Exact first, so `link "5"` is still the page-5 link and not also the one for 15,
+        and exact inside an iframe before words in a longer name (`_other_ways`).
+        Before this, 16 of the 50 real-site tasks in the reliability benchmark stopped with
+        "nothing on this page is ..." while the element was right there (2 Nov 2026)."""
+        base = _locator_for(target)
+        matched = self.browser.matches(base)
+        self.browser.resolve(base, visible=False)  # waits for a late element, briefly
+        count = matched.count() if matched is not None else 0
+        if count:
+            return base, matched, count
+        for other in self._other_ways(base):
+            found = self.browser.matches(other)
+            other_count = found.count() if found is not None else 0
+            if other_count:
+                return other, found, other_count
+        return base, matched, count
+
+    def _other_ways(self, base: Locator) -> Iterator[Locator]:
+        """Where else a target that matched nothing may be: the whole name inside an iframe,
+        then words in a name on the page, then words in a name inside an iframe. Each is
+        only worked out when the one before it found nothing.
+
+        Exact anywhere comes before words inside a longer name anywhere. On jqueryui.com's
+        autocomplete demo `click text "JavaScript"` meant the suggestion in the demo's
+        iframe, and words-on-the-page-first matched the page's own description of it."""
+        framed = self.browser.in_frames(base)
+        if framed is not None:
+            yield framed
+        if not _has_words(base):
+            return
+        loose = replace(base, exact=False)
+        yield loose
+        framed = self.browser.in_frames(loose)
+        if framed is not None:
+            yield framed
+        if base.kind == "role":
+            # Last, what a site hid from screen readers but shows on the screen.
+            yield replace(base, include_hidden=True)
+            yield replace(loose, include_hidden=True)
 
     def _css_of(self, element: Element) -> str:
         if element.selector:
@@ -1350,6 +1445,14 @@ def _locator_for(target: language.Target) -> Locator:
     if target.kind in _LOCATOR_KIND:
         return Locator(_LOCATOR_KIND[target.kind], target.value)  # type: ignore[arg-type]
     return Locator("role", f"{target.kind}|{target.value}")
+
+
+def _has_words(locator: Locator) -> bool:
+    """Can this locator match words inside a longer name? Only the kinds that match words,
+    and a role only when it was given a name."""
+    if locator.kind == "role":
+        return bool(locator.value.partition("|")[2])
+    return locator.kind in _WORDED_LOCATORS
 
 
 def _role(target: language.Target) -> str:

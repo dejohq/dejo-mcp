@@ -330,8 +330,11 @@ read css ".total" as total
 ```
 
 Targets are a ref from the page (`e12`), or `role "name"` (`link "Travel"`), `text "..."`,
-`label "..."`, `css "..."`. Add `first`, `last` or `nth 3` to mean a place in a list rather
-than one item. A step that buys, pays, sends, deletes or submits is marked with `!`
+`label "..."`, `css "..."`. A name is matched whole first; when nothing has exactly that
+name, words inside a name count, in any case, as in Playwright, so `link "Belt Sander"` finds
+the card link "Belt Sander $73.59". Two such matches are refused, never guessed. The page is
+searched first, then each iframe. Add `first`, `last` or `nth 3` to mean a place in a list
+rather than one item. A step that buys, pays, sends, deletes or submits is marked with `!`
 (`click! button "Pay"`); unmarked, Dejo will not do it, and marked, it never runs twice on its
 own.
 
