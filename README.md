@@ -27,6 +27,7 @@
   <a href="#benchmark">Benchmark</a> ·
   <a href="#tools">Tools</a> ·
   <a href="docs/BROWSING.md">What it can do</a> ·
+  <a href="docs/CAPABILITIES.md">Compared</a> ·
   <a href=".github/CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -343,7 +344,9 @@ content that loads late, cookie banners, confirm dialogs, new tabs, and file pic
 visible input. A `js` step runs your own JavaScript when a site does something nobody
 anticipated, and is deliberately never saved into a route, because a step made of code cannot
 be repaired. The full capability list, with the reason for each choice, is in
-[`docs/BROWSING.md`](docs/BROWSING.md).
+[`docs/BROWSING.md`](docs/BROWSING.md). How Dejo compares with Playwright, Playwright MCP,
+Chrome DevTools MCP, browser-use, Stagehand, Puppeteer and Selenium, capability by capability,
+is in [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
 
 ## When something goes wrong
 
