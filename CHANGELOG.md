@@ -2,7 +2,7 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
-## Unreleased
+## 0.4.0 — 2026-11-04
 
 - **Reliability after this work: Dejo 47 of the 50 week-on-week tasks, and 11 of the 11 new
   ones.** On the same day, before any of it, Dejo passed 46 of 50; plain Playwright passed 45
