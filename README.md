@@ -205,6 +205,13 @@ sure it is the same job, for the same person, with the right values:
 - **A different deed is a different job.** Download and delete, open and close, add and
   remove, track and cancel, approve and reject, lock and unlock (and any word against the
   same word with "un") are never matched, whatever else the names share.
+- **Another subject is another job.** Saved "find the changelog entry" for a package, asked
+  "find the minimum Dart SDK" for the same package: the new words stand where the route's own
+  subject stood, so Dejo stops before step 1 instead of replaying the changelog, and shows the
+  page in the same reply so your agent can teach the new task at once.
+- **A restart never replaces another task's route.** `restart` sent under the words of the
+  task asked learns a new route in those words. Only a restart under a route's own task
+  replaces that route.
 - **A risky route needs its own task.** A route with a `click!` (pay, send, delete, submit)
   runs only for the task it was saved as, said in other common words, never for a loose
   match.
@@ -222,8 +229,8 @@ dejo map github.com                    # every page it has seen
 dejo map github.com --path /issues     # the controls that were on one of them
 ```
 
-Ask for something new on a site Dejo has walked, and your agent is handed the pages it already
-knows before it starts hunting. Each control comes back as a step target such as
+Ask for something new on a site Dejo has walked, and your agent can ask for the pages it
+already knows (`dejo_memory` with `what=map`) before it starts hunting. Each control comes back as a step target such as
 `button "Sign in"`, which works in a step without looking at the page first. A page Dejo has
 already walked costs no reading at all. This matters most where one site carries many tasks: an end-to-end test
 suite, an admin console, a portal you work in every day.
