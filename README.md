@@ -120,6 +120,62 @@ step still lands. If more than half the steps break, the site was rebuilt rather
 Dejo throws the route away but keeps what it knows about the site (needs a login, sends a code
 to your phone), so relearning is cheaper than the first visit.
 
+### When the site changes
+
+A site is rarely the same twice: a toast one day, a newsletter box the next, a button with new
+words. Dejo was learned on one visit and is replayed on another, so it has to tell "something
+is in the way" from "the site moved" from "this is the wrong account".
+
+**What it checks, every step.** Each step has a check that proves it landed (the address, the
+file, the words, the row count). A step that cannot check itself is not saved. If a check
+fails, Dejo stops at that exact step.
+
+**What it does on its own:**
+
+- **Finds the element another way.** Up to nine ways per step, best first. When the first
+  misses and a backup finds it, the backup moves up. On a slow page Dejo waits for the page
+  to finish before it calls any way broken.
+- **Clears a pop-up nobody told it about.** When something covers the element a step presses,
+  Dejo tries, in order: the pop-up's own close ("Close", "No thanks", "Not now", "×"), the
+  Escape key, then a consent banner's button, choosing "Reject all" or "Necessary only" over
+  "Accept". It never presses anything that buys, pays, sends, deletes, submits, subscribes
+  or signs up. What worked is kept for the site, so the next run clears it up front, as
+  `dismiss css "..."` would.
+- **Skips a step that only closed something.** A cookie banner or a toast that is not there
+  this time: the step that closed it is skipped. Also when the toast faded out by itself, or
+  said "Dismissed" before it went. A step marked risky (`click!`) or with its own `expect` is
+  never skipped.
+- **Skips a sign-in it does not need.** A task learned signed out, replayed signed in, skips
+  its sign-in steps and runs the rest.
+
+**What it reports.** Everything above, every time, in one list in the reply and in the log in
+`~/.dejo/logs`:
+
+```
+done: "the price" on shop.example (profile default), 3 steps replayed in 1840 ms, no page reading.
+decided on its own (2):
+- step 2: cleared a pop-up: "Join our newsletter" closed by its "No thanks" control; cleared up front from now on
+- step 3: found by a backup way (css:#total-button); role:button|Show total missed and moved down
+```
+
+**When it stops and asks:**
+
+- **The site really changed.** No way finds the element, or the check fails. Dejo stops at
+  that one step and shows the page; your agent sends one line for it. If more than half the
+  steps are broken, the site was rebuilt, and Dejo starts learning again.
+- **A different account is signed in.** While learning, Dejo notes who the page shows as
+  signed in: an email address in the header or account menu, the name on the account button,
+  or "Signed in as ...". Only what is on the screen, never a cookie or a password. Before a
+  replay acts, and after any sign-in step, it looks again. If the page names someone else, it
+  stops before doing anything and says who was expected and who is signed in. A page that
+  names nobody is no reason to stop. To set it yourself: `expect signed in as "you@example.com"`.
+- **You were signed out.** A sign-in address, an identity provider's page (Google, Microsoft,
+  Okta, Auth0 ...), an HTTP 401, a password box or a sign-in form. Dejo asks you to sign in
+  again rather than repairing anything. It only asks this after a step failed, so a task that
+  opens a sign-in page on purpose works as usual.
+- **A captcha, or a pop-up with no safe way out.** Dejo stops and hands over to you. It does
+  not solve captchas and does not get around a site's block.
+
 ### The map
 
 A route is one path through a site. Dejo also keeps a **map**: every page it has looked at,

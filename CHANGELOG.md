@@ -2,6 +2,30 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **A pop-up nobody told Dejo about is cleared.** When something covers the element a step
+  presses, on replay or while learning, Dejo tries the pop-up's own close, then Escape, then a
+  consent banner's "Reject all" before "Accept", never anything that buys, sends or
+  subscribes; what worked is kept for the site and named in the reply.
+- **More toasts are skipped when they are not there.** A close step is skipped also when the
+  toast fades out and stays in the page, says "Dismissed" before it goes, or had already faded
+  by itself on replay. A risky step or one with its own check is still never skipped.
+- **Which account is signed in.** Dejo notes the account the page shows while learning
+  (an email address or the name on the account button), checks it before a replay acts and
+  after any sign-in step, and stops if someone else is signed in. `expect signed in as "..."`
+  sets it by hand; `dejo run` exits 7.
+- **Better "you were signed out".** An identity provider's page (Google, Microsoft, Okta,
+  Auth0 ...), an HTTP 401 on the page's own address, or a sign-in form by its role and name now
+  count, still only after a step failed.
+- **Every automatic decision is reported.** Steps skipped, pop-ups cleared, sign-in steps
+  skipped, backup ways of finding an element and walks back to a step's page are one list in
+  the reply, in `dejo run` and its `--json`, and in `~/.dejo/logs`.
+- **The drift lab.** Demo pages that change between visits, tests that learn on one visit and
+  replay on the next, and reliability tasks R62-R64 on practice sites. It found and fixed good
+  ways being blamed on a slow page, a "first item" step stopping on the next item's page, and a
+  remembered close shutting a dialog the task opened on purpose.
+
 ## 0.4.0 — 2026-11-04
 
 - **Reliability after this work: Dejo 47 of the 50 week-on-week tasks, and 11 of the 11 new
