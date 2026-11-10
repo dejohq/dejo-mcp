@@ -11,6 +11,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 - **Every changed value is swapped in, or the replay stops.** A task asked with two or more new
   values ("Kolkata to Pune on 9 Dec") replays with all of them; a new value the route has no
   place for stops it before step 1 (`dejo run` exits 8).
+- **"This month" means this month.** A route learned for "this month", "last month", "today",
+  "latest" and similar is moved to the date the words mean now, by the browser's clock, or
+  stops and names the date it cannot place.
 - **A control that does something else is never pressed.** A backup way that finds "Remove
   item" where "Show total" was is a miss, not a click. The way a trail was learned with
   survives its first miss, so a fix for version B of an A/B page no longer undoes version A.

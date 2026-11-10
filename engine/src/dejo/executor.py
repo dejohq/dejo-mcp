@@ -29,12 +29,13 @@ import copy
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, identity, popups, reads, steplog
+from . import actions, identity, popups, reads, steplog, when
 from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
     Decided,
@@ -93,6 +94,11 @@ NAME_CHARS = 120
 # What a control is called, as a person or a screen reader meets it.
 _NAME_JS = """(n) => (n.getAttribute("aria-label") || n.innerText || n.value ||
   n.getAttribute("title") || n.getAttribute("alt") || "").replace(/\\s+/g, " ").trim()"""
+
+# Today's date by the page's own clock, as [year, month, day].
+_TODAY_JS = (
+    "(() => { const d = new Date(); return [d.getFullYear(), d.getMonth() + 1, d.getDate()]; })()"
+)
 
 # A CSS path that picks by position: nth-of-type, nth-child, first or last child.
 _PLACE_IN_CSS = re.compile(r":(?:nth-(?:last-)?(?:of-type|child)|first-|last-|only-)")
@@ -266,9 +272,9 @@ class ReplayResult:
     `step 3: "Join our newsletter" closed by its "No thanks" control`. See `popups`."""
 
     unplaced: list[str] = field(default_factory=list)
-    """Values the task asked for that this trail has no place for: one of several changed
-    values, or a new word with nothing to pair it with. Nothing ran. See
-    `Executor._aim_at`."""
+    """Values the task asked for that this trail has no place for: a third changed value, a
+    new word with nothing to pair it with, or a date its words cannot place ("this week"
+    against a trail that picked one day). Nothing ran. See `Executor._aim_at`."""
 
     @property
     def needs_repair(self) -> bool:
@@ -295,6 +301,18 @@ class NeedsTask(NoTrailError):
     def __init__(self, message: str, *, tasks: list[str]):
         super().__init__(message)
         self.tasks = tasks
+
+
+def _dates_in_steps(playbook: Playbook) -> list[when.Dated]:
+    """Every fixed date the trail's steps hold where a swap can land, each once."""
+    found: dict[str, when.Dated] = {}
+    for step in playbook.steps:
+        texts = [step.value, step.page, step.postcondition.value]
+        texts += [locator.value for locator in step.locators]
+        for text in texts:
+            for dated in when.dates_in(text):
+                found.setdefault(dated.text, dated)
+    return list(found.values())
 
 
 def _by_place(locator: Locator) -> bool:
@@ -645,7 +663,8 @@ class Executor:
         # Same route, different values. "message riya" against a trail saved as "message
         # ankush" is not a rephrasing and must not be replayed unchanged — that is how a
         # message reaches the wrong person, and how a question about one project comes back
-        # with another project's numbers. The same goes for every changed value at once.
+        # with another project's numbers. The same goes for every changed value at once,
+        # and for "this month" asked a month after the trail picked September.
         self._aim = None
         self._aimed = {}
         self._aimed_to = {}
@@ -947,21 +966,23 @@ class Executor:
     def _aim_at(
         self, task: str | None, playbook: Playbook, domain: str
     ) -> tuple[Playbook, list[str]]:
-        """The trail aimed at every value the task changed, and what could not be placed.
-        Nothing is aimed when anything cannot be: a replay with some new values and some
-        old ones is the wrong task done confidently.
+        """The trail aimed at every value the task changed and every date its words mean
+        today, and what could not be placed. Nothing is aimed when anything cannot be: a
+        replay with some new values and some old ones is the wrong task done confidently.
 
         One changed word that the steps never mention is a rewording ("tell me the quote"
         for "read the quote") and changes nothing, exactly as before. Two or more changed
-        values, or a new value with nothing to pair it with, is a stop that names them."""
+        values, a new value with nothing to pair it with, or a date the words cannot place,
+        is a stop that names them."""
         pairs, extra = changed_values(task, playbook.task, domain) if task else ([], [])
-        swaps = pairs
+        dated, undated, phrase = self._dates_meant(task, playbook)
+        swaps = pairs + dated
         if not swaps:
-            return playbook, []
+            return playbook, undated
         aimed = with_values(playbook, swaps)
         landed = set().union(*aimed[2].values()) if aimed else set()
         missing = [now for _, now in pairs if now not in landed]
-        unplaced: list[str] = []
+        unplaced = list(undated)
         if len(pairs) > 1 or (missing and len(missing) < len(pairs)):
             unplaced += missing
         if landed and extra:
@@ -972,8 +993,39 @@ class Executor:
         placed = [(was, now) for was, now in swaps if now in landed]
         self._aim = (", ".join(was for was, _ in placed), ", ".join(now for _, now in placed))
         for was, now in placed:
-            self._decisions.append(f"aimed at {now!r} instead of {was!r}")
+            said = f", because the task says {phrase!r}" if (was, now) in dated else ""
+            self._decisions.append(f"aimed at {now!r} instead of {was!r}{said}")
         return aimed[0], []
+
+    def _dates_meant(
+        self, task: str | None, playbook: Playbook
+    ) -> tuple[list[tuple[str, str]], list[str], str]:
+        """The trail's fixed dates moved to what the task's words mean today, the dates
+        that cannot be placed, and the words that said so. Asked as the task was saved
+        ("this month"), or asked in other words that name no date of their own."""
+        relative = when.relative_to_today(task)
+        if relative is None and not when.dates_in(task):
+            relative = when.relative_to_today(playbook.task)
+        if relative is None:
+            return [], [], ""
+        today = self._today()
+        moved: list[tuple[str, str]] = []
+        unplaced: list[str] = []
+        for dated in _dates_in_steps(playbook):
+            meant = when.meant_now(dated, relative, today)
+            if meant is None:
+                unplaced.append(f"{dated.text} (the task says {relative.phrase!r})")
+            elif meant != dated.text:
+                moved.append((dated.text, meant))
+        return moved, unplaced, relative.phrase
+
+    def _today(self) -> date:
+        """Today, by the browser's own clock: a test or a trail can move it with set_time."""
+        try:
+            year, month, day = self.browser.page.evaluate(_TODAY_JS)
+            return date(int(year), int(month), int(day))
+        except (PlaywrightError, TypeError, ValueError):
+            return date.today()
 
     def _cannot_place(
         self, playbook: Playbook, metrics: RunMetrics, started: float, unplaced: list[str]

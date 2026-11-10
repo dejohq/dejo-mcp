@@ -197,6 +197,11 @@ sure it is the same job, for the same person, with the right values:
   that was aimed has to find the new value on the page before it acts. A value the route has
   no place for ("in business class") stops the replay before step 1 and is named. It never
   replays the old values.
+- **A time relative to today.** "This month's invoice" learned in September clicks
+  "September 2026". Asked in October, Dejo moves it to "October 2026" by the browser's
+  clock, and says so. "last month", "today", "this week", "latest" and "current" work the
+  same way. A date it cannot place stops the replay and is named. A task that names its
+  month ("the September invoice") is never moved.
 - **A different deed is a different job.** Download and delete, open and close, add and
   remove, track and cancel, approve and reject, lock and unlock (and any word against the
   same word with "un") are never matched, whatever else the names share.

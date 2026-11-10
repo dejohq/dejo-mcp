@@ -41,6 +41,7 @@ from .memory import (
     import_sibyl,
 )
 from .models import Playbook, RunMetrics, SiteKnowledge, SiteMap, utc_now
+from .when import TIME_WORDS
 from .words import COMMON_WORDS
 
 PLAYBOOK = "playbook"
@@ -169,8 +170,8 @@ _LOOKING = frozenset(
     + ["read", "search", "see", "show", "tell", "track", "view", "visit", "what", "when"]
     + ["where", "which", "who", "why"]
 )
-# Words that are never a value a task was asked about: what is done.
-_NOT_VALUES = _ACTIONS | _LOOKING | _DEED_WORDS
+# Words that are never a value a task was asked about: what is done, and when.
+_NOT_VALUES = _ACTIONS | _LOOKING | _DEED_WORDS | TIME_WORDS
 SITE_KNOWLEDGE = "site_knowledge"
 
 
@@ -1017,7 +1018,7 @@ def changed_values(
 
     Returns the pairs, as (was, now), and the new words that have nothing to pair with
     ("in business class"), which a replay cannot place anywhere. Words that only say what
-    is done ("show", "list") are never values.
+    is done ("show", "list") or when ("last", "latest") are never values.
     """
     known, asked = _in_order(candidate, domain), _in_order(wanted, domain)
     pairs: list[tuple[str, str]] = []
@@ -1037,10 +1038,10 @@ def changed_values(
 
 def _a_value(was: str, now: str) -> bool:
     """Is this pair of words a value that changed, rather than the same job said otherwise?
-    "show" for "list" is a rewording, and "delete" for "remove" is never a value. "closed"
-    for "open" is: the open issues are not the closed ones."""
+    "show" for "list" is a rewording, and "delete" for "remove" or "last" for "this" is
+    never a value. "closed" for "open" is: the open issues are not the closed ones."""
     words = {was.lower(), now.lower()}
-    if words & _DEED_WORDS:
+    if words & (_DEED_WORDS | TIME_WORDS):
         return False
     return not words <= _NOT_VALUES
 
