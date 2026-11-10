@@ -358,8 +358,8 @@ mattering.
 vendor's, so the same task name learned in two profiles is two routes, and neither overwrites
 the other. Every profile also reads the routes of the default profile, and every route saved
 by 0.5.0 or older, so nothing is lost on upgrade. If such a route was learned as another
-account, the profile learns its own instead of being stopped. `dejo forget` forgets the
-site's routes in every profile.
+account, the profile learns its own instead of being stopped. A half-learned task is kept per
+profile too. `dejo forget` forgets the site's routes in every profile.
 
 ## Sharing a route
 

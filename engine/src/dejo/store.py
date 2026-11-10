@@ -264,17 +264,19 @@ class DejoStore:
     def save_draft(self, draft: Playbook) -> None:
         """Write. The steps of a task that is still being learned. See DRAFT."""
         self._drop_stale_drafts()
-        self._memory.put(DRAFT, trail_key(draft.domain, draft.task), draft.to_dict())
+        key = trail_key(draft.domain, draft.task, self.profile)
+        self._memory.put(DRAFT, key, draft.to_dict())
 
     def load_draft(self, domain: str, task: str) -> Playbook | None:
-        """Read. The draft for exactly this task, never a look-alike: resuming another
-        task's half-learned steps would start the wrong job from its middle."""
-        body = self._read_entity_body(DRAFT, trail_key(domain, task))
+        """Read. The draft for exactly this task and profile, never a look-alike: resuming
+        another task's half-learned steps would start the wrong job from its middle."""
+        body = self._read_entity_body(DRAFT, trail_key(domain, task, self.profile))
         return Playbook.from_dict(body) if body else None
 
     def drop_draft(self, domain: str, task: str) -> bool:
         """The draft became a trail, or the caller started over. True if one was there."""
-        return self._memory.archive(DRAFT, trail_key(domain, task), reason="draft closed")
+        key = trail_key(domain, task, self.profile)
+        return self._memory.archive(DRAFT, key, reason="draft closed")
 
     def _drop_stale_drafts(self) -> None:
         oldest = datetime.now(UTC) - DRAFT_MAX_AGE

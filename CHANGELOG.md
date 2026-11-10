@@ -11,6 +11,8 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 - **Each profile keeps its own routes.** Trails are keyed by profile as well as site and task,
   so a customer's and a vendor's "show my orders" never overwrite or block each other. Every
   profile still reads the default profile's routes and every route saved before.
+- **A half-learned task belongs to its profile.** Another profile no longer resumes, or drops,
+  the draft one profile started.
 - **Every changed value is swapped in, or the replay stops.** A task asked with two or more new
   values ("Kolkata to Pune on 9 Dec") replays with all of them; a new value the route has no
   place for stops it before step 1 (`dejo run` exits 8).
