@@ -160,3 +160,31 @@ def test_a_remembered_close_never_closes_a_dialog_the_trail_opens(
     again = Executor(store, browser).run(domain_of(url), task="the title")
     assert again.ok, again.reason
     assert again.answers == {"title": "Large dialog"}
+
+
+# A consent platform that asks inside its own frame (Sourcepoint on theguardian.com and
+# spiegel.de, 10 Nov): the page shows a fixed box holding an iframe, and every button is in
+# the frame. Searching only the page itself found nothing and the step stopped.
+_FRAMED_CONSENT = """
+<button id="go" onclick="document.title='went'">Sport</button>
+<div id="sp_message_container" style="position:fixed;inset:0;z-index:9">
+  <iframe id="sp_message_iframe_1482255" title="consent message" style="width:100%;height:100%"
+    srcdoc="<p>We use cookies.</p>
+      <button onclick=&quot;parent.document.getElementById('sp_message_container').remove()&quot;>Yes, I accept</button>
+      <button onclick=&quot;parent.document.title='rejected';parent.document.getElementById('sp_message_container').remove()&quot;>No, thank you</button>
+      <button onclick=&quot;parent.document.title='paid'&quot;>Subscribe now</button>"></iframe>
+</div>
+"""
+
+
+def test_a_consent_box_inside_a_frame_is_answered_inside_the_frame(browser: Browser) -> None:
+    from dejo import popups
+
+    browser.page.set_content(_FRAMED_CONSENT)
+    browser.page.frame_locator("#sp_message_iframe_1482255").locator("button").first.wait_for()
+    cleared = popups.clear_the_way(browser.page, browser.page.locator("#go"))
+    assert cleared is not None and cleared.done, cleared
+    assert "No, thank you" in cleared.what
+    assert browser.page.title() == "rejected", "the reject choice, never accept or subscribe"
+    browser.page.locator("#go").click(timeout=2000)
+    assert browser.page.title() == "went"

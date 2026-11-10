@@ -30,8 +30,8 @@ from contextlib import suppress
 from dataclasses import dataclass
 
 from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import Frame, Page
 from playwright.sync_api import Locator as PWLocator
-from playwright.sync_api import Page
 
 # Actions that press or point at their element, so a pop-up over it gets in the way. A fill
 # or a read does not care what is drawn on top.
@@ -145,6 +145,10 @@ CONSENT_ACCEPT_WORDS = (
     "allow all",
     "accept",
     "accept cookies",
+    "accept and continue",
+    "agree and continue",
+    "consent and continue",
+    "accept & continue",
     "agree",
     "i agree",
     "got it",
@@ -344,6 +348,7 @@ def clear_the_way(page: Page, target: PWLocator) -> Cleared | None:
         popup = page.locator(f"[{MARK}=popup]").first
         return (
             _close_inside(page, target, popup, cover)
+            or _inside_frames(page, target, popup, cover)
             or _escape(page, target, popup, cover)
             or _consent(page, target, popup, cover)
             or Cleared(f"{_named(cover)} covers it, and nothing safe cleared it", done=False)
@@ -375,6 +380,41 @@ def _close_inside(
         durable = _durable(page, candidate)
         if _press(page, candidate, target):
             return Cleared(f'{_named(cover)} closed by its "{candidate["label"]}" control', durable)
+    return None
+
+
+def _inside_frames(
+    page: Page, target: PWLocator, popup: PWLocator, cover: dict[str, str]
+) -> Cleared | None:
+    """The same safe moves inside a frame the pop-up holds (or is).
+
+    Consent platforms such as Sourcepoint ask inside their own iframe, so every button is
+    in the frame and none is in the page (theguardian.com and spiegel.de, 10 Nov): a search
+    of the page alone found nothing and the step stopped. A close word first, then the
+    consent words, reject before accept; the risky-word rule is the same. What is pressed in
+    a frame is not remembered: a page selector cannot name it, so it is cleared again each
+    run, the same way."""
+    try:
+        handles = popup.locator("iframe").element_handles()
+        if popup.evaluate("(n) => n.tagName") == "IFRAME":
+            handles.insert(0, popup.element_handle())
+    except PlaywrightError:
+        return None
+    words = [*CLOSE_WORDS, *CONSENT_REJECT_WORDS, *CONSENT_ACCEPT_WORDS]
+    for handle in handles:
+        try:
+            frame = handle.content_frame()
+        except PlaywrightError:
+            continue
+        if frame is None:
+            continue
+        try:
+            for candidate in _candidates(frame.locator("body"), words):
+                if _press(frame, candidate, target):
+                    return Cleared(f'{_named(cover)} answered with "{candidate["label"]}"')
+        finally:
+            with suppress(PlaywrightError):
+                frame.evaluate(_UNMARK_JS, MARK)
     return None
 
 
@@ -433,12 +473,14 @@ def _candidates(popup: PWLocator, words: list[str]) -> list[dict[str, str]]:
         return []
 
 
-def _press(page: Page, candidate: dict[str, str], target: PWLocator) -> bool:
-    """Press one marked candidate and say whether the target is uncovered now."""
+def _press(where: Page | Frame, candidate: dict[str, str], target: PWLocator) -> bool:
+    """Press one marked candidate, in the page or the frame it was marked in, and say
+    whether the target is uncovered now."""
     try:
-        page.locator(f'[{MARK}="{candidate["index"]}"]').first.click(timeout=CLEAR_CLICK_MS)
+        where.locator(f'[{MARK}="{candidate["index"]}"]').first.click(timeout=CLEAR_CLICK_MS)
     except PlaywrightError:
         return False
+    page = where if isinstance(where, Page) else where.page
     return _left(page, target)
 
 
