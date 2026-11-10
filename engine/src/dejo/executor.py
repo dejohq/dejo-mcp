@@ -1073,6 +1073,11 @@ class Executor:
             if target is None:
                 missed.append((locator, label))
                 continue
+            if step.clears_away and self.browser.faded(target):
+                # The toast this step closes went away on its own and only faded, so it is
+                # still in the page. Pressing what nobody can see is not clearing anything.
+                missed.append((locator, label))
+                continue
 
             found_anything = True
 

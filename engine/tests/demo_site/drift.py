@@ -11,6 +11,8 @@ that wants a particular visit starts a fresh browser, or clears the cookie.
     /drift/consent     a consent banner dimming the page on every visit after the first;
                        ?kind=words gives one that no consent platform's id names
     /drift/locked      a box whose only button subscribes: nothing safe clears it
+    /drift/toast       a toast on show, then not there, then already faded out by itself;
+                       ?kind=fade fades when closed, ?kind=say says "Dismissed" first
 
 What the page did is written where a test can read it: `#log`, and `window.lab`.
 """
@@ -138,3 +140,34 @@ def locked(request: Request) -> HTMLResponse:
         else ""
     )
     return _page(request, "locked", "Plans", _PRICE + box)
+
+
+# How long the "say" toast shows "Dismissed" before it goes, in milliseconds.
+DISMISSED_FOR_MS = 400
+
+# How each kind of toast leaves when its close is pressed.
+_LEAVES = {
+    "plain": "toast.remove()",
+    "fade": "toast.style.opacity = 0",
+    "say": f"toast.firstChild.textContent = 'Dismissed '; setTimeout(() => toast.remove(), "
+    f"{DISMISSED_FOR_MS})",
+}
+
+
+@router.get("/toast", response_class=HTMLResponse)
+def toast(request: Request, kind: str = "plain") -> HTMLResponse:
+    """A "Saved" toast, pinned to a corner away from the page's button, in a three-visit
+    cycle: on show, then not there at all, then there but already faded out by itself.
+    `kind` says how it leaves when closed: removed at once, faded out and left in the page,
+    or first saying "Dismissed" and removed a moment later."""
+    visit = _visits(request, f"toast-{kind}") % 3
+    style = "opacity: 0" if visit == 2 else "opacity: 1"
+    shown = (
+        f"""<div id="toast" role="status" style="position: fixed; top: 12px; right: 12px;
+                  transition: opacity .2s; {style}">Saved
+             <button type="button" aria-label="Close" onclick="{_LEAVES.get(kind, "")}">×</button>
+           </div>"""
+        if visit != 1
+        else ""
+    )
+    return _page(request, f"toast-{kind}", "Plans", _PRICE + shown)

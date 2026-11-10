@@ -352,6 +352,50 @@ el => {
 
 _IS_MODAL_JS = "el => el.getAttribute('aria-modal') === 'true' || el.matches(':modal')"
 
+# Is this element gone to a person's eye, though Playwright still calls it visible? Faded to
+# nothing (a toast that fades out and stays in the page), or slid off the screen while pinned
+# to it. Playwright counts an element with opacity 0 as visible, so a toast that faded out
+# looked as if the press that closed it had done nothing.
+_FADED_JS = """
+(el) => {
+  if (!el.isConnected) return true;
+  let pinned = false;
+  for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+    const s = getComputedStyle(n);
+    if (s.display === "none" || s.visibility === "hidden" || parseFloat(s.opacity) < 0.05) {
+      return true;
+    }
+    if (s.position === "fixed" || s.position === "sticky") pinned = true;
+  }
+  const b = el.getBoundingClientRect();
+  if (!b.width || !b.height) return true;
+  return pinned && (b.bottom <= 0 || b.right <= 0 || b.top >= innerHeight || b.left >= innerWidth);
+}
+"""
+
+# Does this element sit in something that comes and goes on its own: a toast, a snackbar, a
+# status message, a banner pinned to the screen? Only those are given a moment to leave
+# after a press, so an ordinary button never waits.
+_PASSING_JS = """
+(el) => {
+  const named = /toast|snackbar|notification|notice|flash|banner|alert/i;
+  for (let n = el; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) {
+    const role = (n.getAttribute("role") || "").toLowerCase();
+    if (["alert", "status", "alertdialog", "log"].includes(role)) return true;
+    if (n.hasAttribute("aria-live")) return true;
+    const s = getComputedStyle(n);
+    if (s.position === "fixed" || s.position === "sticky") return true;
+    if (named.test(typeof n.className === "string" ? n.className : "")) return true;
+  }
+  return false;
+}
+"""
+
+# How long a toast gets to leave after the press that closed it. Most fade or slide out in
+# 150-400 ms; some first say "Dismissed" and go a beat later.
+LEAVE_WAIT_MS = 1500
+LEAVE_POLL_MS = 100
+
 # How long the held-back check may look for its element: it is there, or the press itself
 # says so.
 HELD_BACK_WAIT_MS = 2000
@@ -2638,6 +2682,33 @@ class Browser:
             return [tuple(pair) for pair in found]
         except (PlaywrightError, NoSuchElement):
             return []
+
+    def faded(self, target: PWLocator) -> bool:
+        """Is this element gone to the eye, though still in the page? See `_FADED_JS`."""
+        try:
+            return bool(target.evaluate(_FADED_JS, timeout=HELD_BACK_WAIT_MS))
+        except PlaywrightError:
+            # Gone from the page while being asked: that is gone.
+            return True
+
+    def leaves_on_its_own(self, target: PWLocator) -> bool:
+        """Give an element in a toast or a pinned banner a moment to leave after a press.
+
+        True when it went (removed, hidden or faded) within LEAVE_WAIT_MS. False at once for
+        anything that is not in such a thing, so an ordinary press never pays the wait."""
+        try:
+            if not target.evaluate(_PASSING_JS, timeout=HELD_BACK_WAIT_MS):
+                return False
+        except PlaywrightError:
+            return True
+        waited = 0
+        while waited < LEAVE_WAIT_MS:
+            if target.count() == 0 or self.faded(target):
+                return True
+            with suppress(PlaywrightError):
+                self.page.wait_for_timeout(LEAVE_POLL_MS)
+            waited += LEAVE_POLL_MS
+        return target.count() == 0 or self.faded(target)
 
     def modal_dialogs(self, aria_refs: list[str]) -> frozenset[str]:
         """Which of these dialogs are modal: `aria-modal`, or a <dialog> opened as one."""

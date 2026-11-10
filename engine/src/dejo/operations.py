@@ -112,9 +112,10 @@ class TraceEntry:
     """Marked with `!`: the agent says this step buys, pays, sends, deletes or submits."""
     left: str = ""
     """What became of the element this step pressed, when the page stayed where it was:
-    "removed" from the page, "hidden" on it, or "" when it is still on show. A cookie
-    banner's button leaves this way, and its check has to say so: "the button is still
-    there" failed on every replay that pressed it."""
+    "removed" from the page, "hidden" on it (faded to nothing counts), or "" when it is
+    still on show. A cookie banner's button leaves this way, and its check has to say so:
+    "the button is still there" failed on every replay that pressed it. A toast is given a
+    moment to leave first (`Browser.leaves_on_its_own`)."""
     at: str = field(default_factory=utc_now)
 
     @property
@@ -278,8 +279,12 @@ class Session:
         # A password is remembered as "there is a password here", never as the password.
         secret = secret_name(element) if action in _TEXT_ENTRY else None
 
-        text_after = self.browser.text()
+        # What became of the pressed element is asked BEFORE the page's words are read. A toast
+        # that says "Dismissed" and goes a beat later would otherwise leave "Dismissed" as
+        # the words the press gained, and a close step that only changed words inside its own
+        # element would never be skipped on a visit without the toast.
         left = self._what_became_of(element, action, url_before)
+        text_after = self.browser.text()
         opened = [] if action == "new_tab" else self.browser.tabs_opened_since(tabs_before)
 
         # Catch stragglers LAST, immediately before the entry is written. The download
@@ -349,7 +354,13 @@ class Session:
                 return ""
             if matched.count() == 0:
                 return "removed"
-            return "" if matched.first.is_visible() else "hidden"
+            if not matched.first.is_visible() or self.browser.faded(matched.first):
+                return "hidden"
+            # A toast fades or slides out after the press, or says "Dismissed" first: still
+            # on show the moment the press returns, gone a moment later.
+            if self.browser.leaves_on_its_own(matched.first):
+                return "removed" if matched.count() == 0 else "hidden"
+            return ""
         except PlaywrightError:
             return ""
 
