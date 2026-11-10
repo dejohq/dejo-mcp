@@ -1,0 +1,2452 @@
+{
+ "meta": {
+  "date": "2026-11-10",
+  "model": "claude-sonnet-5",
+  "effort": "medium",
+  "dejo": "0.5.0",
+  "commit": "d78208a"
+ },
+ "runs": [
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "cold",
+   "task": "T02",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T02-cold",
+   "answer": "Edmonton Oilers",
+   "correct": true,
+   "accepted": [
+    "Edmonton Oilers"
+   ],
+   "turns": 4,
+   "tokens": 174437,
+   "reported_tokens": 174437,
+   "context_per_turn": [
+    42179,
+    43573,
+    43861,
+    44270
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Gx14obp138AsRrTRZjTipk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 147,
+     "result_chars": 2471,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015Xp1bYaCxQCC73wrJwhweL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01NSTicz8pWBPHDWSiRVu5mm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 156,
+     "result_chars": 594,
+     "is_error": false
+    }
+   ],
+   "seconds": 27.4,
+   "cost_usd": 0.1204353,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "first",
+   "task": "T01",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T01-then-T02",
+   "answer": "261",
+   "correct": true,
+   "accepted": [
+    "261"
+   ],
+   "turns": 6,
+   "tokens": 272806,
+   "reported_tokens": 272806,
+   "context_per_turn": [
+    42196,
+    43104,
+    43330,
+    46341,
+    48056,
+    48672
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01GjgaMa2Jf1CTdSYzUjLgC8",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 163,
+     "result_chars": 1510,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JJ3BHzSFyXMDxa3KpWDTzB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 165,
+     "result_chars": 72,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_012TBmN7Y5BbjRp8drDrTjG3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 174,
+     "result_chars": 5439,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NnHRFQX83sZd1gZLW9sqgw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 244,
+     "result_chars": 2587,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GUTZ8xChmbATwVm8k3dmkk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 851,
+     "is_error": false
+    }
+   ],
+   "seconds": 31.8,
+   "cost_usd": 0.1621709,
+   "trails": {
+    "scrapethissite.com": [
+     "Find goals against for Mighty Ducks of Anaheim hockey team in 1997 season"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "scrapethissite.com",
+   "run": 1,
+   "phase": "warm",
+   "task": "T02",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T01-then-T02",
+   "answer": "Edmonton Oilers\n\n---\nSkipped: didn't verify there isn't a leading search/filter state affecting which rows show as \"page 5\" \u2014 assumed default unfiltered pagination. Risk: if site state differs, answer",
+   "correct": true,
+   "accepted": [
+    "Edmonton Oilers"
+   ],
+   "turns": 4,
+   "tokens": 174722,
+   "reported_tokens": 174722,
+   "context_per_turn": [
+    42189,
+    43690,
+    43927,
+    44348
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01PTFAfvb36PKhqHmF8DyjCL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 147,
+     "result_chars": 2802,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01ByyiwtsMWpLEVFyGyBxCdX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 166,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01AyhkeJtak1QA2f4jfzBe99",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 167,
+     "result_chars": 609,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.3,
+   "cost_usd": 0.10173869999999999,
+   "trails": {
+    "scrapethissite.com": [
+     "Find goals against for Mighty Ducks of Anaheim hockey team in 1997 season",
+     "Get first team name on page 5 of hockey teams table"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "cold",
+   "task": "T04",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T04-cold",
+   "answer": "74.0 kB",
+   "correct": true,
+   "accepted": [
+    "74.0 kB",
+    "74.0 kb",
+    "74.0",
+    "74 kB"
+   ],
+   "turns": 5,
+   "tokens": 224068,
+   "reported_tokens": 224068,
+   "context_per_turn": [
+    42192,
+    43255,
+    44215,
+    46622,
+    47048
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01PVaQNG5ZX1M6BJ2fK8P2G3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 174,
+     "result_chars": 1763,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VdchaiLyHGgk9eGFcPvgFR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 174,
+     "result_chars": 1627,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01VKpHig2ViYJceSAEd9LBx1",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 191,
+     "result_chars": 4632,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018dAPKU7B7nbgwbYX6DyZgA",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 647,
+     "is_error": false
+    }
+   ],
+   "seconds": 24.1,
+   "cost_usd": 0.1426116,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "first",
+   "task": "T03",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T03-then-T04",
+   "answer": "1:1.0.51-13",
+   "correct": true,
+   "accepted": [
+    "1:1.0.51-13",
+    "1.0.51-13"
+   ],
+   "turns": 4,
+   "tokens": 181614,
+   "reported_tokens": 181614,
+   "context_per_turn": [
+    42192,
+    44900,
+    46745,
+    47261
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_012tTvduTx3sQU5szSRNJent",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 128,
+     "result_chars": 6675,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019gc3fnHcDCaq2bdAvRpZF2",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 168,
+     "result_chars": 3339,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01U6AVPrvLywiue64H438d4T",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 110,
+     "result_chars": 840,
+     "is_error": false
+    }
+   ],
+   "seconds": 20.0,
+   "cost_usd": 0.1327722,
+   "trails": {
+    "debian.org": [
+     "find moon-buggy package version in oldstable"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "packages.debian.org",
+   "run": 1,
+   "phase": "warm",
+   "task": "T04",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T03-then-T04",
+   "answer": "74.0 kB",
+   "correct": true,
+   "accepted": [
+    "74.0 kB",
+    "74.0 kb",
+    "74.0",
+    "74 kB"
+   ],
+   "turns": 4,
+   "tokens": 178125,
+   "reported_tokens": 178125,
+   "context_per_turn": [
+    42196,
+    43370,
+    45778,
+    46220
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01XLQxrVWnbzNXogT9tpMmgA",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 199,
+     "result_chars": 2110,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AoBXP1zxU51JdGYRX7fjhy",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 216,
+     "result_chars": 4680,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UjwHypoxk6wWjjugHJQvHW",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 672,
+     "is_error": false
+    }
+   ],
+   "seconds": 17.7,
+   "cost_usd": 0.10939080000000001,
+   "trails": {
+    "debian.org": [
+     "Look up installed size of pacman4console package in trixie (stable) for armhf architecture",
+     "find moon-buggy package version in oldstable"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "cold",
+   "task": "T06",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T06-cold",
+   "answer": "BCP 246",
+   "correct": true,
+   "accepted": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "turns": 8,
+   "tokens": 378620,
+   "reported_tokens": 378620,
+   "context_per_turn": [
+    42202,
+    44363,
+    44647,
+    47820,
+    48173,
+    48533,
+    49142,
+    51995
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_013snHyB7972zzuvmx3gCs4a",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 208,
+     "result_chars": 3983,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GB5HG7m9M1oJBsCq2ZquEw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 297,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01Dgcf4NqyKuMvKf7K3qaJ1v",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 274,
+     "result_chars": 6465,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016Vtt4yda1csU497ajXpi2v",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 370,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01QS7QhpUjgCtXexPTtcZuMz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 326,
+     "result_chars": 153,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_014z4qQ8a6uBfaVbrWcoHpcQ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 328,
+     "result_chars": 879,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0129ZfWyaC6UF8kHqMacXU97",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 355,
+     "result_chars": 5494,
+     "is_error": false
+    }
+   ],
+   "seconds": 41.1,
+   "cost_usd": 0.2022215,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "first",
+   "task": "T05",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T05-then-T06",
+   "answer": "RFC 10053",
+   "correct": true,
+   "accepted": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "turns": 5,
+   "tokens": 226035,
+   "reported_tokens": 226035,
+   "context_per_turn": [
+    42195,
+    44136,
+    44394,
+    47121,
+    47546
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_012v7QMc646UcX2BJsYKUsaD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 157,
+     "result_chars": 3932,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019VvwwdiZWUcdfZQwfGbnoc",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 241,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01TGQbgYBGayvrWskPnCrpQx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 220,
+     "result_chars": 5519,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JVvaE72gq5KA19FZfXK9sE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 553,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.4,
+   "cost_usd": 0.14398529999999998,
+   "trails": {
+    "rfc-editor.org": [
+     "Find RFC number for framework document on Computing-Aware Traffic Steering (CATS)"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "rfc-editor.org",
+   "run": 1,
+   "phase": "warm",
+   "task": "T06",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T05-then-T06",
+   "answer": "BCP 246",
+   "correct": true,
+   "accepted": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "turns": 3,
+   "tokens": 134720,
+   "reported_tokens": 134720,
+   "context_per_turn": [
+    42210,
+    44377,
+    47703
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_019tFvMge3jjptx1guoqfBK4",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 213,
+     "result_chars": 4357,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HTMEzoyun3gaEEqGLTwhZB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 231,
+     "result_chars": 6845,
+     "is_error": false
+    }
+   ],
+   "seconds": 15.7,
+   "cost_usd": 0.10521919999999998,
+   "trails": {
+    "rfc-editor.org": [
+     "Find RFC number for framework document on Computing-Aware Traffic Steering (CATS)",
+     "List Best Current Practice RFCs published in July 2026 and find the BCP number for the one about DNSSEC Delegation Signer (DS) automation"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "cold",
+   "task": "T08",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T08-cold",
+   "answer": "The Sunday Sun (Baltimore)",
+   "correct": false,
+   "accepted": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "turns": 8,
+   "tokens": 371144,
+   "reported_tokens": 371144,
+   "context_per_turn": [
+    42197,
+    43191,
+    43885,
+    45262,
+    46706,
+    48599,
+    49492,
+    50298
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_018tYsj73MYJCKrR62yb6EXB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 204,
+     "result_chars": 1881,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GK7tmCWSzLuCyQDBa4DxQX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 232,
+     "result_chars": 1080,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YRTAssZDjfudfmTCvRqkmv",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 196,
+     "result_chars": 2547,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GLDmwUwzZBGGFvUwPsp5iD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 175,
+     "result_chars": 2547,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XYJJEXqMMzBPMRw9SJjCVs",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 205,
+     "result_chars": 3259,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0169Qqwzh7rHeYwavnxZEH4k",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 202,
+     "result_chars": 1410,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XUA3dzB63iYH7w36NJGmnq",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 187,
+     "result_chars": 1252,
+     "is_error": false
+    }
+   ],
+   "seconds": 82.6,
+   "cost_usd": 0.1920131,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "first",
+   "task": "T07",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T07-then-T08",
+   "answer": "1880-1890",
+   "correct": true,
+   "accepted": [
+    "1880-1890",
+    "1880\u20131890",
+    "1880 to 1890"
+   ],
+   "turns": 9,
+   "tokens": 409643,
+   "reported_tokens": 409643,
+   "context_per_turn": [
+    42193,
+    43123,
+    43806,
+    44508,
+    45519,
+    46009,
+    47115,
+    47482,
+    48233
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01EbrskgveauzXNwAwbZK3tn",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 183,
+     "result_chars": 1860,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NvEAjDNZSyvyVphAAvN2Yz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 215,
+     "result_chars": 1113,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01JxHEjkDu4LhAmojJjqfyVk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 180,
+     "result_chars": 1162,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DK148dyNq5q3mpdman1eYu",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 161,
+     "result_chars": 1689,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DPsY6b79zcjRmJnzCvsKag",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 157,
+     "result_chars": 735,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01D6JtK27KcGQVH9WaPhSSqu",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 257,
+     "result_chars": 1695,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018Yw6Xc4uqqKaknV5BYYQzk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 261,
+     "result_chars": 153,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CZj5vYbXa9fAFTFnXRcXvT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 306,
+     "result_chars": 781,
+     "is_error": false
+    }
+   ],
+   "seconds": 72.3,
+   "cost_usd": 0.19325260000000002,
+   "trails": {
+    "talbothistory.pastperfectonline.com": [
+     "Find the date given for the decoy with catalog number 1979.003.000018"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "talbothistory.pastperfectonline.com",
+   "run": 1,
+   "phase": "warm",
+   "task": "T08",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T07-then-T08",
+   "answer": "The Sunday Sun (Baltimore)",
+   "correct": false,
+   "accepted": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "turns": 8,
+   "tokens": 371073,
+   "reported_tokens": 371073,
+   "context_per_turn": [
+    42202,
+    43230,
+    43897,
+    45263,
+    46720,
+    48553,
+    49449,
+    50262
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NdmS8TJKRzYZp8hSonMcDe",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 181,
+     "result_chars": 1915,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01XfLk28qNh7AmUZug62sHdP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 198,
+     "result_chars": 1095,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WZokKbmvAuwzKsnwRVWS8C",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 173,
+     "result_chars": 2537,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0171Btj45tCJXq25SMEHyCmu",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 152,
+     "result_chars": 2537,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01S9VUttutp3hQpcECPQnEUC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 245,
+     "result_chars": 3249,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01926P1572d4i8NjjiTLsBGZ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 148,
+     "result_chars": 1377,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MvyXTsTV6LezD1LeddfM9e",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 1250,
+     "is_error": false
+    }
+   ],
+   "seconds": 79.8,
+   "cost_usd": 0.1725283,
+   "trails": {
+    "talbothistory.pastperfectonline.com": [
+     "Find the date given for the decoy with catalog number 1979.003.000018",
+     "Search collection for Emma Giles steamboat and find magazine record"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "cold",
+   "task": "T10",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T10-cold",
+   "answer": "MAT 1230 - College Algebra",
+   "correct": true,
+   "accepted": [
+    "MAT 1230 - College Algebra",
+    "MAT 1230",
+    "College Algebra",
+    "MAT 1230 College Algebra"
+   ],
+   "turns": 8,
+   "tokens": 413589,
+   "reported_tokens": 413589,
+   "context_per_turn": [
+    42189,
+    45061,
+    49783,
+    50053,
+    55107,
+    55749,
+    56864,
+    57318
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01ShbWAQThJDvJJPJDm6JRRD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 160,
+     "result_chars": 6030,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01F7ttXxTH4wcmkcQ2znvUke",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 171,
+     "result_chars": 10035,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019wkccaj7nKeF2PptxPdiCp",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 203,
+     "result_chars": 116,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_019tzQcdo1kZqsj3nXEy4jMX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 209,
+     "result_chars": 10646,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PyxcLZ2fszy5ZEWxPBaMys",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 191,
+     "result_chars": 616,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013WkXucGLKta4k9HGxi9dtX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 146,
+     "result_chars": 1971,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013h4YRF4XfnDNZhVS1ZFS3n",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 161,
+     "result_chars": 640,
+     "is_error": false
+    }
+   ],
+   "seconds": 62.3,
+   "cost_usd": 0.22679400000000002,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "first",
+   "task": "T09",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T09-then-T10",
+   "answer": "1 credit.",
+   "correct": true,
+   "accepted": [
+    "1",
+    "1 credit",
+    "Credits: 1"
+   ],
+   "turns": 6,
+   "tokens": 301608,
+   "reported_tokens": 301608,
+   "context_per_turn": [
+    42200,
+    44994,
+    48836,
+    52581,
+    55751,
+    56442
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0192o6QaVYQJy7KMki6hdKxQ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 137,
+     "result_chars": 5943,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013eoj2wgp8Vuus8wnSq1bhC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 135,
+     "result_chars": 7532,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Dq5cuEqbWyHn6RoVHu3gCu",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 160,
+     "result_chars": 7639,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01T6ghDVty1wvjF8xkfqTeMf",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 6599,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017dPV8EitALhbE44eMePhZJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 135,
+     "result_chars": 1428,
+     "is_error": false
+    }
+   ],
+   "seconds": 53.2,
+   "cost_usd": 0.19454939999999998,
+   "trails": {
+    "catalog.ccv.edu": [
+     "Find MEC 2350 Green Production credits in 2026-2027 course list"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "catalog.ccv.edu",
+   "run": 1,
+   "phase": "warm",
+   "task": "T10",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T09-then-T10",
+   "answer": "MAT 1230 - College Algebra",
+   "correct": true,
+   "accepted": [
+    "MAT 1230 - College Algebra",
+    "MAT 1230",
+    "College Algebra",
+    "MAT 1230 College Algebra"
+   ],
+   "turns": 6,
+   "tokens": 301277,
+   "reported_tokens": 301277,
+   "context_per_turn": [
+    42188,
+    45104,
+    48936,
+    53679,
+    54997,
+    55487
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01URo9BNWeLmEuSQkLnAnkQP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 148,
+     "result_chars": 6333,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016JdkgqmM4qkkD4Vrw6mR2S",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 136,
+     "result_chars": 7512,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015Rg51eLyc19JeJjHZMT6wv",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 9982,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012dcHy8Zwva88LBoeTqixqF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 160,
+     "result_chars": 2393,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FM9BoXmNUtJzaFpHnZm982",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 150,
+     "result_chars": 631,
+     "is_error": false
+    }
+   ],
+   "seconds": 51.8,
+   "cost_usd": 0.17252620000000002,
+   "trails": {
+    "catalog.ccv.edu": [
+     "Find MEC 2350 Green Production credits in 2026-2027 course list",
+     "Find last course listed on page 3 of full course list in 2026-2027 catalog"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "cold",
+   "task": "T12",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T12-cold",
+   "answer": "I have the answer already from the screenshot, no need to pursue the save further.\n\n$55 each",
+   "correct": true,
+   "accepted": [
+    "$55 each",
+    "$55",
+    "55",
+    "$55.00"
+   ],
+   "turns": 20,
+   "tokens": 1156142,
+   "reported_tokens": 1156142,
+   "context_per_turn": [
+    42173,
+    44778,
+    45046,
+    46507,
+    47457,
+    47761,
+    48021,
+    48293,
+    48634,
+    48938,
+    49415,
+    49697,
+    62894,
+    63611,
+    72497,
+    74604,
+    75264,
+    77270,
+    79243,
+    79481
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01SXrFRGimYqZjsEpNkyPMcf",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 146,
+     "result_chars": 5670,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_017p1BsMyiZkxUKBExmqweWn",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 175,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_014MhuCTjraNxMtaL2qqVrca",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 2860,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EbznKh9pvspsEZgsZ3wL1q",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 126,
+     "result_chars": 1703,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01E555Gm8Ts95s4BZDtD57Yn",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Fj1BLMxJRYWAVHtRFKqnSX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01LRNXEnz959CWc12RXLdodJ",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 127,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019HgQNfBowmMpdkp4cUz7PC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 140,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PLXqPiwASLWmFKZDqrQQ9Y",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 139,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0186UeKQEkn16Xj5mpNU1ha6",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 129,
+     "result_chars": 688,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01MwaTntSMJ1cB2XMib8vJWB",
+     "name": "Artifact",
+     "input_chars": 111,
+     "result_chars": 203,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01UeQfiBZAftXccYrpLmotdC",
+     "name": "ToolSearch",
+     "input_chars": 40,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HYbNWjXEidSnUichd4aMgq",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 125,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KeyFHK6VRawsB3Nd41ECLa",
+     "name": "ToolSearch",
+     "input_chars": 49,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01S3vz315QCUbU2XUydq9vKR",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 158,
+     "result_chars": 2869,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Ho5KJmRkpAyrTvoFsFrLXd",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 136,
+     "result_chars": 1135,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AyWJc9n2Lcev1EcpqfviGL",
+     "name": "ToolSearch",
+     "input_chars": 57,
+     "result_chars": 0,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CgJrzbgBvB7xa5rqRcB6Nv",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 149,
+     "result_chars": 655,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01LMcsiaN1D8AbnNVdQ328vz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 144,
+     "result_chars": 86,
+     "is_error": true
+    }
+   ],
+   "seconds": 137.5,
+   "cost_usd": 0.4898404000000001,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "first",
+   "task": "T11",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T11-then-T12",
+   "answer": "Brian Moore",
+   "correct": true,
+   "accepted": [
+    "Brian Moore"
+   ],
+   "turns": 5,
+   "tokens": 236462,
+   "reported_tokens": 236462,
+   "context_per_turn": [
+    42178,
+    45166,
+    48297,
+    49805,
+    50341
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01XqGJFH2hiqqRkZ7igJmDeP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 150,
+     "result_chars": 6582,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01QDXmfSq3AV8GN3ytsSRJyE",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 148,
+     "result_chars": 6955,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0131jXVWqucVn8w1V7sSmYcM",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 3111,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RkA3WEQmubobPgVXVzQz4f",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 148,
+     "result_chars": 869,
+     "is_error": false
+    }
+   ],
+   "seconds": 38.7,
+   "cost_usd": 0.1570047,
+   "trails": {
+    "doververmont.com": [
+     "Find who the Road Foreman is in the Town of Dover's highway department"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "doververmont.com",
+   "run": 1,
+   "phase": "warm",
+   "task": "T12",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T11-then-T12",
+   "answer": "$55 each for mattresses/box springs.",
+   "correct": true,
+   "accepted": [
+    "$55 each",
+    "$55",
+    "55",
+    "$55.00"
+   ],
+   "turns": 11,
+   "tokens": 536940,
+   "reported_tokens": 536940,
+   "context_per_turn": [
+    42176,
+    45305,
+    45619,
+    47089,
+    48389,
+    49997,
+    50268,
+    50571,
+    50912,
+    51374,
+    53233
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01EsNENg4vEw38pWKqqEbYhi",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 159,
+     "result_chars": 6921,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01G2oQwJSvUSN9coKEREp2Mz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 191,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_0137SiwgWxmansaJDjnP4Trd",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 172,
+     "result_chars": 2866,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TguiCBHsporGwbxWxTSQ3R",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 159,
+     "result_chars": 2529,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Hvz2Lk5vba6Ckt6ohVUZku",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 193,
+     "result_chars": 2953,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Pnncy3kyyarziGzkacnVSj",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 116,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019dy5xE8AMNCerDeryXG5Gv",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 104,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Srge2Gcjcynfx6pKd4LBJz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 105,
+     "result_chars": 195,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DfZbpqNWmSFT1ayHNXvbAj",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 84,
+     "result_chars": 270,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01G8izSixsgVzUNtX4mhMMkB",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 90,
+     "result_chars": 659,
+     "is_error": false
+    }
+   ],
+   "seconds": 73.9,
+   "cost_usd": 0.22205819999999998,
+   "trails": {
+    "doververmont.com": [
+     "Find the fee to drop off a mattress or box spring at the Dover transfer station",
+     "Find who the Road Foreman is in the Town of Dover's highway department"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "cold",
+   "task": "T15",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T15-cold",
+   "answer": "550g\n\nSkipped: didn't check for additional weight metadata beyond the specs table row.",
+   "correct": true,
+   "accepted": [
+    "550g",
+    "550 g"
+   ],
+   "turns": 5,
+   "tokens": 234082,
+   "reported_tokens": 234082,
+   "context_per_turn": [
+    42187,
+    44529,
+    46897,
+    48928,
+    50774
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01F6HCnAhKmb218QNJjSJ1Cr",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 168,
+     "result_chars": 4306,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01DWbEwCYixGK5N5bLabUryF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 238,
+     "result_chars": 4258,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Y2zmdtDe54kXKCdmozi7Vv",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 141,
+     "result_chars": 3763,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01FZo1hkzDYJs6UTTBxREdsL",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 189,
+     "result_chars": 3581,
+     "is_error": false
+    }
+   ],
+   "seconds": 25.8,
+   "cost_usd": 0.1590796,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "first",
+   "task": "T14",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T14-then-T15",
+   "answer": "$73.59",
+   "correct": true,
+   "accepted": [
+    "$73.59",
+    "73.59"
+   ],
+   "turns": 9,
+   "tokens": 428054,
+   "reported_tokens": 428054,
+   "context_per_turn": [
+    42180,
+    44322,
+    44761,
+    45196,
+    47166,
+    49029,
+    51016,
+    51274,
+    51759
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_019WQab9dC2t4Rg7YRdqqLoK",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 155,
+     "result_chars": 3933,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012ghDBhSHVr5z8pRu1Br4Np",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 179,
+     "result_chars": 599,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NCGVUhiTWjxGb5hwGVWbW2",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 163,
+     "result_chars": 556,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01W5rDf9Tb8XuApF85gyzZT3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 180,
+     "result_chars": 3485,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Qp4ANipm9PHiHrPh4pa33y",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 103,
+     "result_chars": 3318,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0168ErrwM2zPaJEnNLWCtB7Z",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 151,
+     "result_chars": 3569,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01NijwXXuvLEay9CidWdis6b",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 176,
+     "result_chars": 155,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CpXX57nEFahpuaNniWF7RW",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 167,
+     "result_chars": 666,
+     "is_error": false
+    }
+   ],
+   "seconds": 41.4,
+   "cost_usd": 0.2074563,
+   "trails": {
+    "practicesoftwaretesting.com": [
+     "Filter shop to Sander category and find Belt Sander price"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "practicesoftwaretesting.com",
+   "run": 1,
+   "phase": "warm",
+   "task": "T15",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T14-then-T15",
+   "answer": "550g\n\nSkipped: didn't verify this is the only \"Specifications\" section row for weight (only row 5 was checked). Risk: low, since the page returned exactly one matching product and value.",
+   "correct": true,
+   "accepted": [
+    "550g",
+    "550 g"
+   ],
+   "turns": 5,
+   "tokens": 230212,
+   "reported_tokens": 230212,
+   "context_per_turn": [
+    42191,
+    44699,
+    46899,
+    47435,
+    48047
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01TWCXpHpSkxhUSmVsRyZRWz",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 164,
+     "result_chars": 4495,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0157nzeAtQXzJQjf3nMdEZF5",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 297,
+     "result_chars": 4070,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015MfdF6m1ZhJ4iNE577poDj",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 203,
+     "result_chars": 782,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01CUTLgSH3zfZLbVGG1PYiZD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 190,
+     "result_chars": 778,
+     "is_error": false
+    }
+   ],
+   "seconds": 23.5,
+   "cost_usd": 0.130481,
+   "trails": {
+    "practicesoftwaretesting.com": [
+     "Filter shop to Sander category and find Belt Sander price",
+     "Find weight of Swiss Woodcarving Chisels in product specifications"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "cold",
+   "task": "T17",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T17-cold",
+   "answer": "$30.00\n\nSkipped: didn't verify currency/region settings or check for sale pricing variants. Risk: if the site state changes (e.g., different currency selected), the saved replay could return a stale v",
+   "correct": true,
+   "accepted": [
+    "30.00",
+    "$30.00",
+    "30"
+   ],
+   "turns": 5,
+   "tokens": 224141,
+   "reported_tokens": 224141,
+   "context_per_turn": [
+    42186,
+    43943,
+    44448,
+    46107,
+    46625
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01BtWwp1PjuUA6Ew1mekmqVg",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 167,
+     "result_chars": 3219,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01RaR3SvyhdDau3nqRcZ6CBv",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 208,
+     "result_chars": 635,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01PzF6tqPKfErfBFsbLRDQoH",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 201,
+     "result_chars": 2873,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015Mf27T5DRRnSk9iNyQ7H8R",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 162,
+     "result_chars": 670,
+     "is_error": false
+    }
+   ],
+   "seconds": 23.3,
+   "cost_usd": 0.1420399,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "first",
+   "task": "T16",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T16-then-T17",
+   "answer": "Science",
+   "correct": true,
+   "accepted": [
+    "Science"
+   ],
+   "turns": 5,
+   "tokens": 224434,
+   "reported_tokens": 224434,
+   "context_per_turn": [
+    42189,
+    44043,
+    45526,
+    45783,
+    46195
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01G9YqPYEZsNoqPqPE2MLrMS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 163,
+     "result_chars": 3274,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_013rtdgSeSqwR7ocU4dbKhub",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 154,
+     "result_chars": 2599,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01GXbniYJF37CnK9GBSfmNzm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 172,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01DepvVH4wbnVcGcx4tGcipX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 194,
+     "result_chars": 566,
+     "is_error": false
+    }
+   ],
+   "seconds": 22.3,
+   "cost_usd": 0.13920530000000003,
+   "trails": {
+    "demowebshop.tricentis.com": [
+     "Filter Books category to price over 50.00 and find the remaining book"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "demowebshop.tricentis.com",
+   "run": 1,
+   "phase": "warm",
+   "task": "T17",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T16-then-T17",
+   "answer": "$30.00",
+   "correct": true,
+   "accepted": [
+    "30.00",
+    "$30.00",
+    "30"
+   ],
+   "turns": 3,
+   "tokens": 132499,
+   "reported_tokens": 132499,
+   "context_per_turn": [
+    42193,
+    44126,
+    45750
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01ULbBnmSwrdAdLjSyFre6i3",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 150,
+     "result_chars": 3497,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01EoEr9Vx6zvXRv4gEWZrYpT",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 201,
+     "result_chars": 2818,
+     "is_error": false
+    }
+   ],
+   "seconds": 16.1,
+   "cost_usd": 0.0971925,
+   "trails": {
+    "demowebshop.tricentis.com": [
+     "Filter Books category to price over 50.00 and find the remaining book",
+     "Find price of Wool Hat on second page of Apparel & Shoes"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "cold",
+   "task": "T19",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T19-cold",
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "correct": true,
+   "accepted": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "turns": 7,
+   "tokens": 324107,
+   "reported_tokens": 324107,
+   "context_per_turn": [
+    42208,
+    43408,
+    45099,
+    46818,
+    47072,
+    48918,
+    49463
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_0197XQBYjmiSTMnarYMyseX8",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 232,
+     "result_chars": 2136,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TUei4m3NkfmibLf3KAUN62",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 260,
+     "result_chars": 3143,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01P2g3UBTekz2W54ESxcNiGw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 200,
+     "result_chars": 3148,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01J5bfZYsgJjJJxvCaJCYvsy",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 240,
+     "result_chars": 119,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01F2pXKrntT22m16i4kS1gqN",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 246,
+     "result_chars": 3643,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_019Mxsz89FQf2JvYRtVqohxX",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 209,
+     "result_chars": 892,
+     "is_error": false
+    }
+   ],
+   "seconds": 50.3,
+   "cost_usd": 0.1755778,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "first",
+   "task": "T18",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T18-then-T19",
+   "answer": "FA.2007.40.25\n\nSkipped: didn't open the object's own detail page (it errored each time), so I confirmed the number from the table-view search results instead. Risk: low \u2014 the value matches what the de",
+   "correct": true,
+   "accepted": [
+    "FA.2007.40.25"
+   ],
+   "turns": 13,
+   "tokens": 623295,
+   "reported_tokens": 623295,
+   "context_per_turn": [
+    42194,
+    43507,
+    44086,
+    45288,
+    45549,
+    46216,
+    46916,
+    48256,
+    48923,
+    50285,
+    51642,
+    53622,
+    54328
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_017XrFcJJNwabsb9mnFdcYk2",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 198,
+     "result_chars": 2113,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_011qdMJT5UnW8K2gGgWKDxiS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 236,
+     "result_chars": 759,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01443bqRLWjvYnS22PrXeEoC",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 2069,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01SycrY9zpD9uPpcWQofzZ7z",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 209,
+     "result_chars": 157,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01PRvSYu1MpLgpWDGwKAPj3s",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 1062,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01HZaKqJuzEkNySWjCrXD1od",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 281,
+     "result_chars": 944,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01WDfCVDSjuUF1AXtQq2BQCo",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 267,
+     "result_chars": 2254,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Dpp3RWpx5vYrBH1uvb6jR4",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 186,
+     "result_chars": 1062,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015BkQ31XmxrNBoFe18Ja8zP",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 278,
+     "result_chars": 2324,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0111W51ovygUH2yUNiGtsDqd",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 197,
+     "result_chars": 2422,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01U2GPk1TXkndaHbraKxLdMk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 217,
+     "result_chars": 3699,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01UfCTibdengxT9ANonihw8d",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 183,
+     "result_chars": 1114,
+     "is_error": false
+    }
+   ],
+   "seconds": 69.0,
+   "cost_usd": 0.2672744,
+   "trails": {
+    "collection.internationalfolkart.org": [
+     "Find object number for shadow puppet \"Arjuna Sasrabahu\" in museum collection search"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "collection.internationalfolkart.org",
+   "run": 1,
+   "phase": "warm",
+   "task": "T19",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T18-then-T19",
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "correct": true,
+   "accepted": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "turns": 5,
+   "tokens": 226535,
+   "reported_tokens": 226535,
+   "context_per_turn": [
+    42209,
+    43479,
+    45145,
+    46823,
+    48114
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01UVpNdWvqTZrZ3MAJWd82NA",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 254,
+     "result_chars": 2419,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01Ntzkf6uwTm3unJi1KSC1h9",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 254,
+     "result_chars": 3104,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_015mK5HX8ixr25KV8J3eBaCp",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 222,
+     "result_chars": 3110,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0188PhCuGfZLydDF2SEVKkz7",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 255,
+     "result_chars": 2455,
+     "is_error": false
+    }
+   ],
+   "seconds": 33.1,
+   "cost_usd": 0.128274,
+   "trails": {
+    "collection.internationalfolkart.org": [
+     "Find object number for shadow puppet \"Arjuna Sasrabahu\" in museum collection search",
+     "Open the \"100 Aspects of the Moon\" collection, view all its works, narrow results to classification \"Prints\", find remaining work's title"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "cold",
+   "task": "T22",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T22-cold",
+   "answer": "2.0",
+   "correct": true,
+   "accepted": [
+    "2.0"
+   ],
+   "turns": 4,
+   "tokens": 182881,
+   "reported_tokens": 182881,
+   "context_per_turn": [
+    42184,
+    44222,
+    47694,
+    48127
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_012ogXnSkvm6JYeZgrvZm6YD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 146,
+     "result_chars": 3738,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01R9Y4qqyoqGtkKnrNW776Ve",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 168,
+     "result_chars": 6793,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_0132XtnxFrtwpd4FPradzS3m",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 119,
+     "result_chars": 496,
+     "is_error": false
+    }
+   ],
+   "seconds": 21.3,
+   "cost_usd": 0.1376677,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "first",
+   "task": "T21",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T21-then-T22",
+   "answer": "Removed Generator+ dep",
+   "correct": true,
+   "accepted": [
+    "Removed Generator+ dep",
+    "Removed Generator+ dep."
+   ],
+   "turns": 7,
+   "tokens": 317973,
+   "reported_tokens": 317973,
+   "context_per_turn": [
+    42184,
+    43911,
+    44190,
+    45711,
+    45970,
+    47234,
+    47685
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01TxLtGQgerphA6tCnvB9Dzx",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 146,
+     "result_chars": 3078,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YGReKJZprnMTBHdzEsAxjw",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 132,
+     "result_chars": 153,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01FMAeF37BeEoe4FGcBCVWcm",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 112,
+     "result_chars": 2923,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014Hqz53CWufbXPtNhy8fK7C",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 115,
+     "result_chars": 158,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01CZwPW8kVp7XzRH22myssDU",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 105,
+     "result_chars": 2295,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_012hMidE17fB3EDETbKZgi9b",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 126,
+     "result_chars": 557,
+     "is_error": false
+    }
+   ],
+   "seconds": 23.7,
+   "cost_usd": 0.1672707,
+   "trails": {
+    "pub.dev": [
+     "Find changelog entry for mustache_recase version 2.0.1"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "pub.dev",
+   "run": 1,
+   "phase": "warm",
+   "task": "T22",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T21-then-T22",
+   "answer": "2.0",
+   "correct": true,
+   "accepted": [
+    "2.0"
+   ],
+   "turns": 5,
+   "tokens": 233617,
+   "reported_tokens": 233617,
+   "context_per_turn": [
+    42191,
+    44255,
+    46300,
+    49796,
+    50273
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01NqGum3VNiKFX1Wh6eE6Q1n",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 162,
+     "result_chars": 4072,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01YKY6MSE6choYP3c4vxex4Z",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 169,
+     "result_chars": 3875,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01AjRiSWcKfuMmcTfsPSCEb9",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 195,
+     "result_chars": 6823,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01R1AdXo7Ea19xYuypmcFZJS",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 140,
+     "result_chars": 553,
+     "is_error": false
+    }
+   ],
+   "seconds": 18.7,
+   "cost_usd": 0.13825800000000002,
+   "trails": {
+    "pub.dev": [
+     "Find changelog entry for mustache_recase version 2.0.1",
+     "find minimum Dart SDK for mustache_recase version 2.0.3 on Versions tab"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "cold",
+   "task": "T24",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T24-cold",
+   "answer": "$17.50",
+   "correct": true,
+   "accepted": [
+    "$17.50",
+    "17.50"
+   ],
+   "turns": 5,
+   "tokens": 226418,
+   "reported_tokens": 226418,
+   "context_per_turn": [
+    42170,
+    44104,
+    44327,
+    47434,
+    47817
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01Xk21ZHg2v9DU2eJXhN8Zyt",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 92,
+     "result_chars": 3693,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01BevCAuJcYYB93ayvU8LChW",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 145,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01LAj8WvSaSKcn7hvB3eZUuk",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 113,
+     "result_chars": 7127,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01TFUA7jPjfLsZm5oTCAmgDr",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 104,
+     "result_chars": 493,
+     "is_error": false
+    }
+   ],
+   "seconds": 39.0,
+   "cost_usd": 0.1443354,
+   "trails": {},
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "first",
+   "task": "T23",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T23-then-T24",
+   "answer": "Dotson Park, across from Danby Town Hall",
+   "correct": true,
+   "accepted": [
+    "Dotson Park, across from Danby Town Hall",
+    "Dotson Park"
+   ],
+   "turns": 6,
+   "tokens": 276586,
+   "reported_tokens": 276586,
+   "context_per_turn": [
+    42176,
+    44486,
+    46189,
+    46411,
+    47976,
+    48424
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01LhdXn2JzNkejqzrgrJZi45",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 116,
+     "result_chars": 4153,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KhPWYbjePju5aD5gLLArQu",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 133,
+     "result_chars": 3329,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_018a488FyRGPdQEnbrMMAqbn",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 149,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01HGm5ZHxEgncBZ6jjWxKFyF",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 120,
+     "result_chars": 2943,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_014Hn72Aepwo7zu6Y8PGv2aD",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 125,
+     "result_chars": 657,
+     "is_error": false
+    }
+   ],
+   "seconds": 54.5,
+   "cost_usd": 0.16018719999999997,
+   "trails": {
+    "tcatbus.com": [
+     "Find location of TCAT's park and ride lot in Danby"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  },
+  {
+   "tool": "dejo",
+   "site": "tcatbus.com",
+   "run": 1,
+   "phase": "warm",
+   "task": "T24",
+   "folder": "C:\\Users\\yoges\\AppData\\Local\\Temp\\claude\\25eb14d64fe1f1ec\\0f25eca9-6470-465d-ab71-426014d2941c\\scratchpad\\sitemem\\full\\runs\\T23-then-T24",
+   "answer": "$17.50",
+   "correct": true,
+   "accepted": [
+    "$17.50",
+    "17.50"
+   ],
+   "turns": 5,
+   "tokens": 228279,
+   "reported_tokens": 228279,
+   "context_per_turn": [
+    42174,
+    44518,
+    44747,
+    47880,
+    48279
+   ],
+   "calls": [
+    {
+     "tool_use_id": "toolu_01D6yr7DqYqZ7PT4Rxn2jiBM",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 105,
+     "result_chars": 4369,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_01KhGvr1CZockXszaMDSAmLV",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 152,
+     "result_chars": 86,
+     "is_error": true
+    },
+    {
+     "tool_use_id": "toolu_01SjUpq8BqiAt8vVdUYUNU6m",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 120,
+     "result_chars": 7147,
+     "is_error": false
+    },
+    {
+     "tool_use_id": "toolu_016RorGKdN39oixZcQPnrdsq",
+     "name": "mcp__dejo__dejo_run",
+     "input_chars": 117,
+     "result_chars": 506,
+     "is_error": false
+    }
+   ],
+   "seconds": 96.4,
+   "cost_usd": 0.11951580000000002,
+   "trails": {
+    "tcatbus.com": [
+     "Find location of TCAT's park and ride lot in Danby",
+     "Find the cost of a weekly TCAT bus pass"
+    ]
+   },
+   "one_call": null,
+   "note": ""
+  }
+ ]
+}

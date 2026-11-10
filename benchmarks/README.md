@@ -9,6 +9,7 @@ it. Anyone can rerun them.
 | `benchmark_agents.py` | the same, on one-page lookups | `benchmark-agents.json` |
 | `benchmark_learning.py --runs 3 --tools dejo,playwright` | the FIRST run only: turns, tokens per turn, every tool result's size, whether a trail was really saved, whether the answer is right, and (Dejo) a second session that must answer in one call | `benchmark-learning-<date>.json` |
 | `benchmark_agents.py --site <domain> --runs 10 --out <file>` | one site, ten fresh sessions per tool | `benchmark-repeat10-*.json`, `benchmark-fixed10-*.json` |
+| `benchmark_site_memory.py --keep <folder>` | a DIFFERENT task on a site Dejo already knows: task B with an empty memory, and task B after learning task A on the same site, on the 11 real-bench sites with two tasks | `benchmark-site-memory-2026-11-10.json` (code `d78208a`, released as 0.5.1) |
 | `benchmark_tools.py` | the same steps through each MCP tool, driven by hand, counting calls and bytes | `benchmark-tools.json` |
 | `benchmark_sites.py` | real public sites, learned once and then replayed from memory | `benchmark-sites.json` |
 | `benchmark.py` | the demo site in `engine/tests/demo_site/`: learn, replay, a changed site, a second task | printed |
