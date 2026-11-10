@@ -32,12 +32,19 @@ permissions:
 
 jobs:
   test:
-    name: python ${{ matrix.python }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: python ${{ matrix.config.python }} on ${{ matrix.config.os }} (${{ matrix.shard }}/4)
+    runs-on: ${{ matrix.config.os }}
     env:
       # One fixed place for the browser, so it can be cached between runs instead of
       # downloaded every time.
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
+      # Each machine runs a quarter of the tests, one at a time (.github/pytest_shard.py).
+      # Four machines per operating system instead of four workers on one: the tests
+      # wait out real timeouts, and on a shared CPU those timeouts failed on Windows
+      # while macOS gained nothing. 16 test jobs + ruff fit GitHub's free limit of 20 at
+      # once, 5 of them macOS (docs.github.com/en/actions/reference/limits, 10 Nov 2026).
+      PYTEST_SHARD: ${{ matrix.shard }}/4
+      PYTHONPATH: ${{ github.workspace }}/.github
     strategy:
       # Never stop the other jobs because one failed. A failure on one operating system
       # is exactly the thing worth seeing next to a pass on the others.
@@ -46,18 +53,19 @@ jobs:
         # Ubuntu carries both ends of the supported Python range. macOS and Windows each
         # take one end, which covers three operating systems and both versions without
         # paying for six runners.
-        include:
+        config:
           - { os: ubuntu-latest, python: "3.11" }
           - { os: ubuntu-latest, python: "3.13" }
           - { os: macos-latest, python: "3.13" }
           - { os: windows-latest, python: "3.11" }
+        shard: [1, 2, 3, 4]
 
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.config.python }}
           cache: pip
           cache-dependency-path: |
             engine/pyproject.toml
@@ -101,9 +109,6 @@ jobs:
       # doing later; it is deliberately not added yet, because every extra
       # moving part in this file has cost a red build and a push to find out about.
       # The headed path is covered on a developer machine, which is also where it is used.
-      # In parallel, one worker per CPU. Safe because every test already gets its own
-      # temporary home, memory and browser, and the demo site picks a free port. loadfile
-      # keeps a file's tests on one worker, so fixtures shared inside a file still are.
       - name: Engine tests
         working-directory: engine
         # Explicit, because Windows runners default to PowerShell and everything below
@@ -111,7 +116,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m pytest -q --tb=short -rf --maxfail=8 -n auto --dist loadfile > pytest.log 2>&1
+          python -m pytest -p pytest_shard -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
           status=$?
           cat pytest.log
           if [ $status -ne 0 ]; then
@@ -134,7 +139,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m pytest -q --tb=short -rf --maxfail=8 -n auto --dist loadfile > pytest.log 2>&1
+          python -m pytest -p pytest_shard -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
           status=$?
           cat pytest.log
           if [ $status -ne 0 ]; then
