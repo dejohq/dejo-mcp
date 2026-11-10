@@ -44,3 +44,5 @@ def test_a_value_with_no_place_stops_and_is_named(mcp_server, demo_server):
 
     assert said.startswith('stopped before step 1: you asked for "business", "class"'), said
     assert "Delhi" not in said.split("trail")[0]
+    # The page is in the same reply, so the agent can send the new task's steps at once.
+    assert "\npage " in said and "next: send steps" in said, said

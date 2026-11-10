@@ -514,7 +514,7 @@ def _replay_or_look(
                 key, task=task
             )
         )
-    return _after_replay(tools, key, task, result)
+    return _after_replay(tools, key, task, result, first_page)
 
 
 def _first_look(
@@ -584,7 +584,9 @@ def _about_the_site(tools: DejoTools, key: str, task: str, known: list[str]) -> 
     return lines
 
 
-def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply:
+def _after_replay(
+    tools: DejoTools, key: str, task: str, result: ReplayResult, first_page: str | None = None
+) -> Reply:
     ran = result.metrics.task
     if result.ok and result.already_done:
         return Reply(
@@ -624,11 +626,16 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
         )
     if result.unplaced:
         listed = ", ".join(f'"{value}"' for value in result.unplaced)
-        return Reply(
+        said = (
             f'stopped before step 1: you asked for {listed}, and the trail "{ran}" has no '
             "place for it, so nothing ran with the trail's own values. If this is another "
             "job, send steps: they are learned as a new task in your words."
         )
+        # The page comes in the same reply, as for any new task: without it the agent spent
+        # a whole turn asking to look (pub.dev, 10 Nov), and a second task on a known site
+        # cost more than on an unknown one.
+        looked = _first_look(tools, key, task, first_page)
+        return Reply(f"{said}\n{looked.text}", error=looked.error, images=looked.images)
     if result.needs_login:
         return Reply(
             f"stopped: {key} wants a sign-in. Do not guess a password: call dejo_login, ask "
