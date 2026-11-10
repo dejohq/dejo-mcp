@@ -11,10 +11,19 @@
 
 name: tests
 
+# Once per change: a pull request runs here, and main runs again after a merge. Pushing a
+# branch with a pull request used to run everything twice, as "push" and as "pull_request".
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+# A new push to a pull request cancels the run it replaces; nobody needs the old result.
+# Runs on main are never cancelled, so every merged commit gets its own full result.
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # The suite only reads the code. Saying so here keeps the token read-only even if the repo or
 # org default is ever widened.
@@ -25,6 +34,10 @@ jobs:
   test:
     name: python ${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      # One fixed place for the browser, so it can be cached between runs instead of
+      # downloaded every time.
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
     strategy:
       # Never stop the other jobs because one failed. A failure on one operating system
       # is exactly the thing worth seeing next to a pass on the others.
@@ -56,6 +69,15 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e "engine[dev]" -e "mcp[dev]"
 
+      # The Chromium download is the same until Playwright's version changes, so it is
+      # cached. `playwright install` below still fetches a newer one when the version moves.
+      - name: Cache the browser
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.pw-browsers
+          key: chromium-${{ runner.os }}-${{ hashFiles('engine/pyproject.toml', 'mcp/pyproject.toml') }}
+          restore-keys: chromium-${{ runner.os }}-
+
       # No real Chrome on any of these runners, on purpose: that exercises the fallback to
       # bundled Chromium, which is the path most people actually hit.
       - name: Install the browser
@@ -79,6 +101,9 @@ jobs:
       # doing later; it is deliberately not added yet, because every extra
       # moving part in this file has cost a red build and a push to find out about.
       # The headed path is covered on a developer machine, which is also where it is used.
+      # In parallel, one worker per CPU. Safe because every test already gets its own
+      # temporary home, memory and browser, and the demo site picks a free port. loadfile
+      # keeps a file's tests on one worker, so fixtures shared inside a file still are.
       - name: Engine tests
         working-directory: engine
         # Explicit, because Windows runners default to PowerShell and everything below
@@ -86,7 +111,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m pytest -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
+          python -m pytest -q --tb=short -rf --maxfail=8 -n auto --dist loadfile > pytest.log 2>&1
           status=$?
           cat pytest.log
           if [ $status -ne 0 ]; then
@@ -109,7 +134,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m pytest -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
+          python -m pytest -q --tb=short -rf --maxfail=8 -n auto --dist loadfile > pytest.log 2>&1
           status=$?
           cat pytest.log
           if [ $status -ne 0 ]; then
