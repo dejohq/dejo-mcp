@@ -11,16 +11,15 @@
 
 name: tests
 
-# Once per change: a pull request runs here, and main runs again after a merge. Pushing a
-# branch with a pull request used to run everything twice, as "push" and as "pull_request".
+# Once per change: a pull request runs here, and nothing runs again after the merge. The pull
+# request already tested the merged result, and a second run on main only meant another wait
+# (10 Nov). A branch with a pull request used to run twice, as "push" and as "pull_request".
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
 # A new push to a pull request cancels the run it replaces; nobody needs the old result.
-# Runs on main are never cancelled, so every merged commit gets its own full result.
+# A run started by hand is never cancelled.
 concurrency:
   group: tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
