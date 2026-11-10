@@ -34,7 +34,7 @@ from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, popups, reads, steplog
+from . import actions, identity, popups, reads, steplog
 from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
     DriftDetected,
@@ -222,6 +222,10 @@ class ReplayResult:
     signed_in_already: list[str] = field(default_factory=list)
     """The trail's sign-in steps, skipped because the site was already signed in, in the
     same form as `skipped`. See `Executor._past_the_sign_in`."""
+
+    wrong_account: tuple[str, str] | None = None
+    """`(expected, shown)`: the trail was learned signed in as `expected`, and the page
+    shows `shown` instead. Nothing was done past opening the page. See `identity`."""
 
     cleared: list[str] = field(default_factory=list)
     """Pop-ups nobody told Dejo about that covered a step, and how each was cleared, as
@@ -554,6 +558,14 @@ class Executor:
             model_calls=0,  # nothing in this file can make one
         )
 
+        # Who is signed in, asked of the page the browser already shows when it is this
+        # site's, so a wrong account is caught before step 1 does anything at all.
+        if resume_at == 1 and self._on_the_trails_site(playbook):
+            wrong = self._wrong_account(playbook, metrics, started, before=1)
+            if wrong is not None:
+                return wrong
+        account_checked = False
+
         for step in playbook.steps:
             if step.index < resume_at:
                 continue
@@ -571,6 +583,13 @@ class Executor:
                         duration_ms=outcome.duration_ms,
                     )
                 )
+                # Once the first page is open, and again after every step of a sign-in:
+                # signing in is exactly where a browser can end up as someone else.
+                if (not account_checked and step.action == "goto") or self._signed_in_by(step):
+                    account_checked = True
+                    wrong = self._wrong_account(playbook, metrics, started, before=step.index + 1)
+                    if wrong is not None:
+                        return wrong
                 continue
 
             if outcome.found_nothing and self._needless(step, playbook):
@@ -793,6 +812,45 @@ class Executor:
             skipped=list(self._skipped),
             signed_in_already=list(self._signed_in_already),
             cleared=list(self._cleared),
+        )
+
+    def _on_the_trails_site(self, playbook: Playbook) -> bool:
+        origin = _trail_origin(playbook)
+        return bool(origin) and urlparse(self.browser.page.url).netloc == urlparse(origin).netloc
+
+    def _signed_in_by(self, step: Step) -> bool:
+        """Did this step just finish a sign-in: done on a sign-in page, and the browser is
+        not on one any more?"""
+        return signs_in_at(self._page_of(step)) and not signs_in_at(self.browser.page.url)
+
+    def _wrong_account(
+        self, playbook: Playbook, metrics: RunMetrics, started: float, *, before: int
+    ) -> ReplayResult | None:
+        """Stop, when the page names someone other than who the trail was learned as.
+
+        Nothing is marked broken: the steps are fine, the session is someone else's. A page
+        that names nobody is no reason to stop, so a site that never shows who you are runs
+        exactly as it did before this check existed."""
+        expected = playbook.signed_in_as
+        if not expected:
+            return None
+        shown = identity.someone_else(self.browser.page, expected)
+        if shown is None:
+            return None
+        reason = (
+            f"{playbook.domain} is signed in as {shown!r}, and this trail was learned as "
+            f"{expected!r}. Stopped before step {before}, so nothing was done as the wrong "
+            f"account. Sign in as {expected!r} (or switch to the profile that is), then run "
+            f"it again."
+        )
+        self.events.emit(StepFailed(index=before, intent="check who is signed in", reason=reason))
+        self._finish(playbook, metrics, started, succeeded=False)
+        return ReplayResult(
+            ok=False,
+            metrics=metrics,
+            wrong_account=(expected, shown),
+            reason=reason,
+            saved_files=list(self.browser.saved_files),
         )
 
     def _let_the_last_step_land(self, playbook: Playbook) -> None:

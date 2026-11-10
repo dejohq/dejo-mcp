@@ -572,6 +572,13 @@ class Playbook:
 
     Kept separate from `runs`, which is reset on borrow. A borrowed trail arriving with
     `runs=9` would make the borrower's own journal say something untrue."""
+    signed_in_as: str | None = None
+    """Who the site showed as signed in while this trail was learned: an email address, or
+    the name on the account button (see `identity`). Only what was on the screen, never a
+    cookie or a token. A replay that finds someone else signed in stops before it acts.
+
+    Never shared: `for_sharing` and `as_borrowed_by` leave it out, because it names a
+    person, and a borrower signs in as itself."""
 
     @property
     def health(self) -> float:
@@ -659,6 +666,7 @@ class Playbook:
             "borrowed_from": self.borrowed_from,
             "contributors": self.contributors,
             "inherited_runs": self.inherited_runs,
+            **({"signed_in_as": self.signed_in_as} if self.signed_in_as else {}),
         }
 
     @classmethod
@@ -674,6 +682,7 @@ class Playbook:
             borrowed_from=raw.get("borrowed_from"),
             contributors=list(raw.get("contributors", [])),
             inherited_runs=raw.get("inherited_runs", 0),
+            signed_in_as=raw.get("signed_in_as"),
             created_at=raw.get("created_at", utc_now()),
             updated_at=raw.get("updated_at", utc_now()),
         )

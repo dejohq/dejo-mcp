@@ -509,6 +509,30 @@ def test_a_pop_up_first_seen_on_replay_is_cleared_and_named(mcp_server, demo_ser
     assert 'cleared a pop-up at step 2: "Join our newsletter" closed by its "No thanks"' in said
 
 
+def test_a_different_account_signed_in_stops_and_says_who(mcp_server, demo_server):
+    """Learned signed in as finance@acme.com; replayed with riya@acme.com signed in."""
+    task = "what is due"
+
+    def signed_in_as(email: str) -> None:
+        mcp_server.dejo_tools.worker.submit(
+            lambda browser: browser._context.add_cookies(
+                [{"name": "lab-account", "value": email, "url": demo_server}]
+            )
+        )
+
+    signed_in_as("finance@acme.com")
+    page = f"{demo_server}/drift/account/home"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=page)
+    call(mcp_server, "dejo_run", site=demo_server, task=task, steps='read css "#due" as due')
+    signed_in_as("riya@acme.com")
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, url=page)
+
+    assert said.startswith("stopped:"), said
+    assert '"riya@acme.com", and this trail was learned as "finance@acme.com"' in said
+    assert "due =" not in said
+
+
 def test_a_wrong_answer_says_how_to_replace_the_trail(mcp_server, demo_server):
     """Bench T12: the saved read answered the wrong thing, and the agent re-asked 28 times in
     other words, each time getting the same trail back."""

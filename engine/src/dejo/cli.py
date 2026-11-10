@@ -143,6 +143,7 @@ EXIT_CODES = {
     "blocked": 4,
     "wrong_place": 5,
     "page_error": 6,
+    "wrong_account": 7,
 }
 
 
@@ -152,6 +153,8 @@ def outcome_of(result: ReplayResult) -> str:
         return "already_done"
     if result.wrong_place:
         return "wrong_place"
+    if result.wrong_account is not None:
+        return "wrong_account"
     if result.blocked:
         return "blocked"
     if result.page_error is not None:
@@ -256,6 +259,12 @@ def cmd_run(args: argparse.Namespace) -> int:
         print("    nothing is broken. Get to the trail's starting page and run it again.")
         print()
         return 5
+
+    if result.wrong_account is not None:
+        print()
+        print(f"  {CROSS} {result.reason}")
+        print()
+        return EXIT_CODES["wrong_account"]
 
     if result.blocked:
         print()

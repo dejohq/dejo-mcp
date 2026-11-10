@@ -35,7 +35,7 @@ from urllib.parse import urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, popups, waits
+from . import actions, identity, popups, waits
 from . import program as language
 from . import view as pageview
 from .actions import PRESSES
@@ -51,7 +51,7 @@ from .operations import (
     check_postcondition,
     settles_into,
 )
-from .program import Action, Expect, Look, Note, Pick, Program, Read
+from .program import SIGNED_IN_AS, Action, Expect, Look, Note, Pick, Program, Read
 from .snapshot import Element, Snapshot
 from .snapshot import parse as parse_controls
 from .store import DejoStore
@@ -137,6 +137,11 @@ LONGEST_ANSWER = 2_000
 # it at all (23 Oct), so it is shown; past this it would crowd out the page view.
 JS_RESULT_LIMIT = 2_000
 WHOLE_PAGE = frozenset({"body", "html", ":root"})
+
+# How many pages of a task are asked who is signed in (see `identity`). The account shows in
+# a site's header from the first page after signing in; a task's later pages are often a
+# form or a document with no header at all, and asking those costs time for nothing.
+IDENTITY_PAGES = 4
 
 # Every reply that shows a page and saved nothing ends with this. Seen 21-22 Oct: a call that
 # ended with `look` got only "send steps", the agent read the answer off that view, and the
@@ -328,6 +333,10 @@ class Runner:
         """The address this task left the tab at. See `_back_to_its_page`."""
         self._image: bytes | None = None
         """The picture the latest `look image` took, until the reply takes it."""
+        self._signed_in_as: str | None = None
+        """Who the site showed as signed in while this task was learned. See `identity`."""
+        self._pages_asked = 0
+        """How many pages have been asked who is signed in. See IDENTITY_PAGES."""
 
     # ------------------------------------------------------------------- looking
 
@@ -634,6 +643,9 @@ class Runner:
         self.domain = self.domain or domain_of(self.browser.page.url)
         if self.browser.page.url != was:
             self._map_this_page()
+        if self.browser.page.url != was or step.action == "goto":
+            # A `go` to the page the tab already shows is still a page this task opened.
+            self._note_who_is_signed_in()
         status = self.browser.last_status or 0
         if step.action == "goto" and status == SIGN_IN_FIRST:
             raise _Stopped(
@@ -749,7 +761,33 @@ class Runner:
         except PlaywrightError:
             return
 
+    def _note_who_is_signed_in(self) -> None:
+        """Ask the first few pages of a task who is signed in, and keep the first answer.
+
+        The first pages, because that is where a site's header and account menu are seen
+        before the task goes deep into a form or a document, which often hide them. A marker
+        an agent set with `expect signed in as` is never replaced."""
+        if self._signed_in_as is not None or self._pages_asked >= IDENTITY_PAGES:
+            return
+        self._pages_asked += 1
+        self._signed_in_as = identity.marker_on(self.browser.page)
+
+    def _expect_signed_in(self, step: Expect) -> None:
+        """`expect signed in as "TEXT"`: the page must show it, and every replay will check it."""
+        page = self.browser.page
+        if not identity.shows(page, step.value):
+            shown = identity.marker_on(page)
+            raise _Stopped(
+                f"the page does not show {step.value!r}"
+                + (f"; it shows {shown!r} as signed in" if shown else ""),
+                "sign in as that account (dejo_login), or name the account the page shows",
+            )
+        self._signed_in_as = step.value
+
     def _expect(self, step: Expect, before: language.Step | None) -> None:
+        if step.kind == SIGNED_IN_AS:
+            self._expect_signed_in(step)
+            return
         check = self._postcondition(step)
         if not settles_into(self.browser, check):
             raise _Stopped(
@@ -1239,7 +1277,9 @@ class Runner:
         self._broken = None
         self._changed_by_code = []
         steps, dropped = self._steps()
-        playbook = Playbook(domain=self.domain, task=self.task, steps=steps)
+        playbook = Playbook(
+            domain=self.domain, task=self.task, steps=steps, signed_in_as=self._who_for_the_trail()
+        )
         if self.store is not None:
             self.store.save_playbook(playbook)
             self.store.drop_draft(self.domain, self.task)
@@ -1257,6 +1297,15 @@ class Runner:
                 "it exactly as read and stop. If it is not, send the right read now with the "
                 "same name: it replaces this one."
             )
+
+    def _who_for_the_trail(self) -> str | None:
+        """Who this trail expects signed in: what this session saw, or else what the trail
+        being added to already said. A read added after a replay sees no new pages, and
+        saving it must not forget the account the trail was learned as."""
+        if self._signed_in_as is not None or self.store is None:
+            return self._signed_in_as
+        before = self.store.load_playbook(self.domain, self.task) if self._kept else None
+        return before.signed_in_as if before is not None else None
 
     def _code_in_the_way(self, out: Outcome) -> None:
         """Keep the steps as a draft and say why they are not a trail.
@@ -1289,6 +1338,8 @@ class Runner:
     def _start_over(self) -> None:
         self._kept = []
         self._changed_by_code = []
+        self._signed_in_as = None
+        self._pages_asked = 0
         if self.store is not None and self.domain:
             self.store.drop_draft(self.domain, self.task)
 

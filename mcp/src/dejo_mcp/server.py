@@ -596,6 +596,14 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
             f"stopped: the page answered HTTP {result.page_error}, so nothing was read. Tell "
             "the user it could not be opened (deleted, moved, or not shared with this account)."
         )
+    if result.wrong_account is not None:
+        expected, shown = result.wrong_account
+        return Reply(
+            f'stopped: {key} is signed in as "{shown}", and this trail was learned as '
+            f'"{expected}". Nothing was done as the wrong account. Ask the user which account '
+            "to use: dejo_login to sign in as the right one, or dejo_profile to switch to the "
+            "profile that is. Do not repair anything; the trail is fine."
+        )
     if result.needs_login:
         return Reply(
             f"stopped: {key} wants a sign-in. Do not guess a password: call dejo_login, ask "

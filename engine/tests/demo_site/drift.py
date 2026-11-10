@@ -13,6 +13,8 @@ that wants a particular visit starts a fresh browser, or clears the cookie.
     /drift/locked      a box whose only button subscribes: nothing safe clears it
     /drift/toast       a toast on show, then not there, then already faded out by itself;
                        ?kind=fade fades when closed, ?kind=say says "Dismissed" first
+    /drift/account/... two accounts, finance@acme.com and riya@acme.com, signed in by
+                       whose password is typed, each shown in the header when signed in
 
 What the page did is written where a test can read it: `#log`, and `window.lab`.
 """
@@ -171,3 +173,57 @@ def toast(request: Request, kind: str = "plain") -> HTMLResponse:
         else ""
     )
     return _page(request, f"toast-{kind}", "Plans", _PRICE + shown)
+
+
+# The lab's two accounts: who owns which password, and the name on their account button.
+# The site signs in whoever owns the password typed, as many real sites with one shared
+# sign-in page for several accounts effectively do.
+ACCOUNTS = {
+    "hunter2": ("finance@acme.com", "Finance Team"),
+    "riya-pass": ("riya@acme.com", "Riya Sharma"),
+}
+ACCOUNT_COOKIE = "lab-account"
+
+
+@router.get("/account/sign-in", response_class=HTMLResponse)
+def account_sign_in(request: Request) -> HTMLResponse:
+    """Signs in whoever owns the password typed, then goes to the account's invoices."""
+    owners = {password: email for password, (email, _name) in ACCOUNTS.items()}
+    return _page(
+        request,
+        "account-sign-in",
+        "Sign in",
+        f"""<h1>Sign in</h1>
+           <label>Email <input type="email" id="email"></label>
+           <label>Password <input type="password" id="password"></label>
+           <button type="button" onclick="
+             const who = {owners!r}[password.value];
+             if (!who) {{ log.textContent = 'wrong password'; return; }}
+             document.cookie = '{ACCOUNT_COOKIE}=' + who + '; path=/';
+             location.href = '/drift/account/home';">Sign in</button>""",
+    )
+
+
+@router.get("/account/home", response_class=HTMLResponse)
+def account_home(request: Request, quiet: int = 0) -> HTMLResponse:
+    """The signed-in account's invoices, with the account shown in the header: its email
+    address, and its name on the account button, whose menu holds "Sign out". `quiet=1`
+    draws the page with no header at all, as a print view or an embedded page does."""
+    email = request.cookies.get(ACCOUNT_COOKIE, "")
+    name = next((name for mail, name in ACCOUNTS.values() if mail == email), "")
+    header = (
+        f"""<header>
+              <span class="who">{email}</span>
+              <button type="button" aria-haspopup="menu" aria-label="Account menu"
+                      onclick="menu.hidden = !menu.hidden">{name}</button>
+              <div id="menu" role="menu" hidden><a href="/drift/account/sign-in">Sign out</a></div>
+            </header>"""
+        if email and not quiet
+        else ""
+    )
+    body = (
+        '<h1>Invoices</h1><p id="due">48,200 due</p>'
+        if email
+        else '<h1>Invoices</h1><a href="/drift/account/sign-in">Sign in</a>'
+    )
+    return _page(request, "account-home", "Invoices", header + body)

@@ -48,6 +48,11 @@ class TestTheOutcome:
         assert outcome_of(a_result(ok=False, page_error=404)) == "page_error"
         assert EXIT_CODES["page_error"] == 6
 
+    def test_a_different_account_signed_in_is_its_own_outcome(self) -> None:
+        wrong = a_result(ok=False, wrong_account=("finance@acme.com", "riya@acme.com"))
+        assert outcome_of(wrong) == "wrong_account"
+        assert EXIT_CODES["wrong_account"] == 7
+
     def test_a_broken_step_with_a_repair_request_needs_repair(self) -> None:
         repair = RepairRequest(
             domain=SITE, step_index=2, intent="read the count", action="read", tried=[]
@@ -57,6 +62,7 @@ class TestTheOutcome:
     def test_every_outcome_has_an_exit_code(self) -> None:
         outcomes = {"done", "failed", "already_done", "wrong_place", "blocked"}
         outcomes |= {"needs_login", "stale", "needs_repair", "no_trail", "page_error"}
+        outcomes |= {"wrong_account"}
         assert outcomes == set(EXIT_CODES)
 
     def test_only_success_exits_zero(self) -> None:
