@@ -1485,3 +1485,15 @@ def test_a_page_this_task_left_on_another_site_is_still_its_own(
     assert outcome.ok, outcome.text()
     assert "the tab showed" not in outcome.text()
     assert browser.page.url == f"{other}/books"
+
+
+def test_a_step_picked_by_place_into_a_top_level_page_checks_the_address() -> None:
+    """spiegel.de, 10 Nov: "click link Sport first" went from / to /sport/. The parent of
+    /sport/ is the site root, so the check fell back to "the link is gone", and the Sport
+    link is in the site menu on every page: a replay that landed right was called broken.
+    When the address changed, the check is the address."""
+    from dejo.distill import _landed_somewhere_like
+
+    moved = entry("click", "https://www.spiegel.de/", "https://www.spiegel.de/sport/")
+    check = _landed_somewhere_like(moved)
+    assert (check.kind, check.value) == ("url_contains", "/sport/")

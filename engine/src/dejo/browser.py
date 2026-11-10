@@ -48,6 +48,7 @@ from . import snapshot as aria
 from .home import HOME, PROFILE_OWNER, setting, switched_on
 from .locks import ProfileHeld, ProfileLock
 from .models import ENTER_FRAME, Locator
+from .popups import PRESS_ESCAPE
 from .snapshot import Element, Snapshot
 from .waits import DEFAULT_WAIT_MS, LOCATOR_WAIT_MS, QUIET_WAIT_MS
 
@@ -351,6 +352,54 @@ el => {
 
 _IS_MODAL_JS = "el => el.getAttribute('aria-modal') === 'true' || el.matches(':modal')"
 
+# Is this element gone to a person's eye, though Playwright still calls it visible? Faded to
+# nothing (a toast that fades out and stays in the page), or slid off the screen while pinned
+# to it. Playwright counts an element with opacity 0 as visible, so a toast that faded out
+# looked as if the press that closed it had done nothing.
+_FADED_JS = """
+(el) => {
+  if (!el.isConnected) return true;
+  let pinned = false;
+  for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+    const s = getComputedStyle(n);
+    if (s.display === "none" || s.visibility === "hidden" || parseFloat(s.opacity) < 0.05) {
+      return true;
+    }
+    if (s.position === "fixed" || s.position === "sticky") pinned = true;
+  }
+  const b = el.getBoundingClientRect();
+  if (!b.width || !b.height) return true;
+  return pinned && (b.bottom <= 0 || b.right <= 0 || b.top >= innerHeight || b.left >= innerWidth);
+}
+"""
+
+# Does this element sit in something that comes and goes on its own: a toast, a snackbar, a
+# status message, a banner pinned to the screen? Only those are given a moment to leave
+# after a press, so an ordinary button never waits, and neither does one in the site's own
+# header or navigation, which is pinned to the screen and never goes anywhere.
+_PASSING_JS = """
+(el) => {
+  const named = /toast|snackbar|notification|notice|flash|banner|alert/i;
+  for (let n = el; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) {
+    const role = (n.getAttribute("role") || "").toLowerCase();
+    if (["HEADER", "NAV"].includes(n.tagName) || ["banner", "navigation"].includes(role)) {
+      return false;
+    }
+    if (["alert", "status", "alertdialog", "log"].includes(role)) return true;
+    if (n.hasAttribute("aria-live")) return true;
+    const s = getComputedStyle(n);
+    if (s.position === "fixed" || s.position === "sticky") return true;
+    if (named.test(typeof n.className === "string" ? n.className : "")) return true;
+  }
+  return false;
+}
+"""
+
+# How long a toast gets to leave after the press that closed it. Most fade or slide out in
+# 150-400 ms; some first say "Dismissed" and go a beat later.
+LEAVE_WAIT_MS = 1500
+LEAVE_POLL_MS = 100
+
 # How long the held-back check may look for its element: it is there, or the press itself
 # says so.
 HELD_BACK_WAIT_MS = 2000
@@ -464,6 +513,66 @@ DEFAULT_PROFILE_NAME = "default"
 # has run out. Used only after a step has already failed, so a login page we navigated to
 # on purpose is never mistaken for one.
 _SIGNED_OUT_HINTS = ("/login", "/signin", "/sign-in", "/sign_in", "/auth", "/sso", "/oauth")
+
+# Hosts that only ever show a sign-in: the big identity providers, whatever path they use.
+# Google's account chooser (/AccountChooser) has no password box and no hint in its path.
+SIGN_IN_HOSTS = frozenset(
+    {
+        "accounts.google.com",
+        "login.microsoftonline.com",
+        "login.live.com",
+        "login.windows.net",
+        "appleid.apple.com",
+        "id.atlassian.com",
+        "login.salesforce.com",
+        "login.yahoo.com",
+    }
+)
+# Hosts under these belong to a company's own sign-in service (acme.okta.com, acme.auth0.com).
+SIGN_IN_HOST_ENDS = (
+    ".okta.com",
+    ".oktapreview.com",
+    ".auth0.com",
+    ".onelogin.com",
+    ".b2clogin.com",
+    ".duosecurity.com",
+    ".pingone.com",
+    ".amazoncognito.com",
+)
+# A host starting with one of these is a sign-in service too (login.acme.com, sso.acme.com).
+SIGN_IN_HOST_STARTS = ("login.", "signin.", "sso.", "auth.", "idp.")
+# Sign-in pages on a host that also has everything else, as (host, path start).
+SIGN_IN_PAGES = (("github.com", "/session"), ("gitlab.com", "/users/sign_in"))
+
+# The status a server sends to a visitor it wants signed in. Only for the page's own address:
+# a 401 from some request the page makes is not the page asking for a sign-in.
+UNAUTHORISED = 401
+
+# How a sign-in form is named, and how its button reads.
+_SIGNS_IN = re.compile(r"\b(sign|log)\s?-?in\b", re.IGNORECASE)
+
+# A form on show that asks who you are and has a button that signs in: an email or user
+# name field next to "Sign in" or "Log in". Identifier-first sign-ins ask for the password
+# on the next page, so a password box is not there to be seen.
+_SIGN_IN_FORM_JS = """
+() => {
+  const signsIn = /\\b(sign|log)\\s?-?in\\b/i;
+  const shown = (n) => {
+    const b = n.getBoundingClientRect(), s = getComputedStyle(n);
+    return b.width > 0 && b.height > 0 && s.visibility !== "hidden" && s.display !== "none";
+  };
+  for (const form of document.querySelectorAll("form, [role=form]")) {
+    if (!shown(form)) continue;
+    const who = form.querySelector("input[type=email], input[autocomplete~=username], " +
+      "input[name*=email i], input[name*=user i], input[name*=login i], input[id*=email i]");
+    const says = (b) => b.innerText || b.value || b.getAttribute("aria-label") || "";
+    const button = [...form.querySelectorAll("button, input[type=submit], [role=button]")]
+      .find((b) => shown(b) && signsIn.test(says(b)));
+    if (who && shown(who) && button) return true;
+  }
+  return false;
+}
+"""
 
 # Where a view's token is kept in the page. A ref is only good for the page it was printed
 # from, and a new document wipes everything on `window`, so a missing or different token
@@ -776,6 +885,25 @@ def _log_failure(page: Page, request: Any) -> None:
     if entry is not None:
         entry["failed"] = request.failure or "failed"
         entry["answered"] = time.monotonic()
+
+
+def _remember_document(page: Page, response: Any) -> None:
+    """Keep the status the page's own address was answered with, for `looks_signed_out`."""
+    with suppress(PlaywrightError):
+        if response.request.is_navigation_request() and response.frame == page.main_frame:
+            page._dejo_document_status = response.status  # type: ignore[attr-defined]
+
+
+def _sign_in_host(address: str) -> bool:
+    """Is this address an identity provider's, or a company's own sign-in service?"""
+    parts = urlparse(address)
+    host = parts.netloc.lower().split(":")[0]
+    if host in SIGN_IN_HOSTS or host.endswith(SIGN_IN_HOST_ENDS):
+        return True
+    if host.startswith(SIGN_IN_HOST_STARTS):
+        return True
+    bare = host.removeprefix("www.")
+    return any(bare == site and parts.path.startswith(path) for site, path in SIGN_IN_PAGES)
 
 
 def _file_name(name: str) -> str:
@@ -1107,6 +1235,8 @@ class Browser:
         self.tabs: list[Page] = []
         self._watched: list[Page] = []
         self._overlays: list[str] = []
+        self.overlays_cleared: list[str] = []
+        """Known overlays cleared since the caller last emptied this, oldest first."""
         self._armed: dict[Page, set[str]] = {}
         self._cookies_kept_at = 0.0
         self._hold: ProfileLock | None = None
@@ -1429,6 +1559,7 @@ class Browser:
         page.on("console", lambda message: self._remember_console(page, message))
         page.on("pageerror", lambda error: _keep(page._dejo_console, f"error: {error}"))  # type: ignore[attr-defined]
         page.on("response", lambda response: self._remember_failure(page, response))
+        page.on("response", lambda response: _remember_document(page, response))
         page._dejo_in_flight = set()  # type: ignore[attr-defined]
         page.on("request", lambda request: _track_work(page, request, started=True))
         page.on("requestfinished", lambda request: _track_work(page, request, started=False))
@@ -1965,7 +2096,20 @@ class Browser:
         if selector in armed:
             return
         armed.add(selector)
-        page.add_locator_handler(page.locator(selector), lambda o: o.click(), times=None)
+        escape = selector.startswith(PRESS_ESCAPE)
+        shown = page.locator(selector.removeprefix(PRESS_ESCAPE))
+
+        def clear(overlay: PWLocator) -> None:
+            # A pop-up with nothing to click is closed with Escape (see `popups`).
+            if escape:
+                page.keyboard.press("Escape")
+            else:
+                overlay.click()
+            # Clearing one changes what ran, and nothing that changes what ran may be
+            # silent: the run reads this list and says so.
+            self.overlays_cleared.append(selector)
+
+        page.add_locator_handler(shown, clear, times=None)
 
     @property
     def overlays(self) -> list[str]:
@@ -2623,6 +2767,33 @@ class Browser:
         except (PlaywrightError, NoSuchElement):
             return []
 
+    def faded(self, target: PWLocator) -> bool:
+        """Is this element gone to the eye, though still in the page? See `_FADED_JS`."""
+        try:
+            return bool(target.evaluate(_FADED_JS, timeout=HELD_BACK_WAIT_MS))
+        except PlaywrightError:
+            # Gone from the page while being asked: that is gone.
+            return True
+
+    def leaves_on_its_own(self, target: PWLocator) -> bool:
+        """Give an element in a toast or a pinned banner a moment to leave after a press.
+
+        True when it went (removed, hidden or faded) within LEAVE_WAIT_MS. False at once for
+        anything that is not in such a thing, so an ordinary press never pays the wait."""
+        try:
+            if not target.evaluate(_PASSING_JS, timeout=HELD_BACK_WAIT_MS):
+                return False
+        except PlaywrightError:
+            return True
+        waited = 0
+        while waited < LEAVE_WAIT_MS:
+            if target.count() == 0 or self.faded(target):
+                return True
+            with suppress(PlaywrightError):
+                self.page.wait_for_timeout(LEAVE_POLL_MS)
+            waited += LEAVE_POLL_MS
+        return target.count() == 0 or self.faded(target)
+
     def modal_dialogs(self, aria_refs: list[str]) -> frozenset[str]:
         """Which of these dialogs are modal: `aria-modal`, or a <dialog> opened as one."""
         modal = set()
@@ -2729,12 +2900,22 @@ class Browser:
 
         Only ever asked after a step has already failed. A site we deliberately opened at
         its login page must not be mistaken for an expired session.
+
+        Any one of: an address that reads like a sign-in, an identity provider's host, the
+        page's own address answered with 401, a password box, or a sign-in form (by its role
+        and name, or an email or user name field beside a "Sign in" button).
         """
         address = self.page.url.lower()
-        if any(hint in address for hint in _SIGNED_OUT_HINTS):
+        if any(hint in address for hint in _SIGNED_OUT_HINTS) or _sign_in_host(address):
+            return True
+        if getattr(self.page, "_dejo_document_status", None) == UNAUTHORISED:
             return True
         try:
-            return self.page.locator('input[type="password"]').count() > 0
+            if self.page.locator('input[type="password"]').count() > 0:
+                return True
+            if self.page.get_by_role("form", name=_SIGNS_IN).count() > 0:
+                return True
+            return bool(self.page.evaluate(_SIGN_IN_FORM_JS))
         except PlaywrightError:
             # A closed or navigating page cannot be asked. That is not a signed-out page.
             return False

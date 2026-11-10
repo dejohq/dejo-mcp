@@ -48,6 +48,19 @@ class RunFinished(Event):
     steps_replayed: int = 0
     trail_repairs: int = 0
     model_calls: int = 0
+    decided: list[str] = field(default_factory=list)
+    """Everything the run decided on its own, one line each. See `Decided`."""
+
+
+@dataclass
+class Decided(Event):
+    """Replay chose something on its own that changes what ran: a backup way of finding an
+    element, a known pop-up cleared, a walk back to the page a step belongs on. Every one
+    is reported, because a fix nobody hears about hides real breakage."""
+
+    kind = "decided"
+    index: int = 0
+    what: str = ""
 
 
 @dataclass
@@ -82,6 +95,19 @@ class StepSkipped(Event):
     index: int = 0
     intent: str = ""
     reason: str = ""
+
+
+@dataclass
+class PopupCleared(Event):
+    """A pop-up nobody told Dejo about covered a step's element, and a safe move cleared it.
+
+    `remembered` says whether it was written into site knowledge, so the next run clears it
+    up front instead of meeting it again."""
+
+    kind = "popup_cleared"
+    index: int = 0
+    how: str = ""
+    remembered: bool = False
 
 
 @dataclass

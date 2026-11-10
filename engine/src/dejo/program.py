@@ -218,12 +218,18 @@ class Read:
     reason: str = ""
 
 
+# The `expect` that names who must be signed in. Not a check on the step before it: it holds
+# for the whole trail, and is kept on the trail (`Playbook.signed_in_as`).
+SIGNED_IN_AS = "signed_in_as"
+
+
 @dataclass(frozen=True)
 class Expect:
     line: int
     text: str
     kind: str
-    """A `models.Postcondition` kind. It replaces the one the step before would infer."""
+    """A `models.Postcondition` kind. It replaces the one the step before would infer.
+    `SIGNED_IN_AS` instead names who a replay must find signed in."""
     value: str = ""
     target: Target | None = None
     reason: str = ""
@@ -366,6 +372,9 @@ def reference() -> str:
             emulation.catalogue(),
             "",
             "CHECKS: expect url|text|see|gone|count|value ... checks the action just before.",
+            '  expect signed in as "TEXT" (anywhere) says who must be signed in: an email or '
+            "the name on the account button. Every replay checks it before it acts, and "
+            "stops if the page shows someone else. Dejo notes it by itself when it can.",
             "LOOK: look [WORDS | from REF | gN | all | raw | image]. look image sends a picture "
             "of the screen, for a page with nothing inside to name (a chart, a map, a canvas).",
             'NOTE: note "a fact about the site".',
@@ -710,8 +719,14 @@ def _read_kinds() -> str:
 
 def _expect(reader: _Words, number: int, body: str, reason: str) -> Expect:
     """Each form maps to an existing `models.Postcondition` kind, so nothing new is ever
-    checked on replay."""
+    checked on replay. `expect signed in as "TEXT"` is the one exception: it is about the
+    whole trail, not the step before it, and sets who a replay must find signed in."""
     word = reader.string("expect needs what to check: url, text, see, gone, count or value")
+    if word == "signed":
+        reader.keyword("in", 'write it as: expect signed in as "you@example.com"')
+        reader.keyword("as", 'write it as: expect signed in as "you@example.com"')
+        value = reader.string('expect signed in as needs who: expect signed in as "Riya"')
+        return Expect(number, body, SIGNED_IN_AS, value, reason=reason)
     if word == "url":
         value = reader.string("expect url needs text")
         return Expect(number, body, "url_contains", value, reason=reason)
@@ -783,7 +798,7 @@ def _check_order(steps: list[Step]) -> None:
         if isinstance(step, Action) and step.action in ALONE and len(steps) > 1:
             verb = "js" if step.action == "evaluate" else step.action
             raise ProgramError(step.line, f"{verb} must be the only line of a program")
-        if isinstance(step, Expect):
+        if isinstance(step, Expect) and step.kind != SIGNED_IN_AS:
             before = steps[at - 1] if at else None
             if not isinstance(before, Action):
                 raise ProgramError(step.line, "expect checks the action on the line just before it")

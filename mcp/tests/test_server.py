@@ -486,7 +486,53 @@ def test_a_cookie_banner_not_shown_again_does_not_break_the_replay(mcp_server, d
 
     assert said.startswith('done: "read the headline"'), said
     assert "headline = Rates hold for September" in said
-    assert 'skipped step 2 (click button "Accept cookies")' in said
+    assert "decided on its own (1):" in said
+    assert '- step 2: skipped (click button "Accept cookies"): it only clears' in said
+
+
+def test_a_pop_up_first_seen_on_replay_is_cleared_and_named(mcp_server, demo_server):
+    """A newsletter box that was not there while learning covers the button on replay."""
+    task = "the price"
+    page = f"{demo_server}/drift/newsletter"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=page)
+    call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click button "Show the price"\nread css "#price" as price',
+    )
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, url=page)
+
+    assert said.startswith('done: "the price"'), said
+    assert "price = £12 a month" in said
+    assert '- step 2: cleared a pop-up: "Join our newsletter" closed by its "No thanks"' in said
+    assert "cleared up front from now on" in said
+
+
+def test_a_different_account_signed_in_stops_and_says_who(mcp_server, demo_server):
+    """Learned signed in as finance@acme.com; replayed with riya@acme.com signed in."""
+    task = "what is due"
+
+    def signed_in_as(email: str) -> None:
+        mcp_server.dejo_tools.worker.submit(
+            lambda browser: browser._context.add_cookies(
+                [{"name": "lab-account", "value": email, "url": demo_server}]
+            )
+        )
+
+    signed_in_as("finance@acme.com")
+    page = f"{demo_server}/drift/account/home"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=page)
+    call(mcp_server, "dejo_run", site=demo_server, task=task, steps='read css "#due" as due')
+    signed_in_as("riya@acme.com")
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, url=page)
+
+    assert said.startswith("stopped:"), said
+    assert '"riya@acme.com", and this trail was learned as "finance@acme.com"' in said
+    assert "due =" not in said
 
 
 def test_a_wrong_answer_says_how_to_replace_the_trail(mcp_server, demo_server):
@@ -687,7 +733,7 @@ def test_a_task_that_signs_in_on_the_way_runs_the_rest_when_signed_in(mcp_server
     said = call(mcp_server, "dejo_run", site=demo_server, task=task)
 
     assert said.startswith(f'done: "{task}"'), said
-    assert 'skipped step 2 (click button "Continue with Google"): the trail\'s sign-in' in said
+    assert '- step 2: skipped (click button "Continue with Google"): it is part of signing' in said
     assert "work is done" not in said
     page = mcp_server.dejo_tools.worker.submit(lambda browser: browser.page.inner_text("#sent"))
     assert page == "Submitted Dejo"

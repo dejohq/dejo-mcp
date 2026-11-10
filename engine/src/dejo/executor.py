@@ -34,13 +34,15 @@ from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, reads, steplog
+from . import actions, identity, popups, reads, steplog
 from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
+    Decided,
     DriftDetected,
     Emitter,
     MemoryRead,
     MemoryWrite,
+    PopupCleared,
     RepairNeeded,
     RepairSaved,
     RunFinished,
@@ -56,6 +58,7 @@ from .models import (
     Playbook,
     Postcondition,
     RunMetrics,
+    SiteKnowledge,
     SiteMap,
     Step,
     href_path,
@@ -66,6 +69,10 @@ from .operations import READ_ACTION, check_postcondition, controls_in, settles_i
 from .secrets import MissingSecret
 from .secrets import resolve as resolve_secret
 from .store import DejoStore, swapped_subject
+
+# How long a way that found nothing gets to find the element once another way has: the page
+# has drawn by then, so it is there at once or not at all.
+RECHECK_MS = 250
 
 # A step is considered past saving when this share of the trail is already broken.
 STALE_SHARE = 0.5
@@ -220,6 +227,20 @@ class ReplayResult:
     signed_in_already: list[str] = field(default_factory=list)
     """The trail's sign-in steps, skipped because the site was already signed in, in the
     same form as `skipped`. See `Executor._past_the_sign_in`."""
+
+    decisions: list[str] = field(default_factory=list)
+    """Everything this run decided on its own that changes what ran, one line each, in the
+    order it happened: steps skipped, pop-ups cleared, sign-in steps skipped, backup ways of
+    finding an element used, walks back to a step's page. Nothing that changes what ran may
+    be silent: a fix nobody hears about hides real breakage."""
+
+    wrong_account: tuple[str, str] | None = None
+    """`(expected, shown)`: the trail was learned signed in as `expected`, and the page
+    shows `shown` instead. Nothing was done past opening the page. See `identity`."""
+
+    cleared: list[str] = field(default_factory=list)
+    """Pop-ups nobody told Dejo about that covered a step, and how each was cleared, as
+    `step 3: "Join our newsletter" closed by its "No thanks" control`. See `popups`."""
 
     @property
     def needs_repair(self) -> bool:
@@ -447,6 +468,11 @@ class Executor:
         self.browser = browser
         self.events = emitter or Emitter()
         steplog.attach(self.events)
+        # What a run cleared and decided, set again by each run. Here too, so one step can be
+        # replayed on its own (`_replay_step`) without a whole run around it.
+        self._cleared: list[str] = []
+        self._cleared_at: set[int] = set()
+        self._decisions: list[str] = []
         # Which signed-in identity this replay is. Only secrets need it: one domain can
         # have a customer, a vendor and an admin sign-in, each with its own password.
         self.profile = profile
@@ -462,6 +488,9 @@ class Executor:
     """Per step, where the swap landed: value, check, page or locator."""
     _unverified: list[int] = []
     """Substituted steps nothing on the page could confirm."""
+    _picked_landing: str | None = None
+    """Where the latest step that picks by place ("the first item") took the browser, while
+    it is still there. See `_off_trail`."""
 
     def run(self, domain: str, task: str | None = None, **how: Any) -> ReplayResult:
         """Replay a trail, recording it as DEJO_RECORD asks (video, trace, or both).
@@ -503,6 +532,11 @@ class Executor:
         self._unverified = []
         self._skipped: list[str] = []
         self._signed_in_already: list[str] = []
+        self._cleared = []
+        self._cleared_at = set()
+        self._decisions = []
+        self._picked_landing = None
+        self.browser.overlays_cleared.clear()
         playbook = self._load(domain, task)
         # The browser as it is, not as the last task left it: a trail that emulates a phone
         # says so in its own steps.
@@ -546,15 +580,27 @@ class Executor:
             model_calls=0,  # nothing in this file can make one
         )
 
+        # Who is signed in, asked of the page the browser already shows when it is this
+        # site's, so a wrong account is caught before step 1 does anything at all.
+        if resume_at == 1 and self._on_the_trails_site(playbook):
+            wrong = self._wrong_account(playbook, metrics, started, before=1)
+            if wrong is not None:
+                return wrong
+        account_checked = False
+
         for step in playbook.steps:
             if step.index < resume_at:
                 continue
             self.events.emit(StepStarted(index=step.index, intent=step.intent))
+            was = self.browser.page.url
             outcome = self._replay_step(step, start_url=start_url)
 
+            self._note_known_overlays(step)
+            self._note_where_a_pick_landed(step, outcome, was)
             if outcome.matched_by is not None:
                 metrics.steps_replayed += 1
                 self._note_if_unproven(step)
+                self._note_a_backup(step, outcome)
                 self.events.emit(
                     StepPassed(
                         index=step.index,
@@ -563,6 +609,13 @@ class Executor:
                         duration_ms=outcome.duration_ms,
                     )
                 )
+                # Once the first page is open, and again after every step of a sign-in:
+                # signing in is exactly where a browser can end up as someone else.
+                if (not account_checked and step.action == "goto") or self._signed_in_by(step):
+                    account_checked = True
+                    wrong = self._wrong_account(playbook, metrics, started, before=step.index + 1)
+                    if wrong is not None:
+                        return wrong
                 continue
 
             if outcome.found_nothing and self._needless(step, playbook):
@@ -570,6 +623,7 @@ class Executor:
                     StepSkipped(index=step.index, intent=step.intent, reason=NOTHING_TO_CLEAR)
                 )
                 self._skipped.append(f"step {step.index} ({step.intent})")
+                self._decide(step.index, f"skipped ({step.intent}): {NOTHING_TO_CLEAR}")
                 continue
             self._blame(outcome.missed, step)
 
@@ -603,7 +657,7 @@ class Executor:
                     playbook, step
                 ):
                     self._went_back = True
-                    self.browser.goto(target)
+                    self._walk_back(step, target, here)
                     status = self.browser.last_status
                     if status is not None and status >= HTTP_ERROR_FROM:
                         missing = self._StepOutcome(
@@ -650,6 +704,7 @@ class Executor:
                     return ReplayResult(
                         ok=True,
                         metrics=metrics,
+                        decisions=list(self._decisions),
                         already_done=True,
                         reason=(
                             f"Already done — nothing to do. {playbook.domain} sends "
@@ -662,6 +717,7 @@ class Executor:
                 return ReplayResult(
                     ok=False,
                     metrics=metrics,
+                    decisions=list(self._decisions),
                     wrong_place=True,
                     reason=(
                         f"Step {step.index} ({step.intent!r}) belongs on {belongs}, and we "
@@ -688,6 +744,7 @@ class Executor:
                 return ReplayResult(
                     ok=False,
                     metrics=metrics,
+                    decisions=list(self._decisions),
                     aimed_at=self._aim,
                     reason=(
                         f"This trail is for {was!r} and you asked about {now!r}. Dejo "
@@ -724,6 +781,7 @@ class Executor:
                 return ReplayResult(
                     ok=False,
                     metrics=metrics,
+                    decisions=list(self._decisions),
                     blocked=True,
                     reason=(
                         f"{playbook.domain} put a human check in the way, so the run "
@@ -741,6 +799,7 @@ class Executor:
                 return ReplayResult(
                     ok=False,
                     metrics=metrics,
+                    decisions=list(self._decisions),
                     needs_login=True,
                     reason=(
                         f"{playbook.domain} asked to sign in again. The trail is fine — "
@@ -759,12 +818,14 @@ class Executor:
             return ReplayResult(
                 ok=False,
                 metrics=metrics,
+                decisions=list(self._decisions),
                 repair=request,
                 reason=outcome.reason,
                 saved_files=list(self.browser.saved_files),
                 # Reads before the broken step did answer. The fix carries on from that
                 # step, so these are the only copy of them the final reply will have.
                 answers=dict(self.answers),
+                cleared=list(self._cleared),
                 # A run that stopped BECAUSE it was aimed somewhere new has to say so.
                 # Without this the caller sees "this step went stale" and repairs a trail
                 # that is perfectly healthy — it was simply pointed at a subject that is
@@ -777,12 +838,93 @@ class Executor:
         return ReplayResult(
             ok=True,
             metrics=metrics,
+            decisions=list(self._decisions),
             saved_files=list(self.browser.saved_files),
             answers=dict(self.answers),
             aimed_at=self._aim,
             unverified_steps=list(self._unverified),
             skipped=list(self._skipped),
             signed_in_already=list(self._signed_in_already),
+            cleared=list(self._cleared),
+        )
+
+    def _decide(self, index: int, what: str, *, event: bool = False) -> None:
+        """Note something this run chose on its own. `event` sends it as a `Decided` too,
+        for the decisions no other event already tells a listener about."""
+        self._decisions.append(f"step {index}: {what}")
+        if event:
+            self.events.emit(Decided(index=index, what=what))
+
+    def _note_where_a_pick_landed(self, step: Step, outcome: _StepOutcome, was: str) -> None:
+        """Keep where a step that picks by place took the browser, and forget it once a
+        later step moves the browser on. See `_off_trail`."""
+        here = self.browser.page.url
+        picked = any(locator.nth is not None for locator in step.locators)
+        if outcome.matched_by is not None and picked and here != was:
+            self._picked_landing = here
+        elif here != was:
+            self._picked_landing = None
+
+    def _note_a_backup(self, step: Step, outcome: _StepOutcome) -> None:
+        """A step found its element by a backup way: the ways above it missed and move down."""
+        if not outcome.passed_over:
+            return
+        missed = ", ".join(outcome.passed_over)
+        self._decide(
+            step.index,
+            f"found by a backup way ({outcome.matched_by}); {missed} missed and moved down",
+            event=True,
+        )
+
+    def _note_known_overlays(self, step: Step) -> None:
+        """Say which of the site's known pop-ups were cleared while this step ran."""
+        for selector in self.browser.overlays_cleared:
+            self._decide(step.index, f"cleared a known pop-up ({selector})", event=True)
+        self.browser.overlays_cleared.clear()
+
+    def _walk_back(self, step: Step, target: str, here: str) -> None:
+        """Go to the page this step belongs on, from wherever the tab was, and say so."""
+        self._decide(step.index, f"the tab was on {here}; went back to {target} first", event=True)
+        self.browser.goto(target)
+
+    def _on_the_trails_site(self, playbook: Playbook) -> bool:
+        origin = _trail_origin(playbook)
+        return bool(origin) and urlparse(self.browser.page.url).netloc == urlparse(origin).netloc
+
+    def _signed_in_by(self, step: Step) -> bool:
+        """Did this step just finish a sign-in: done on a sign-in page, and the browser is
+        not on one any more?"""
+        return signs_in_at(self._page_of(step)) and not signs_in_at(self.browser.page.url)
+
+    def _wrong_account(
+        self, playbook: Playbook, metrics: RunMetrics, started: float, *, before: int
+    ) -> ReplayResult | None:
+        """Stop, when the page names someone other than who the trail was learned as.
+
+        Nothing is marked broken: the steps are fine, the session is someone else's. A page
+        that names nobody is no reason to stop, so a site that never shows who you are runs
+        exactly as it did before this check existed."""
+        expected = playbook.signed_in_as
+        if not expected:
+            return None
+        shown = identity.someone_else(self.browser.page, expected)
+        if shown is None:
+            return None
+        reason = (
+            f"{playbook.domain} is signed in as {shown!r}, and this trail was learned as "
+            f"{expected!r}. Stopped before step {before}, so nothing was done as the wrong "
+            f"account. Sign in as {expected!r} (or switch to the profile that is), then run "
+            f"it again."
+        )
+        self.events.emit(StepFailed(index=before, intent="check who is signed in", reason=reason))
+        self._finish(playbook, metrics, started, succeeded=False)
+        return ReplayResult(
+            ok=False,
+            metrics=metrics,
+            decisions=list(self._decisions),
+            wrong_account=(expected, shown),
+            reason=reason,
+            saved_files=list(self.browser.saved_files),
         )
 
     def _let_the_last_step_land(self, playbook: Playbook) -> None:
@@ -828,6 +970,9 @@ class Executor:
         that may be skipped then (see `Step.clears_away`), with its misses held in `missed`
         and blamed only if it is not."""
         missed: list[tuple[Locator, str]] = field(default_factory=list)
+        passed_over: list[str] = field(default_factory=list)
+        """The ways of finding the element ranked above the one that found it, which missed.
+        Empty when the first way found it."""
         off_trail: tuple[str, str] | None = None
         """Where this step belongs, and where we actually are — when they differ.
 
@@ -1048,6 +1193,7 @@ class Executor:
         found an element at all, and the misses this pass would like recorded.
         """
         missed: list[tuple[Locator, str]] = []
+        unseen: list[tuple[Locator, str]] = []
         found_anything = False
 
         for locator in step.ranked_locators():
@@ -1061,6 +1207,17 @@ class Executor:
                 locator, visible=step.action not in _SEEN_OR_NOT, every=_reads_many(step)
             )
             if target is None:
+                missed.append((locator, label))
+                unseen.append((locator, label))
+                continue
+            if unseen:
+                drawn = self._drawn_late(step, unseen, missed)
+                if drawn is not None:
+                    locator, label, target = drawn
+                unseen.clear()
+            if step.clears_away and self.browser.faded(target):
+                # The toast this step closes went away on its own and only faded, so it is
+                # still in the page. Pressing what nobody can see is not clearing anything.
                 missed.append((locator, label))
                 continue
 
@@ -1081,7 +1238,7 @@ class Executor:
                 return outcome, found_anything, missed
 
             try:
-                spoke = self._do(step, target, domain=self._domain)
+                spoke = self._do_past_popups(step, target)
             except MissingSecret:
                 raise
             except PlaywrightError:
@@ -1112,6 +1269,7 @@ class Executor:
             if settles_into(self.browser, step.postcondition):
                 locator.record_hit()
                 outcome.matched_by = label
+                outcome.passed_over = [passed for _, passed in missed]
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)
                 return outcome, found_anything, missed
 
@@ -1120,6 +1278,33 @@ class Executor:
             missed.append((locator, label))
 
         return None, found_anything, missed
+
+    def _drawn_late(
+        self, step: Step, unseen: list[tuple[Locator, str]], missed: list[tuple[Locator, str]]
+    ) -> tuple[Locator, str, Any] | None:
+        """The best-ranked way that finds the element now, when it found nothing a moment ago.
+
+        A page still drawing makes the first ways miss while the element is on its way, and
+        a later way then finds it once it has arrived. Blaming the first ways for that marks
+        good ways dead on every slow site, and reports a backup when nothing changed but the
+        site's speed (drift lab, a button drawn from slow data). So each way that found
+        nothing is asked once more, in rank order, now that something has appeared. The
+        first that finds it is used, and it and the ways tried after it are not blamed: had
+        the page been drawn, they would never have been tried."""
+        for at, (earlier, label) in enumerate(unseen):
+            again = self.browser.resolve(
+                earlier,
+                timeout_ms=RECHECK_MS,
+                visible=step.action not in _SEEN_OR_NOT,
+                every=_reads_many(step),
+            )
+            if again is None:
+                continue
+            for pair in unseen[at:]:
+                if pair in missed:
+                    missed.remove(pair)
+            return earlier, label, again
+        return None
 
     def _page_missing(
         self,
@@ -1140,6 +1325,7 @@ class Executor:
             return ReplayResult(
                 ok=False,
                 metrics=metrics,
+                decisions=list(self._decisions),
                 needs_login=True,
                 reason=(
                     f"{playbook.domain} asked to sign in again. The trail is fine — "
@@ -1150,6 +1336,7 @@ class Executor:
         return ReplayResult(
             ok=False,
             metrics=metrics,
+            decisions=list(self._decisions),
             page_error=outcome.error_status,
             reason=(
                 f"Step {step.index} ({step.intent!r}): {outcome.reason}. The page this trail "
@@ -1212,6 +1399,12 @@ class Executor:
         here = self.browser.page.url
         if _same_page(here, belongs):
             return None
+        if self._picked_landing is not None and _same_page(here, self._picked_landing):
+            # A step that picks by place ("open the first item") opens whatever is first
+            # today, so the page after it is a different item's page from the one learned.
+            # Being where that pick led is being on the trail (drift lab, a list that
+            # reorders between visits).
+            return None
         return (belongs, here)
 
     def _page_of(self, step: Step) -> str:
@@ -1270,12 +1463,15 @@ class Executor:
                     )
                 )
                 self._signed_in_already.append(f"step {skipped.index} ({skipped.intent})")
+                self._decide(skipped.index, f"skipped ({skipped.intent}): {ALREADY_SIGNED_IN}")
         where = self._page_of(rest)
         if rest.action != "goto" and not _same_page(self.browser.page.url, where):
             # The site sent its sign-in page to a dashboard, not to the page the skipped
             # steps would have reached. Once per run, like any other walk back.
             self._went_back = True
-            self.browser.goto(urljoin(_trail_origin(playbook) or self.browser.page.url, where))
+            here = self.browser.page.url
+            target = urljoin(_trail_origin(playbook) or here, where)
+            self._walk_back(rest, target, here)
         return rest.index
 
     def _blame(self, missed: list[tuple[Locator, str]], step: Step) -> None:
@@ -1377,6 +1573,61 @@ class Executor:
             self.browser.settle()
         return True
 
+    def _do_past_popups(self, step: Step, target: Any) -> bool:
+        """Do the step, first clearing a pop-up nobody told Dejo about if one covers it.
+
+        Looked for before pressing, because a covered press waits out Playwright's whole
+        timeout before it fails; and again when Playwright says something else would get
+        the press, for a pop-up that arrived while it was waiting. Once per step: a page
+        that keeps covering the element after a safe move is not one to keep pressing on.
+        """
+        if step.action in popups.POINTER_ACTIONS:
+            self._clear_the_way(step, target)
+        try:
+            return self._do(step, target, domain=self._domain)
+        except PlaywrightError as failed:
+            if not popups.covered_error(failed) or not self._clear_the_way(step, target):
+                raise
+        return self._do(step, target, domain=self._domain)
+
+    def _clear_the_way(self, step: Step, target: Any) -> bool:
+        """Try the safe moves of `popups` once for this step, when a pop-up covers it. True when
+        one worked, and then the pop-up is reported, and kept in site knowledge so the next
+        run clears it first."""
+        if step.index in self._cleared_at:
+            return False
+        cleared = popups.clear_the_way(self.browser.page, target)
+        if cleared is None:
+            return False
+        self._cleared_at.add(step.index)
+        if not cleared.done:
+            return False
+        if cleared.remember:
+            self._remember_overlay(cleared.remember)
+        self._cleared.append(f"step {step.index}: {cleared.what}")
+        kept = "; cleared up front from now on" if cleared.remember else ""
+        self._decide(step.index, f"cleared a pop-up: {cleared.what}{kept}")
+        self.events.emit(
+            PopupCleared(index=step.index, how=cleared.what, remembered=bool(cleared.remember))
+        )
+        return True
+
+    def _remember_overlay(self, selector: str) -> None:
+        """Clear this pop-up up front from now on, on this run and every later one, exactly
+        as `dismiss css "..."` would have arranged."""
+        self.browser.dismiss_when_seen(selector)
+        knowledge = self.store.load_site_knowledge(self._domain) or SiteKnowledge(
+            domain=self._domain
+        )
+        self.store.save_site_knowledge(knowledge.merge(overlay=selector))
+        self.events.emit(
+            MemoryWrite(
+                category="site_knowledge",
+                name=self._domain,
+                detail=f"dismiss {selector} whenever it appears",
+            )
+        )
+
     def _second_for(self, step: Step) -> Any:
         """The element a drag drops onto, found by the ways the trail kept for it.
 
@@ -1438,6 +1689,7 @@ class Executor:
         return ReplayResult(
             ok=False,
             metrics=metrics,
+            decisions=list(self._decisions),
             stale=True,
             reason=(
                 f"{broken} of {len(playbook.steps)} steps no longer match this site. "
@@ -1628,5 +1880,6 @@ class Executor:
                 steps_replayed=metrics.steps_replayed,
                 trail_repairs=metrics.trail_repairs,
                 model_calls=0,
+                decided=list(self._decisions),
             )
         )

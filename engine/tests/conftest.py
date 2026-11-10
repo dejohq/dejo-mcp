@@ -9,9 +9,12 @@ engine.
 from __future__ import annotations
 
 import socket
+import subprocess
+import sys
 import threading
 import time
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -140,3 +143,48 @@ def cold_run(session: Session, base_url: str, *, variant: str = "a") -> None:
     page = session.look()
     label = "Download" if variant == "a" else "Get PDF"
     session.act("download the PDF", "click", ref=ref_named(page, label))
+
+
+# How long a Chrome started by the test gets to say which port it listens on.
+STARTUP_S = 20
+
+_EXECUTABLE = (
+    "from playwright.sync_api import sync_playwright\n"
+    "with sync_playwright() as p: print(p.chromium.executable_path)"
+)
+
+
+@pytest.fixture
+def running_chrome(tmp_path: Path) -> Iterator[str]:
+    """A Chrome that someone else started, listening for CDP, as a cloud browser would be."""
+    executable = subprocess.run(
+        [sys.executable, "-c", _EXECUTABLE], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    profile = tmp_path / "their-chrome"
+    chrome = subprocess.Popen(
+        [
+            executable,
+            "--headless=new",
+            "--no-sandbox",
+            "--remote-debugging-port=0",
+            f"--user-data-dir={profile}",
+            "about:blank",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    port_file = profile / "DevToolsActivePort"
+    began = time.monotonic()
+    # The file appears before Chrome has written the port into it, so wait for the words.
+    while not _port_in(port_file) and time.monotonic() - began < STARTUP_S:
+        time.sleep(0.1)
+    try:
+        assert _port_in(port_file), "Chrome never said which port it listens on"
+        yield f"http://127.0.0.1:{port_file.read_text().split()[0]}"
+    finally:
+        chrome.terminate()
+        chrome.wait(timeout=STARTUP_S)
+
+
+def _port_in(port_file: Path) -> bool:
+    return port_file.is_file() and bool(port_file.read_text().split())

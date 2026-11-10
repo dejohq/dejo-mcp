@@ -10,7 +10,9 @@ R26-R50 cover what those miss: iframes, shadow DOM, custom dropdowns, date picke
 menus, infinite scroll, a second tab, a search box with suggestions, tables and long pages.
 R51-R61 cover what other browser tools can do that Dejo learned to: dialogs, right clicks,
 whole tables and many fields as JSON, closing a tab, a page's own API answers, another
-language or a phone, cookies and PDFs. They run on test services and practice sites.
+language or a phone, cookies and PDFs. R62-R64 cover what changes from one visit to the next:
+a dialog in the way of the next click, an element that arrives late, a menu item that moves.
+R51-R64 run on test services and practice sites.
 Where a site exists to practise test automation, it is used, because nobody minds being
 automated there and its pages stay the same for years.
 
@@ -772,5 +774,41 @@ TASKS: list[Task] = [
             "read pdf as answer",
         ),
         (r"re:\.pdf$",),
+    ),
+    # ------------------------------------------------------------------ when the site changes
+    Task(
+        "R62",
+        "demoqa.com",
+        "a dialog left open over the button the next step presses",
+        _steps(
+            "go https://demoqa.com/modal-dialogs",
+            'click button "Small modal"',
+            'click button "Large modal"',
+            'read css "#example-modal-sizes-title-lg" as answer',
+        ),
+        ("Large Modal",),
+    ),
+    Task(
+        "R63",
+        "the-internet.herokuapp.com",
+        "an element that arrives late",
+        _steps(
+            "go https://the-internet.herokuapp.com/dynamic_loading/2",
+            'click button "Start"',
+            'wait css "#finish h4"',
+            'read css "#finish h4" as answer',
+        ),
+        ("Hello World!",),
+    ),
+    Task(
+        "R64",
+        "the-internet.herokuapp.com",
+        "a menu item moved to a random place",
+        _steps(
+            "go https://the-internet.herokuapp.com/shifting_content/menu?mode=random&pixel_shift=100",
+            'click link "Home"',
+            'read css "h1.heading" as answer',
+        ),
+        ("Welcome to the-internet",),
     ),
 ]

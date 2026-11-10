@@ -1,0 +1,2030 @@
+{
+ "date": "2026-11-10",
+ "dejo_version": "0.4.0",
+ "task_timeout_s": 90,
+ "score": {
+  "dejo": {
+   "passed": 55,
+   "total": 61,
+   "failures_by_cause": {
+    "element not found": 2,
+    "site blocked or captcha": 4
+   }
+  },
+  "playwright": {
+   "passed": 54,
+   "total": 61,
+   "failures_by_cause": {
+    "wrong element": 1,
+    "page not ready": 3,
+    "site blocked or captcha": 3
+   }
+  }
+ },
+ "tasks": [
+  {
+   "id": "R01",
+   "site": "scrapethissite.com",
+   "covers": "search box, table row",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 8.2,
+   "answer": "261",
+   "expected": [
+    "261"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R02",
+   "site": "scrapethissite.com",
+   "covers": "pagination link",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 7.4,
+   "answer": "Edmonton Oilers",
+   "expected": [
+    "Edmonton Oilers"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R03",
+   "site": "packages.debian.org",
+   "covers": "two forms with the same labels, native select",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 11.1,
+   "answer": "Package: moon-buggy (1:1.0.51-13)",
+   "expected": [
+    "1:1.0.51-13",
+    "1.0.51-13"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R04",
+   "site": "packages.debian.org",
+   "covers": "native select, table row",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 9.4,
+   "answer": "armhf\t16.4 kB\t74.0 kB\t[list of files]",
+   "expected": [
+    "74.0 kB",
+    "74.0 kb",
+    "74.0",
+    "74 kB"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R05",
+   "site": "rfc-editor.org",
+   "covers": "search box, result list",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.5,
+   "answer": "RFC 10053:",
+   "expected": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R06",
+   "site": "rfc-editor.org",
+   "covers": "checkbox filters",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 11.4,
+   "answer": "RFC 10026:\n BCP 246: Operational Recommendations for DNSSEC Delegation Signer (DS) Automation",
+   "expected": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R07",
+   "site": "talbothistory.pastperfectonline.com",
+   "covers": "search box, record page",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.6,
+   "answer": "DATE\n1880-1890",
+   "expected": [
+    "1880-1890",
+    "1880–1890",
+    "1880 to 1890"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R08",
+   "site": "talbothistory.pastperfectonline.com",
+   "covers": "search, open one result among many",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 11.0,
+   "answer": "DESCRIPTION\nDel-Mar-Va Heartland magazine, summer 1977. Feature article on steamboats, including pictures of the Joppa. Also Bird watching article (pp18-20), Recipes and local real estate ads.\n\nThe Joppa is mentioned on p. 8, pictured on p.9 -- Built in 1885 for the Maryland Steamboat Company. Served the Choptank River until the early 1920s. known as one of the faster boats.\n\nGovernor Emerson C. Harrington is pictured on p. 7 at the Claiborne dock. A side-wheel steamer converted to carry automobiles began the Annapolis-Claiborne run in 1919. Automobiles were loaded from the side and after some twisting and backing were stowed forward.\n\nThe Talbot is picture on p.8 -- added to the fleet in 1912 for the Potomac River. Considered queen of the fleet. length of 192' with a 60' beam. Ran aground on the Tred Avon River.\n\nEmma Giles is pictured at Lowe's Wharf on p.6. Built in 1887 for the Tochester Steamboat Company. It serviced the Little Choptank and Miles River.",
+   "expected": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R09",
+   "site": "catalog.ccv.edu",
+   "covers": "catalog filter",
+   "engine": "dejo",
+   "passed": false,
+   "seconds": 8.1,
+   "answer": "",
+   "expected": [
+    "1",
+    "1 credit",
+    "Credits: 1"
+   ],
+   "failed_line": 1,
+   "failed_step": "go https://catalog.ccv.edu/",
+   "reply": "stopped at line 1 of 6: go https://catalog.ccv.edu/ -> Page.goto: net::ERR_CERT_INVALID at https://catalog.ccv.edu/\nnot run: 2 click link \"Course Descriptions\" · 3 select combobox \"Prefix\" \"MEC\" · 4 click button \"Filter\" · 5 click link \"MEC 2350 - Green Production\" · 6 read text \"Credits\" as answer\npage \"Privacy error\" chrome-error://chromewebdata/\ne6 h1 \"Your connection is not private\"\ne7: Attackers might be trying to steal your information from catalog.ccv.edu (for example, passwords, messages, or credit ca…\ne9 link \"Learn more about this warning\"\ne11 button \"net::ERR_CERT_INVALID\"\ne13 button \"Reload\"\ne14 button \"Advanced\"\nnext: send the rest, starting with a fixed version of that line",
+   "cause": "site blocked or captcha"
+  },
+  {
+   "id": "R10",
+   "site": "catalog.ccv.edu",
+   "covers": "catalog pagination",
+   "engine": "dejo",
+   "passed": false,
+   "seconds": 4.7,
+   "answer": "",
+   "expected": [
+    "MAT 1230 - College Algebra",
+    "MAT 1230",
+    "College Algebra"
+   ],
+   "failed_line": 1,
+   "failed_step": "go https://catalog.ccv.edu/",
+   "reply": "stopped at line 1 of 4: go https://catalog.ccv.edu/ -> Page.goto: net::ERR_CERT_INVALID at https://catalog.ccv.edu/\nnot run: 2 click link \"Course Descriptions\" · 3 click link \"3\" first · 4 read css \"td.width a\" last as answer\npage \"Privacy error\" chrome-error://chromewebdata/\ne6 h1 \"Your connection is not private\"\ne7: Attackers might be trying to steal your information from catalog.ccv.edu (for example, passwords, messages, or credit ca…\ne9 link \"Learn more about this warning\"\ne11 button \"net::ERR_CERT_INVALID\"\ne13 button \"Reload\"\ne14 button \"Advanced\"\nnext: send the rest, starting with a fixed version of that line",
+   "cause": "site blocked or captcha"
+  },
+  {
+   "id": "R11",
+   "site": "doververmont.com",
+   "covers": "drop-down site menu",
+   "engine": "dejo",
+   "passed": false,
+   "seconds": 21.6,
+   "answer": "",
+   "expected": [
+    "Brian Moore"
+   ],
+   "failed_line": 3,
+   "failed_step": "click link \"Highway and Transfer Station\"",
+   "reply": "stopped at line 3 of 4: click link \"Highway and Transfer Station\" -> the site showed a human check instead of the page; a captcha is in the way\ndone (kept in the draft): 1 go https://www.doververmont.com/ · 2 click button \"Town Services Departments & Resources\"\nnot run: 4 read text \"Road Foreman\" first as answer\npage \"Just a moment...\" https://www.doververmont.com/node/149\ne5 h1 \"www.doververmont.com\"\ne6 h2 \"Performing security verification\"\ne7: This website uses a security service to protect against malicious bots. This page is displayed while the website verifie…\ne16: Ray ID: a583c1bf6b1ad6d9\ne19: Performance and Security by\ne20 link \"Cloudflare, opens in a new tab\"\ne22 link \"Privacy, opens in a new tab\"\nnext: ask the user to solve it in a signed-in window (dejo_login)",
+   "cause": "site blocked or captcha"
+  },
+  {
+   "id": "R12",
+   "site": "doververmont.com",
+   "covers": "long link name in a news carousel",
+   "engine": "dejo",
+   "passed": false,
+   "seconds": 21.7,
+   "answer": "",
+   "expected": [
+    "$55 each",
+    "$55",
+    "$55.00"
+   ],
+   "failed_line": 2,
+   "failed_step": "click link \"2026 Transfer Station Rates & Fees\" first",
+   "reply": "stopped at line 2 of 3: click link \"2026 Transfer Station Rates & Fees\" first -> the site showed a human check instead of the page; a captcha is in the way\ndone (kept in the draft): 1 go https://www.doververmont.com/\nnot run: 3 read text \"Mattress\" first as answer\npage \"Just a moment...\" https://www.doververmont.com/highwayandtransferstation/page/2026-transfer-station-rates-fees\ne5 h1 \"www.doververmont.com\"\ne6 h2 \"Performing security verification\"\ne7: This website uses a security service to protect against malicious bots. This page is displayed while the website verifie…\ne16: Ray ID: a583c1c829b31744\ne19: Performance and Security by\ne20 link \"Cloudflare, opens in a new tab\"\ne22 link \"Privacy, opens in a new tab\"\nnext: ask the user to solve it in a signed-in window (dejo_login)",
+   "cause": "site blocked or captcha"
+  },
+  {
+   "id": "R13",
+   "site": "ctan.org",
+   "covers": "search box with no label",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.5,
+   "answer": "Version\t2009-11-13",
+   "expected": [
+    "2009-11-13"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R14",
+   "site": "practicesoftwaretesting.com",
+   "covers": "checkbox filter in an Angular shop",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.9,
+   "answer": "Belt Sander\nA\nB\nC\nD\nE\n$73.59",
+   "expected": [
+    "$73.59",
+    "73.59"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R15",
+   "site": "practicesoftwaretesting.com",
+   "covers": "search, product page",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 8.8,
+   "answer": "Weight\t550g",
+   "expected": [
+    "550g",
+    "550 g"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R16",
+   "site": "demowebshop.tricentis.com",
+   "covers": "category, price filter",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 8.7,
+   "answer": "Science",
+   "expected": [
+    "Science"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R17",
+   "site": "demowebshop.tricentis.com",
+   "covers": "category, second page",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 9.1,
+   "answer": "30.00",
+   "expected": [
+    "30.00",
+    "$30.00"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R18",
+   "site": "collection.internationalfolkart.org",
+   "covers": "museum search, object page",
+   "engine": "dejo",
+   "passed": false,
+   "seconds": 10.6,
+   "answer": "",
+   "expected": [
+    "FA.2007.40.25"
+   ],
+   "failed_line": 5,
+   "failed_step": "read css \".invnoField\" as answer",
+   "reply": "stopped at line 5 of 5: read css \".invnoField\" as answer -> nothing on this page matches '.invnoField'. Look at the page again for fresh refs, or name it: role \"name\", text \"...\", label \"...\" or css \"...\".\ndone (kept in the draft): 1 go http://collection.internationalfolkart.org/ · 2 fill textbox \"Keyword Search\" last \"Arjuna Sasrabahu\" · 3 press Enter · 4 click link \"Arjuna Sasrabahu\" first\npage \"An exception has occurred – eMuseum\" http://collection.internationalfolkart.org/objects/24791/arjuna-sasrabahu-also-known-as-harjuna-sasra?ctx=[hidden token]&idx=0\ne1: null\ne5 link \"Skip to main content\"\ne9 link \"Logo\"\ne12 navigation \"eMuseum Main Menu\"\ne13 link \"Collections\"\ne14 link \"Groups\"\ne15 link \"Exhibitions\"\ne16 link \"Favorites\"\ne17 link \"Rights & Reproductions\"\ne18 link \"About\"\ne19 link \"Help\"\ne20 generic\ne25 h1 \"An exception has occurred\"\ne30 textbox \"Keyword Search\"\ne31 textbox \"Keyword Search\"\ne32 button \"►\"\ne34 link \"Advanced Search\"\ne38: Please contact the system administrator.\ne39 link \"Return to start page\"\ne40 link \"Return to login page\"\ne46 link \"eMuseum\"\ne49: Copyright © 2026 eMuseum\ne53 link \"Powered by eMuseum\"\ncodes and sign-in tokens are hidden in this view; to use one, read the element that holds it\nnext: send the rest, starting with a fixed version of that line. Do not send lines 1-4 again: they ran and are kept, and the refs below are for the page as it is now",
+   "cause": "element not found"
+  },
+  {
+   "id": "R19",
+   "site": "collection.internationalfolkart.org",
+   "covers": "collection, facet filter",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 11.6,
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "expected": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R20",
+   "site": "gutenberg.org",
+   "covers": "search box, book page table",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 8.3,
+   "answer": "Release Date\tOct 20, 2026",
+   "expected": [
+    "Oct 20, 2026",
+    "20 Oct 2026",
+    "October 20, 2026",
+    "20 October 2026",
+    "2026-10-20"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R21",
+   "site": "pub.dev",
+   "covers": "search, package tabs",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 11.9,
+   "answer": "Removed Generator+ dep",
+   "expected": [
+    "Removed Generator+ dep"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R22",
+   "site": "pub.dev",
+   "covers": "search, versions table",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.7,
+   "answer": "2.0",
+   "expected": [
+    "2.0"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R23",
+   "site": "tcatbus.com",
+   "covers": "site menu, long page",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 15.0,
+   "answer": "Danby\nDotson Park, across from Danby Town Hall",
+   "expected": [
+    "Dotson Park"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R24",
+   "site": "tcatbus.com",
+   "covers": "site menu, fares table",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 11.4,
+   "answer": "Weekly\t$17.50",
+   "expected": [
+    "$17.50",
+    "17.50"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R25",
+   "site": "hackage.haskell.org",
+   "covers": "category list, package page",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 60.9,
+   "answer": "Author\nAlberto Perez",
+   "expected": [
+    "Alberto Perez"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R26",
+   "site": "the-internet.herokuapp.com",
+   "covers": "iframe: text in a rich text editor",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 5.5,
+   "answer": "Your content goes here.",
+   "expected": [
+    "Your content goes here."
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R27",
+   "site": "the-internet.herokuapp.com",
+   "covers": "iframe: frames inside frames",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 20.2,
+   "answer": "MIDDLE",
+   "expected": [
+    "MIDDLE"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R28",
+   "site": "jqueryui.com",
+   "covers": "iframe: tabs widget",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 8.2,
+   "answer": "Morbi tincidunt, dui sit amet facilisis feugiat, odio metus gravida ante, ut pharetra massa metus id nunc. Duis scelerisque molestie turpis. Sed fringilla, massa eget luctus malesuada, metus eros molestie lectus, ut tempus eros massa ut dolor. Aenean aliquet fringilla sem. Suspendisse sed ligula in ligula suscipit aliquam. Praesent in eros vestibulum mi adipiscing adipiscing. Morbi facilisis. Curabitur ornare consequat nunc. Aenean vel metus. Ut posuere viverra nulla. Aliquam erat volutpat. Pellentesque convallis. Maecenas feugiat, tellus pellentesque pretium posuere, felis lorem euismod felis, eu ornare leo nisi vel felis. Mauris consectetur tortor et purus.",
+   "expected": [
+    "Morbi tincidunt"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R29",
+   "site": "shop.polymer-project.org",
+   "covers": "shadow DOM: a web-component shop",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 8.5,
+   "answer": "$50.20",
+   "expected": [
+    "$50.20"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R30",
+   "site": "mdn.github.io",
+   "covers": "shadow DOM: text inside a custom element",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 4.0,
+   "answer": "Your card validation code (CVC) is an extra security feature — it is the last 3 or 4 numbers on the back of your card.",
+   "expected": [
+    "last 3 or 4 numbers on the back of your card"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R31",
+   "site": "jqueryui.com",
+   "covers": "custom dropdown inside an iframe",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 9.0,
+   "answer": "Fast",
+   "expected": [
+    "Fast"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R32",
+   "site": "demoqa.com",
+   "covers": "custom dropdown: react-select",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.9,
+   "answer": "option Prof., selected.\nProf.",
+   "expected": [
+    "Prof."
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R33",
+   "site": "jqueryui.com",
+   "covers": "date picker inside an iframe",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 13.4,
+   "answer": "12/15/2026",
+   "expected": [
+    "re:^\\d\\d/15/\\d{4}$"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R34",
+   "site": "demoqa.com",
+   "covers": "date picker: react-datepicker",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.1,
+   "answer": "05/15/2020",
+   "expected": [
+    "05/15/2020"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R35",
+   "site": "the-internet.herokuapp.com",
+   "covers": "hover: caption shown on hover",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 4.2,
+   "answer": "name: user2",
+   "expected": [
+    "name: user2"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R36",
+   "site": "the-internet.herokuapp.com",
+   "covers": "hover menu: a link under a menu that opens on hover",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 9.4,
+   "answer": "JQuery UI",
+   "expected": [
+    "JQuery UI"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R37",
+   "site": "webdriveruniversity.com",
+   "covers": "hover menu: buttons that open a list",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 7.4,
+   "answer": "Link 1",
+   "expected": [
+    "Link 1"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R38",
+   "site": "quotes.toscrape.com",
+   "covers": "infinite scroll",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 6.9,
+   "answer": "Marilyn Monroe",
+   "expected": [
+    "Marilyn Monroe"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R39",
+   "site": "the-internet.herokuapp.com",
+   "covers": "a second tab",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 7.1,
+   "answer": "New Window",
+   "expected": [
+    "New Window"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R40",
+   "site": "webdriveruniversity.com",
+   "covers": "a second tab from a long link",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.4,
+   "answer": "Jemma\tJackson\t94",
+   "expected": [
+    "94"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R41",
+   "site": "en.wikipedia.org",
+   "covers": "search box with suggestions",
+   "engine": "dejo",
+   "passed": false,
+   "seconds": 8.3,
+   "answer": "",
+   "expected": [
+    "Ada Lovelace"
+   ],
+   "failed_line": 3,
+   "failed_step": "click option \"Ada Lovelace\" first",
+   "reply": "stopped at line 3 of 4: click option \"Ada Lovelace\" first -> nothing on this page is option \"Ada Lovelace\"\ndone (kept in the draft): 1 go https://en.wikipedia.org/wiki/Main_Page · 2 type searchbox \"Search Wikipedia\" \"Ada Lovel\"\nnot run: 4 read heading \"Ada Lovelace\" first as answer\npage \"Wikipedia, the free encyclopedia\" https://en.wikipedia.org/wiki/Main_Page\nbest for \"r41 click option ada lovelace first\": e392: – The first episode of the children's television series was… · e265 link \"Start a new article\"\ne2 link \"Jump to content\"\ne6 navigation \"Site\"\ne7 generic \"Main menu\"\ne8 button \"Main menu\"\ne11: Main menu\ne12 link \"Wikipedia The Free Encyclopedia\"\ne810 combobox \"Search Wikipedia\" [expanded]\ne811 listbox \"Search results\"\ne822 button \"Search\"\ne26 navigation \"Personal tools\"\ne32 link \"Donate\"\ne34 link \"Create account\"\ne36 link \"Log in\"\ne46 navigation \"Namespaces\"\ne51 link \"Main Page\"\ne54 link \"Talk\"\ne57 navigation \"Views\"\ne62 link \"Read\"\ne65 link \"View source\"\ne68 link \"View history\"\ne71 link \"Save\"\ne74 navigation \"Page tools\"\ne76 button \"Tools\"\ne79: Tools\ne82 navigation \"Appearance\"\ne86: Appearance\ne87 button \"Hide Appearance\"\ne89: Text\ng1 3 rows:\n r1 e96 radio \"Small\" · e98: Small\n r2 e101 radio \"Standard\" [checked] · e103: Standard\n r3 e106 radio \"Large\" · e108: Large\ne111: Width\ne118 radio \"Standard\" [checked]\ne120: Standard\ne123 radio \"Wide\"\ne125: Wide\ne128: Color\ng2 3 rows:\n r1 e135 radio \"Automatic\" · e137: Automatic\n r2 e140 radio \"Light\" [checked] · e142: Light\n r",
+   "cause": "element not found"
+  },
+  {
+   "id": "R42",
+   "site": "jqueryui.com",
+   "covers": "search suggestions inside an iframe",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.3,
+   "answer": "JavaScript",
+   "expected": [
+    "JavaScript"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R43",
+   "site": "webdriveruniversity.com",
+   "covers": "suggestions list",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 5.9,
+   "answer": "Chips",
+   "expected": [
+    "Chips"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R44",
+   "site": "the-internet.herokuapp.com",
+   "covers": "table: sort by a column header",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 4.6,
+   "answer": "Doe",
+   "expected": [
+    "Doe"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R45",
+   "site": "webscraper.io",
+   "covers": "table: one cell by its row",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 7.5,
+   "answer": "3\tLarry\tthe Bird\t@twitter",
+   "expected": [
+    "@twitter"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R46",
+   "site": "en.wikipedia.org",
+   "covers": "long page: an infobox row",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 7.6,
+   "answer": "Designed by\tGuido van Rossum",
+   "expected": [
+    "Guido van Rossum"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R47",
+   "site": "www.rfc-editor.org",
+   "covers": "long text page: a section deep down",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 18.3,
+   "answer": "15.5.19. 418 (Unused)",
+   "expected": [
+    "418 (Unused)"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R48",
+   "site": "the-internet.herokuapp.com",
+   "covers": "content that appears after a click",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 10.2,
+   "answer": "Hello World!",
+   "expected": [
+    "Hello World!"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R49",
+   "site": "books.toscrape.com",
+   "covers": "category link with spaces around its name",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 6.5,
+   "answer": "£45.17",
+   "expected": [
+    "£45.17"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R50",
+   "site": "quotes.toscrape.com",
+   "covers": "a page drawn by JavaScript, then the next page",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 7.1,
+   "answer": "Marilyn Monroe",
+   "expected": [
+    "Marilyn Monroe"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R51",
+   "site": "the-internet.herokuapp.com",
+   "covers": "cancel a prompt box",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 5.3,
+   "answer": "You entered: null",
+   "expected": [
+    "You entered: null"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R52",
+   "site": "the-internet.herokuapp.com",
+   "covers": "type an answer into a prompt box",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 5.2,
+   "answer": "You entered: Dejo",
+   "expected": [
+    "You entered: Dejo"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R53",
+   "site": "the-internet.herokuapp.com",
+   "covers": "right click, and read the alert it opens",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 5.0,
+   "answer": "You selected a context menu",
+   "expected": [
+    "You selected a context menu"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R54",
+   "site": "the-internet.herokuapp.com",
+   "covers": "a whole table as JSON",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 4.0,
+   "answer": "[{\"Last Name\": \"Smith\", \"First Name\": \"John\", \"Email\": \"jsmith@gmail.com\", \"Due\": \"$50.00\", \"Web Site\": \"http://www.jsmith.com\", \"Action\": \"edit delete\"}, {\"Last Name\": \"Bach\", \"First Name\": \"Frank\", \"Email\": \"fbach@yahoo.com\", \"Due\": \"$51.00\", \"Web Site\": \"http://www.frank.com\", \"Action\": \"edit delete\"}, {\"Last Name\": \"Doe\", \"First Name\": \"Jason\", \"Email\": \"jdoe@hotmail.com\", \"Due\": \"$100.00\", \"Web Site\": \"http://www.jdoe.com\", \"Action\": \"edit delete\"}, {\"Last Name\": \"Conway\", \"First Name\": \"Tim\", \"Email\": \"tconway@earthlink.net\", \"Due\": \"$50.00\", \"Web Site\": \"http://www.timconway.com\", \"Action\": \"edit delete\"}]",
+   "expected": [
+    "re:\"Last Name\": \"Smith\".*\"Email\": \"jsmith@gmail.com\""
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R55",
+   "site": "the-internet.herokuapp.com",
+   "covers": "a new window, then closing it",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 7.2,
+   "answer": "Opening a new window",
+   "expected": [
+    "Opening a new window"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R56",
+   "site": "books.toscrape.com",
+   "covers": "many fields of every card at once",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 5.1,
+   "answer": "[{\"title\": \"A Light in the Attic\", \"price\": \"£51.77\"}, {\"title\": \"Tipping the Velvet\", \"price\": \"£53.74\"}, {\"title\": \"Soumission\", \"price\": \"£50.10\"}, {\"title\": \"Sharp Objects\", \"price\": \"£47.82\"}, {\"title\": \"Sapiens: A Brief History of Humankind\", \"price\": \"£54.23\"}, {\"title\": \"The Requiem Red\", \"price\": \"£22.65\"}, {\"title\": \"The Dirty Little Secrets of Getting Your Dream Job\", \"price\": \"£33.34\"}, {\"title\": \"The Coming Woman: A Novel Based on the Life of the Infamous Feminist, Victoria Woodhull\", \"price\": \"£17.93\"}, {\"title\": \"The Boys in the Boat: Nine Americans and Their Epic Quest for Gold at the 1936 Berlin Olympics\", \"price\": \"£22.60\"}, {\"title\": \"The Black Maria\", \"price\": \"£52.15\"}, {\"title\": \"Starving Hearts (Triangular Trade Trilogy, #1)\", \"price\": \"£13.99\"}, {\"title\": \"Shakespeare's Sonnets\", \"price\": \"£20.66\"}, {\"title\": \"Set Me Free\", \"price\": \"£17.46\"}, {\"title\": \"Scott Pilgrim's Precious Little Life (Scott Pilgrim #1)\", \"price\": \"£52.29\"}, {\"title\": \"Rip it Up and Start Again\", \"price\": \"£35.02\"}, {\"title\": \"Our Band Could Be Your Life: Scenes from the American Indie Underground, 1981-1991\", \"price\": \"£57.25\"}, {\"title\": \"Olio\", \"price\": \"£23.88\"}, {\"title\": \"Mesaerion: The Best Science Fiction Stories 1800-1849\", \"price\": \"£37.59\"}, {\"title\": \"Libertarianism for Beginners\", \"price\": \"£51.33\"}, {\"title\": \"It's Only the Himalayas\", \"price\": \"£45.17\"}]",
+   "expected": [
+    "re:\"title\": \"A Light in the Attic\", \"price\": \"£51.77\""
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R57",
+   "site": "quotes.toscrape.com",
+   "covers": "the JSON a page draws itself from",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 4.1,
+   "answer": "{\"has_next\":true,\"page\":1,\"quotes\":[{\"author\":{\"goodreads_link\":\"/author/show/9810.Albert_Einstein\",\"name\":\"Albert Einstein\",\"slug\":\"Albert-Einstein\"},\"tags\":[\"change\",\"deep-thoughts\",\"thinking\",\"world\"],\"text\":\"\\u201cThe world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/1077326.J_K_Rowling\",\"name\":\"J.K. Rowling\",\"slug\":\"J-K-Rowling\"},\"tags\":[\"abilities\",\"choices\"],\"text\":\"\\u201cIt is our choices, Harry, that show what we truly are, far more than our abilities.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/9810.Albert_Einstein\",\"name\":\"Albert Einstein\",\"slug\":\"Albert-Einstein\"},\"tags\":[\"inspirational\",\"life\",\"live\",\"miracle\",\"miracles\"],\"text\":\"\\u201cThere are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/1265.Jane_Austen\",\"name\":\"Jane Austen\",\"slug\":\"Jane-Austen\"},\"tags\":[\"aliteracy\",\"books\",\"classic\",\"humor\"],\"text\":\"\\u201cThe person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/82952.Marilyn_Monroe\",\"name\":\"Marilyn Monroe\",\"slug\":\"Marilyn-Monroe\"},\"tags\":[\"be-yourself\",\"inspirational\"],\"text\":\"\\u201cImperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/9810.Albert_Einstein\",\"name\":\"Albert Einstein\",\"slug\":\"Albert-Einstein\"},\"tags\":[\"adulthood\",\"success\",\"value\"],\"text\":\"\\u201cTry not to become a man of success. Rather become a man of value.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/7617.Andr_Gide\",\"name\":\"Andr\\u00e9 Gide\",\"slug\":\"Andre-Gide\"},\"tags\":[\"life\",\"love\"],\"text\":\"\\u201cIt is better to be hated for what you are than to be loved for what you are not.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/3091287.Thomas_A_Edison\",\"name\":\"Thomas A. Edison\",\"slug\":\"Thomas-A-Edison\"},\"tags\":[\"edison\",\"failure\",\"inspirational\",\"paraphrased\"],\"text\":\"\\u201cI have not failed. I've just found 10,000 ways that won't work.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/44566.Eleanor_Roosevelt\",\"name\":\"Eleanor Roosevelt\",\"slug\":\"Eleanor-Roosevelt\"},\"tags\":[\"misattributed-eleanor-roosevelt\"],\"text\":\"\\u201cA woman is like a tea bag; you never know how strong it is until it's in hot water.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/7103.Steve_Martin\",\"name\":\"Steve Martin\",\"slug\":\"Steve-Martin\"},\"tags\":[\"humor\",\"obvious\",\"simile\"],\"text\":\"\\u201cA day without sunshine is like, you know, night.\\u201d\"}],\"tag\":null,\"top_ten_tags\":[[\"love\",14],[\"inspirational\",13],[\"life\",13],[\"humor\",12],[\"books\",11],[\"reading\",7],[\"friendship\",5],[\"friends\",4],[\"truth\",4],[\"simile\",3]]}\n",
+   "expected": [
+    "re:\"has_next\": ?true"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R58",
+   "site": "httpbin.org",
+   "covers": "another language, as the site is told it",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 6.2,
+   "answer": "{\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\",\n    \"Accept-Encoding\": \"gzip, deflate, br, zstd\",\n    \"Accept-Language\": \"de-DE\",\n    \"Host\": \"httpbin.org\",\n    \"Priority\": \"u=0, i\",\n    \"Sec-Fetch-Dest\": \"document\",\n    \"Sec-Fetch-Mode\": \"navigate\",\n    \"Sec-Fetch-Site\": \"none\",\n    \"Sec-Fetch-User\": \"?1\",\n    \"Upgrade-Insecure-Requests\": \"1\",\n    \"User-Agent\": \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36\"\n  }\n}",
+   "expected": [
+    "re:\"Accept-Language\": \"de-DE"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R59",
+   "site": "httpbin.org",
+   "covers": "a phone, as the site is told it",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 5.6,
+   "answer": "{\n  \"user-agent\": \"Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1\"\n}",
+   "expected": [
+    "re:iPhone"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R60",
+   "site": "httpbin.org",
+   "covers": "a cookie the site set",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 3.1,
+   "answer": "flavour=ginger (httpbin.org)",
+   "expected": [
+    "flavour=ginger (httpbin.org)"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R61",
+   "site": "example.com",
+   "covers": "the page as a PDF",
+   "engine": "dejo",
+   "passed": true,
+   "seconds": 3.8,
+   "answer": "/tmp/dejo-reliability-b2_gdqqw/captures/example.com-20261110-084322-315910.pdf",
+   "expected": [
+    "re:\\.pdf$"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R01",
+   "site": "scrapethissite.com",
+   "covers": "search box, table row",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.0,
+   "answer": "261",
+   "expected": [
+    "261"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R02",
+   "site": "scrapethissite.com",
+   "covers": "pagination link",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.1,
+   "answer": "Edmonton Oilers",
+   "expected": [
+    "Edmonton Oilers"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R03",
+   "site": "packages.debian.org",
+   "covers": "two forms with the same labels, native select",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.0,
+   "answer": "Package: moon-buggy (1:1.0.51-13)",
+   "expected": [
+    "1:1.0.51-13",
+    "1.0.51-13"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R04",
+   "site": "packages.debian.org",
+   "covers": "native select, table row",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.4,
+   "answer": "armhf\t16.4 kB\t74.0 kB\t[list of files]",
+   "expected": [
+    "74.0 kB",
+    "74.0 kb",
+    "74.0",
+    "74 kB"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R05",
+   "site": "rfc-editor.org",
+   "covers": "search box, result list",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.2,
+   "answer": "RFC 10053:",
+   "expected": [
+    "RFC 10053",
+    "10053",
+    "RFC10053"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R06",
+   "site": "rfc-editor.org",
+   "covers": "checkbox filters",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 4.9,
+   "answer": "RFC 10026:\n BCP 246: Operational Recommendations for DNSSEC Delegation Signer (DS) Automation",
+   "expected": [
+    "BCP 246",
+    "246",
+    "BCP246"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R07",
+   "site": "talbothistory.pastperfectonline.com",
+   "covers": "search box, record page",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.9,
+   "answer": "DATE\n1880-1890",
+   "expected": [
+    "1880-1890",
+    "1880–1890",
+    "1880 to 1890"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R08",
+   "site": "talbothistory.pastperfectonline.com",
+   "covers": "search, open one result among many",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.6,
+   "answer": "DESCRIPTION\nDel-Mar-Va Heartland magazine, summer 1977. Feature article on steamboats, including pictures of the Joppa. Also Bird watching article (pp18-20), Recipes and local real estate ads.\n\nThe Joppa is mentioned on p. 8, pictured on p.9 -- Built in 1885 for the Maryland Steamboat Company. Served the Choptank River until the early 1920s. known as one of the faster boats.\n\nGovernor Emerson C. Harrington is pictured on p. 7 at the Claiborne dock. A side-wheel steamer converted to carry automobiles began the Annapolis-Claiborne run in 1919. Automobiles were loaded from the side and after some twisting and backing were stowed forward.\n\nThe Talbot is picture on p.8 -- added to the fleet in 1912 for the Potomac River. Considered queen of the fleet. length of 192' with a 60' beam. Ran aground on the Tred Avon River.\n\nEmma Giles is pictured at Lowe's Wharf on p.6. Built in 1887 for the Tochester Steamboat Company. It serviced the Little Choptank and Miles River.",
+   "expected": [
+    "Del-Mar-Va Heartland",
+    "Del-Mar-Va Heartland magazine"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R09",
+   "site": "catalog.ccv.edu",
+   "covers": "catalog filter",
+   "engine": "playwright",
+   "passed": false,
+   "seconds": 23.6,
+   "answer": "",
+   "expected": [
+    "1",
+    "1 credit",
+    "Credits: 1"
+   ],
+   "failed_line": 1,
+   "failed_step": "go https://catalog.ccv.edu/",
+   "reply": "Page.goto: Timeout 15000ms exceeded.",
+   "cause": "site blocked or captcha"
+  },
+  {
+   "id": "R10",
+   "site": "catalog.ccv.edu",
+   "covers": "catalog pagination",
+   "engine": "playwright",
+   "passed": false,
+   "seconds": 5.7,
+   "answer": "",
+   "expected": [
+    "MAT 1230 - College Algebra",
+    "MAT 1230",
+    "College Algebra"
+   ],
+   "failed_line": 1,
+   "failed_step": "go https://catalog.ccv.edu/",
+   "reply": "Page.goto: net::ERR_CERT_INVALID at https://catalog.ccv.edu/",
+   "cause": "site blocked or captcha"
+  },
+  {
+   "id": "R11",
+   "site": "doververmont.com",
+   "covers": "drop-down site menu",
+   "engine": "playwright",
+   "passed": false,
+   "seconds": 20.3,
+   "answer": "",
+   "expected": [
+    "Brian Moore"
+   ],
+   "failed_line": 2,
+   "failed_step": "click button \"Town Services Departments & Resources\"",
+   "reply": "Locator.click: Timeout 15000ms exceeded.",
+   "cause": "site blocked or captcha"
+  },
+  {
+   "id": "R12",
+   "site": "doververmont.com",
+   "covers": "long link name in a news carousel",
+   "engine": "playwright",
+   "passed": false,
+   "seconds": 20.8,
+   "answer": "",
+   "expected": [
+    "$55 each",
+    "$55",
+    "$55.00"
+   ],
+   "failed_line": 2,
+   "failed_step": "click link \"2026 Transfer Station Rates & Fees\" first",
+   "reply": "Locator.click: Timeout 15000ms exceeded.",
+   "cause": "page not ready"
+  },
+  {
+   "id": "R13",
+   "site": "ctan.org",
+   "covers": "search box with no label",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.5,
+   "answer": "Version\t2009-11-13",
+   "expected": [
+    "2009-11-13"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R14",
+   "site": "practicesoftwaretesting.com",
+   "covers": "checkbox filter in an Angular shop",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 4.4,
+   "answer": "Belt Sander\nA\nB\nC\nD\nE\n$73.59",
+   "expected": [
+    "$73.59",
+    "73.59"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R15",
+   "site": "practicesoftwaretesting.com",
+   "covers": "search, product page",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 4.7,
+   "answer": "Weight\t550g",
+   "expected": [
+    "550g",
+    "550 g"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R16",
+   "site": "demowebshop.tricentis.com",
+   "covers": "category, price filter",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 8.4,
+   "answer": "Science",
+   "expected": [
+    "Science"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R17",
+   "site": "demowebshop.tricentis.com",
+   "covers": "category, second page",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 9.0,
+   "answer": "30.00",
+   "expected": [
+    "30.00",
+    "$30.00"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R18",
+   "site": "collection.internationalfolkart.org",
+   "covers": "museum search, object page",
+   "engine": "playwright",
+   "passed": false,
+   "seconds": 22.2,
+   "answer": "",
+   "expected": [
+    "FA.2007.40.25"
+   ],
+   "failed_line": 5,
+   "failed_step": "read css \".invnoField\" as answer",
+   "reply": "Locator.inner_text: Timeout 15000ms exceeded.",
+   "cause": "page not ready"
+  },
+  {
+   "id": "R19",
+   "site": "collection.internationalfolkart.org",
+   "covers": "collection, facet filter",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 8.2,
+   "answer": "One Hundred Aspects of the Moon: Moon of the Lonely House",
+   "expected": [
+    "One Hundred Aspects of the Moon: Moon of the Lonely House",
+    "Moon of the Lonely House"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R20",
+   "site": "gutenberg.org",
+   "covers": "search box, book page table",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.9,
+   "answer": "Release Date\tOct 20, 2026",
+   "expected": [
+    "Oct 20, 2026",
+    "20 Oct 2026",
+    "October 20, 2026",
+    "20 October 2026",
+    "2026-10-20"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R21",
+   "site": "pub.dev",
+   "covers": "search, package tabs",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 7.8,
+   "answer": "Removed Generator+ dep",
+   "expected": [
+    "Removed Generator+ dep"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R22",
+   "site": "pub.dev",
+   "covers": "search, versions table",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 7.5,
+   "answer": "2.0",
+   "expected": [
+    "2.0"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R23",
+   "site": "tcatbus.com",
+   "covers": "site menu, long page",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 7.9,
+   "answer": "Danby\nDotson Park, across from Danby Town Hall",
+   "expected": [
+    "Dotson Park"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R24",
+   "site": "tcatbus.com",
+   "covers": "site menu, fares table",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 11.9,
+   "answer": "Weekly\t$17.50",
+   "expected": [
+    "$17.50",
+    "17.50"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R25",
+   "site": "hackage.haskell.org",
+   "covers": "category list, package page",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 20.5,
+   "answer": "Author\nAlberto Perez",
+   "expected": [
+    "Alberto Perez"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R26",
+   "site": "the-internet.herokuapp.com",
+   "covers": "iframe: text in a rich text editor",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 8.1,
+   "answer": "Your content goes here.",
+   "expected": [
+    "Your content goes here."
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R27",
+   "site": "the-internet.herokuapp.com",
+   "covers": "iframe: frames inside frames",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.9,
+   "answer": "MIDDLE",
+   "expected": [
+    "MIDDLE"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R28",
+   "site": "jqueryui.com",
+   "covers": "iframe: tabs widget",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.8,
+   "answer": "Morbi tincidunt, dui sit amet facilisis feugiat, odio metus gravida ante, ut pharetra massa metus id nunc. Duis scelerisque molestie turpis. Sed fringilla, massa eget luctus malesuada, metus eros molestie lectus, ut tempus eros massa ut dolor. Aenean aliquet fringilla sem. Suspendisse sed ligula in ligula suscipit aliquam. Praesent in eros vestibulum mi adipiscing adipiscing. Morbi facilisis. Curabitur ornare consequat nunc. Aenean vel metus. Ut posuere viverra nulla. Aliquam erat volutpat. Pellentesque convallis. Maecenas feugiat, tellus pellentesque pretium posuere, felis lorem euismod felis, eu ornare leo nisi vel felis. Mauris consectetur tortor et purus.",
+   "expected": [
+    "Morbi tincidunt"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R29",
+   "site": "shop.polymer-project.org",
+   "covers": "shadow DOM: a web-component shop",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.2,
+   "answer": "$50.20",
+   "expected": [
+    "$50.20"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R30",
+   "site": "mdn.github.io",
+   "covers": "shadow DOM: text inside a custom element",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.0,
+   "answer": "Your card validation code (CVC) is an extra security feature — it is the last 3 or 4 numbers on the back of your card.",
+   "expected": [
+    "last 3 or 4 numbers on the back of your card"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R31",
+   "site": "jqueryui.com",
+   "covers": "custom dropdown inside an iframe",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.3,
+   "answer": "Fast",
+   "expected": [
+    "Fast"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R32",
+   "site": "demoqa.com",
+   "covers": "custom dropdown: react-select",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.5,
+   "answer": "option Prof., selected.\nProf.",
+   "expected": [
+    "Prof."
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R33",
+   "site": "jqueryui.com",
+   "covers": "date picker inside an iframe",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.8,
+   "answer": "12/15/2026",
+   "expected": [
+    "re:^\\d\\d/15/\\d{4}$"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R34",
+   "site": "demoqa.com",
+   "covers": "date picker: react-datepicker",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 7.7,
+   "answer": "05/15/2020",
+   "expected": [
+    "05/15/2020"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R35",
+   "site": "the-internet.herokuapp.com",
+   "covers": "hover: caption shown on hover",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.0,
+   "answer": "name: user2",
+   "expected": [
+    "name: user2"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R36",
+   "site": "the-internet.herokuapp.com",
+   "covers": "hover menu: a link under a menu that opens on hover",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.9,
+   "answer": "JQuery UI",
+   "expected": [
+    "JQuery UI"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R37",
+   "site": "webdriveruniversity.com",
+   "covers": "hover menu: buttons that open a list",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.4,
+   "answer": "Link 1",
+   "expected": [
+    "Link 1"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R38",
+   "site": "quotes.toscrape.com",
+   "covers": "infinite scroll",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.7,
+   "answer": "Marilyn Monroe",
+   "expected": [
+    "Marilyn Monroe"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R39",
+   "site": "the-internet.herokuapp.com",
+   "covers": "a second tab",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.5,
+   "answer": "New Window",
+   "expected": [
+    "New Window"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R40",
+   "site": "webdriveruniversity.com",
+   "covers": "a second tab from a long link",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 7.5,
+   "answer": "Jemma\tJackson\t94",
+   "expected": [
+    "94"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R41",
+   "site": "en.wikipedia.org",
+   "covers": "search box with suggestions",
+   "engine": "playwright",
+   "passed": false,
+   "seconds": 21.7,
+   "answer": "",
+   "expected": [
+    "Ada Lovelace"
+   ],
+   "failed_line": 3,
+   "failed_step": "click option \"Ada Lovelace\" first",
+   "reply": "Locator.click: Timeout 15000ms exceeded.",
+   "cause": "page not ready"
+  },
+  {
+   "id": "R42",
+   "site": "jqueryui.com",
+   "covers": "search suggestions inside an iframe",
+   "engine": "playwright",
+   "passed": false,
+   "seconds": 5.7,
+   "answer": "",
+   "expected": [
+    "JavaScript"
+   ],
+   "failed_line": 3,
+   "failed_step": "click text \"JavaScript\"",
+   "reply": "Locator.click: Error: strict mode violation: get_by_text(\"JavaScript\") resolved to 3 elements:",
+   "cause": "wrong element"
+  },
+  {
+   "id": "R43",
+   "site": "webdriveruniversity.com",
+   "covers": "suggestions list",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.5,
+   "answer": "Chips",
+   "expected": [
+    "Chips"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R44",
+   "site": "the-internet.herokuapp.com",
+   "covers": "table: sort by a column header",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.2,
+   "answer": "Doe",
+   "expected": [
+    "Doe"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R45",
+   "site": "webscraper.io",
+   "covers": "table: one cell by its row",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.4,
+   "answer": "3\tLarry\tthe Bird\t@twitter",
+   "expected": [
+    "@twitter"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R46",
+   "site": "en.wikipedia.org",
+   "covers": "long page: an infobox row",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.3,
+   "answer": "Designed by\tGuido van Rossum",
+   "expected": [
+    "Guido van Rossum"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R47",
+   "site": "www.rfc-editor.org",
+   "covers": "long text page: a section deep down",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.2,
+   "answer": "15.5.19. 418 (Unused)",
+   "expected": [
+    "418 (Unused)"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R48",
+   "site": "the-internet.herokuapp.com",
+   "covers": "content that appears after a click",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 10.4,
+   "answer": "Hello World!",
+   "expected": [
+    "Hello World!"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R49",
+   "site": "books.toscrape.com",
+   "covers": "category link with spaces around its name",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.6,
+   "answer": "£45.17",
+   "expected": [
+    "£45.17"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R50",
+   "site": "quotes.toscrape.com",
+   "covers": "a page drawn by JavaScript, then the next page",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.3,
+   "answer": "Marilyn Monroe",
+   "expected": [
+    "Marilyn Monroe"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R51",
+   "site": "the-internet.herokuapp.com",
+   "covers": "cancel a prompt box",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.6,
+   "answer": "You entered: null",
+   "expected": [
+    "You entered: null"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R52",
+   "site": "the-internet.herokuapp.com",
+   "covers": "type an answer into a prompt box",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.4,
+   "answer": "You entered: Dejo",
+   "expected": [
+    "You entered: Dejo"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R53",
+   "site": "the-internet.herokuapp.com",
+   "covers": "right click, and read the alert it opens",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.8,
+   "answer": "You selected a context menu",
+   "expected": [
+    "You selected a context menu"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R54",
+   "site": "the-internet.herokuapp.com",
+   "covers": "a whole table as JSON",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.2,
+   "answer": "[{\"Last Name\": \"Smith\", \"First Name\": \"John\", \"Email\": \"jsmith@gmail.com\", \"Due\": \"$50.00\", \"Web Site\": \"http://www.jsmith.com\", \"Action\": \"edit delete\"}, {\"Last Name\": \"Bach\", \"First Name\": \"Frank\", \"Email\": \"fbach@yahoo.com\", \"Due\": \"$51.00\", \"Web Site\": \"http://www.frank.com\", \"Action\": \"edit delete\"}, {\"Last Name\": \"Doe\", \"First Name\": \"Jason\", \"Email\": \"jdoe@hotmail.com\", \"Due\": \"$100.00\", \"Web Site\": \"http://www.jdoe.com\", \"Action\": \"edit delete\"}, {\"Last Name\": \"Conway\", \"First Name\": \"Tim\", \"Email\": \"tconway@earthlink.net\", \"Due\": \"$50.00\", \"Web Site\": \"http://www.timconway.com\", \"Action\": \"edit delete\"}]",
+   "expected": [
+    "re:\"Last Name\": \"Smith\".*\"Email\": \"jsmith@gmail.com\""
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R55",
+   "site": "the-internet.herokuapp.com",
+   "covers": "a new window, then closing it",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 6.0,
+   "answer": "Opening a new window",
+   "expected": [
+    "Opening a new window"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R56",
+   "site": "books.toscrape.com",
+   "covers": "many fields of every card at once",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.3,
+   "answer": "[{\"title\": \"A Light in the Attic\", \"price\": \"£51.77\"}, {\"title\": \"Tipping the Velvet\", \"price\": \"£53.74\"}, {\"title\": \"Soumission\", \"price\": \"£50.10\"}, {\"title\": \"Sharp Objects\", \"price\": \"£47.82\"}, {\"title\": \"Sapiens: A Brief History of Humankind\", \"price\": \"£54.23\"}, {\"title\": \"The Requiem Red\", \"price\": \"£22.65\"}, {\"title\": \"The Dirty Little Secrets of Getting Your Dream Job\", \"price\": \"£33.34\"}, {\"title\": \"The Coming Woman: A Novel Based on the Life of the Infamous Feminist, Victoria Woodhull\", \"price\": \"£17.93\"}, {\"title\": \"The Boys in the Boat: Nine Americans and Their Epic Quest for Gold at the 1936 Berlin Olympics\", \"price\": \"£22.60\"}, {\"title\": \"The Black Maria\", \"price\": \"£52.15\"}, {\"title\": \"Starving Hearts (Triangular Trade Trilogy, #1)\", \"price\": \"£13.99\"}, {\"title\": \"Shakespeare's Sonnets\", \"price\": \"£20.66\"}, {\"title\": \"Set Me Free\", \"price\": \"£17.46\"}, {\"title\": \"Scott Pilgrim's Precious Little Life (Scott Pilgrim #1)\", \"price\": \"£52.29\"}, {\"title\": \"Rip it Up and Start Again\", \"price\": \"£35.02\"}, {\"title\": \"Our Band Could Be Your Life: Scenes from the American Indie Underground, 1981-1991\", \"price\": \"£57.25\"}, {\"title\": \"Olio\", \"price\": \"£23.88\"}, {\"title\": \"Mesaerion: The Best Science Fiction Stories 1800-1849\", \"price\": \"£37.59\"}, {\"title\": \"Libertarianism for Beginners\", \"price\": \"£51.33\"}, {\"title\": \"It's Only the Himalayas\", \"price\": \"£45.17\"}]",
+   "expected": [
+    "re:\"title\": \"A Light in the Attic\", \"price\": \"£51.77\""
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R57",
+   "site": "quotes.toscrape.com",
+   "covers": "the JSON a page draws itself from",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 5.8,
+   "answer": "{\"has_next\":true,\"page\":1,\"quotes\":[{\"author\":{\"goodreads_link\":\"/author/show/9810.Albert_Einstein\",\"name\":\"Albert Einstein\",\"slug\":\"Albert-Einstein\"},\"tags\":[\"change\",\"deep-thoughts\",\"thinking\",\"world\"],\"text\":\"\\u201cThe world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/1077326.J_K_Rowling\",\"name\":\"J.K. Rowling\",\"slug\":\"J-K-Rowling\"},\"tags\":[\"abilities\",\"choices\"],\"text\":\"\\u201cIt is our choices, Harry, that show what we truly are, far more than our abilities.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/9810.Albert_Einstein\",\"name\":\"Albert Einstein\",\"slug\":\"Albert-Einstein\"},\"tags\":[\"inspirational\",\"life\",\"live\",\"miracle\",\"miracles\"],\"text\":\"\\u201cThere are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/1265.Jane_Austen\",\"name\":\"Jane Austen\",\"slug\":\"Jane-Austen\"},\"tags\":[\"aliteracy\",\"books\",\"classic\",\"humor\"],\"text\":\"\\u201cThe person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/82952.Marilyn_Monroe\",\"name\":\"Marilyn Monroe\",\"slug\":\"Marilyn-Monroe\"},\"tags\":[\"be-yourself\",\"inspirational\"],\"text\":\"\\u201cImperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/9810.Albert_Einstein\",\"name\":\"Albert Einstein\",\"slug\":\"Albert-Einstein\"},\"tags\":[\"adulthood\",\"success\",\"value\"],\"text\":\"\\u201cTry not to become a man of success. Rather become a man of value.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/7617.Andr_Gide\",\"name\":\"Andr\\u00e9 Gide\",\"slug\":\"Andre-Gide\"},\"tags\":[\"life\",\"love\"],\"text\":\"\\u201cIt is better to be hated for what you are than to be loved for what you are not.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/3091287.Thomas_A_Edison\",\"name\":\"Thomas A. Edison\",\"slug\":\"Thomas-A-Edison\"},\"tags\":[\"edison\",\"failure\",\"inspirational\",\"paraphrased\"],\"text\":\"\\u201cI have not failed. I've just found 10,000 ways that won't work.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/44566.Eleanor_Roosevelt\",\"name\":\"Eleanor Roosevelt\",\"slug\":\"Eleanor-Roosevelt\"},\"tags\":[\"misattributed-eleanor-roosevelt\"],\"text\":\"\\u201cA woman is like a tea bag; you never know how strong it is until it's in hot water.\\u201d\"},{\"author\":{\"goodreads_link\":\"/author/show/7103.Steve_Martin\",\"name\":\"Steve Martin\",\"slug\":\"Steve-Martin\"},\"tags\":[\"humor\",\"obvious\",\"simile\"],\"text\":\"\\u201cA day without sunshine is like, you know, night.\\u201d\"}],\"tag\":null,\"top_ten_tags\":[[\"love\",14],[\"inspirational\",13],[\"life\",13],[\"humor\",12],[\"books\",11],[\"reading\",7],[\"friendship\",5],[\"friends\",4],[\"truth\",4],[\"simile\",3]]}\n",
+   "expected": [
+    "re:\"has_next\": ?true"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R58",
+   "site": "httpbin.org",
+   "covers": "another language, as the site is told it",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 8.5,
+   "answer": "{\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\",\n    \"Accept-Encoding\": \"gzip, deflate, br, zstd\",\n    \"Accept-Language\": \"de-DE\",\n    \"Host\": \"httpbin.org\",\n    \"Priority\": \"u=0, i\",\n    \"Sec-Ch-Ua\": \"\\\"Chromium\\\";v=\\\"153\\\", \\\"Not_A Brand\\\";v=\\\"8\\\"\",\n    \"Sec-Ch-Ua-Mobile\": \"?0\",\n    \"Sec-Ch-Ua-Platform\": \"\\\"Linux\\\"\",\n    \"Sec-Fetch-Dest\": \"document\",\n    \"Sec-Fetch-Mode\": \"navigate\",\n    \"Sec-Fetch-Site\": \"none\",\n    \"Sec-Fetch-User\": \"?1\",\n    \"Upgrade-Insecure-Requests\": \"1\",\n    \"User-Agent\": \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36\"\n  }\n}\n",
+   "expected": [
+    "re:\"Accept-Language\": \"de-DE"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R59",
+   "site": "httpbin.org",
+   "covers": "a phone, as the site is told it",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 7.4,
+   "answer": "{\n  \"user-agent\": \"Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1\"\n}\n",
+   "expected": [
+    "re:iPhone"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R60",
+   "site": "httpbin.org",
+   "covers": "a cookie the site set",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 4.8,
+   "answer": "['flavour=ginger (httpbin.org)']",
+   "expected": [
+    "flavour=ginger (httpbin.org)"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  },
+  {
+   "id": "R61",
+   "site": "example.com",
+   "covers": "the page as a PDF",
+   "engine": "playwright",
+   "passed": true,
+   "seconds": 3.8,
+   "answer": "/tmp/tmpycxs551w/page.pdf",
+   "expected": [
+    "re:\\.pdf$"
+   ],
+   "failed_line": null,
+   "failed_step": "",
+   "reply": "",
+   "cause": ""
+  }
+ ]
+}

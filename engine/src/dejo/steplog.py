@@ -15,8 +15,10 @@ from pathlib import Path
 
 from . import home
 from .events import (
+    Decided,
     Emitter,
     Event,
+    PopupCleared,
     RepairNeeded,
     RunFinished,
     RunStarted,
@@ -73,6 +75,11 @@ class StepLog:
             return f"{self._run}: step {event.index} failed: {event.intent}: {event.reason}"
         if isinstance(event, StepSkipped):
             return f"{self._run}: step {event.index} skipped: {event.intent}: {event.reason}"
+        if isinstance(event, Decided):
+            return f"{self._run}: step {event.index} decided on its own: {event.what}"
+        if isinstance(event, PopupCleared):
+            kept = ", remembered for next time" if event.remembered else ""
+            return f"{self._run}: step {event.index} cleared a pop-up: {event.how}{kept}"
         if isinstance(event, RepairNeeded):
             return f"{self._run}: step {event.index} needs a fix: {event.intent}, on {event.url}"
         if isinstance(event, RunFinished):
@@ -81,10 +88,15 @@ class StepLog:
                 # The agent did the thinking for these lines, so there is no count of model
                 # calls to give, and the time is the agent's as much as Dejo's.
                 return f"{self._run}: {result} after {event.steps_replayed} lines"
-            return (
+            ended = (
                 f"{self._run}: {result} after {event.steps_replayed} steps in "
                 f"{event.duration_ms} ms, {event.model_calls} model calls"
             )
+            if event.decided:
+                # The whole list once more, in one place, so a person reading the log sees
+                # everything the run chose by itself without piecing it together.
+                ended += f"; decided on its own: {'; '.join(event.decided)}"
+            return ended
         return ""
 
 

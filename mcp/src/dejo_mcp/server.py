@@ -596,6 +596,14 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
             f"stopped: the page answered HTTP {result.page_error}, so nothing was read. Tell "
             "the user it could not be opened (deleted, moved, or not shared with this account)."
         )
+    if result.wrong_account is not None:
+        expected, shown = result.wrong_account
+        return Reply(
+            f'stopped: {key} is signed in as "{shown}", and this trail was learned as '
+            f'"{expected}". Nothing was done as the wrong account. Ask the user which account '
+            "to use: dejo_login to sign in as the right one, or dejo_profile to switch to the "
+            "profile that is. Do not repair anything; the trail is fine."
+        )
     if result.needs_login:
         return Reply(
             f"stopped: {key} wants a sign-in. Do not guess a password: call dejo_login, ask "
@@ -640,16 +648,7 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
     ]
     if task != ran:
         lines.append(f'you asked for "{task}"; this is the trail "{ran}", the same job.')
-    if result.skipped:
-        lines.append(
-            f"skipped {', '.join(result.skipped)}: it only clears something away (like a "
-            "cookie banner), and that was not on the page this time."
-        )
-    if result.signed_in_already:
-        lines.append(
-            f"skipped {', '.join(result.signed_in_already)}: the trail's sign-in, and the "
-            "site is already signed in. The steps after it ran."
-        )
+    lines.extend(_decided(result))
     lines.extend(f"{name} = {value}" for name, value in result.answers.items())
     lines.extend(f"saved file: {path}" for path in result.saved_files)
     lines.extend(f"recorded: {path}" for path in result.recordings)
@@ -668,6 +667,16 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
         )
     lines.append(REPLACE_THE_TRAIL)
     return "\n".join(lines)
+
+
+def _decided(result: ReplayResult) -> list[str]:
+    """Everything the replay chose on its own, as one list. Nothing that changes what ran is
+    left out: a fix the agent never hears about hides real breakage from the user."""
+    if not result.decisions:
+        return []
+    return [f"decided on its own ({len(result.decisions)}):"] + [
+        f"- {what}" for what in result.decisions
+    ]
 
 
 def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply:
@@ -693,6 +702,7 @@ def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply
     lines = [f"broke at step {at} of {total}: {broken.intent}{tried}"]
     if at > 1:
         lines.append(f"steps 1-{at - 1} passed and are kept.")
+    lines.extend(_decided(result))
     # A recording of a run that broke is the one most worth watching.
     lines.extend(f"recorded: {path}" for path in result.recordings)
     rest = f"runs steps {at + 1}-{total} itself" if at < total else "saves the trail with the fix"
