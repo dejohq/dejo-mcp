@@ -17,6 +17,7 @@ from . import home
 from .events import (
     Emitter,
     Event,
+    PopupCleared,
     RepairNeeded,
     RunFinished,
     RunStarted,
@@ -73,6 +74,9 @@ class StepLog:
             return f"{self._run}: step {event.index} failed: {event.intent}: {event.reason}"
         if isinstance(event, StepSkipped):
             return f"{self._run}: step {event.index} skipped: {event.intent}: {event.reason}"
+        if isinstance(event, PopupCleared):
+            kept = ", remembered for next time" if event.remembered else ""
+            return f"{self._run}: step {event.index} cleared a pop-up: {event.how}{kept}"
         if isinstance(event, RepairNeeded):
             return f"{self._run}: step {event.index} needs a fix: {event.intent}, on {event.url}"
         if isinstance(event, RunFinished):

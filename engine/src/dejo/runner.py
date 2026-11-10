@@ -35,13 +35,13 @@ from urllib.parse import urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, waits
+from . import actions, popups, waits
 from . import program as language
 from . import view as pageview
 from .actions import PRESSES
 from .browser import NoSuchElement, domain_of, on_site
 from .distill import distill, locators_for, postcondition_for
-from .events import RunFinished, RunStarted, StepFailed, StepPassed
+from .events import PopupCleared, RunFinished, RunStarted, StepFailed, StepPassed
 from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, href_path, utc_now
 from .operations import (
     READ_ACTION,
@@ -590,15 +590,24 @@ class Runner:
         was = self.browser.page.url
         before = self.browser.page_state() if step.action == "evaluate" else ""
         title = self.browser.page.title() if step.action == "evaluate" else ""
-        did = self.session.act_on(
-            step.reason or _intent_of(step, element),
-            step.action,
-            element=element,
-            value=value,
-            second=second,
-            risky=step.risky,
-            options=dict(step.options),
-        )
+        doing = {
+            "element": element,
+            "value": value,
+            "second": second,
+            "risky": step.risky,
+            "options": dict(step.options),
+        }
+        intent = step.reason or _intent_of(step, element)
+        tried = self._clear_the_way(step, element, out) if element is not None else None
+        try:
+            did = self.session.act_on(intent, step.action, **doing)
+        except PlaywrightError as failed:
+            # A pop-up that arrived while Playwright waited for the element to be free.
+            if tried is not None or element is None or not popups.covered_error(failed):
+                raise
+            if not self._clear_the_way(step, element, out):
+                raise
+            did = self.session.act_on(intent, step.action, **doing)
         self._last_entry = self.session.trace[-1] if len(self.session.trace) > written else None
         if step.action == "evaluate":
             out.js_result = _as_text(did["result"])
@@ -642,6 +651,37 @@ class Runner:
                 f"the page answered HTTP {status} instead of the page",
                 "check the address; nothing on an error page is worth learning",
             )
+
+    def _clear_the_way(self, step: Action, element: Element, out: Outcome) -> bool | None:
+        """Clear a pop-up that covers this line's element with the safe moves of `popups`, and
+        say so. What cleared it goes into site knowledge, as `dismiss` would put it, so every
+        replay clears it up front: it is the site's, not a step of this task.
+
+        True when it was cleared, False when one covers it and nothing safe worked, None when
+        nothing covers it."""
+        if step.action not in popups.POINTER_ACTIONS:
+            return None
+        try:
+            target = self.browser.locate(element)
+        except NoSuchElement:
+            return None
+        cleared = popups.clear_the_way(self.browser.page, target)
+        if cleared is None:
+            return None
+        if not cleared.done:
+            return False
+        if cleared.remember:
+            self.session.remember_overlay(cleared.remember)
+        kept = (
+            "; kept for this site, so every replay clears it up front"
+            if cleared.remember
+            else "; nothing names it well enough to clear it up front next time"
+        )
+        out.after_sending.append(f"line {step.line}: cleared a pop-up first: {cleared.what}{kept}")
+        self.session.events.emit(
+            PopupCleared(index=step.line, how=cleared.what, remembered=bool(cleared.remember))
+        )
+        return True
 
     def _put_the_title_back(self, title: str, out: Outcome) -> None:
         """Undo a `js` line's write to the page's title.

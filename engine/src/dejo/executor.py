@@ -34,13 +34,14 @@ from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, reads, steplog
+from . import actions, popups, reads, steplog
 from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
     DriftDetected,
     Emitter,
     MemoryRead,
     MemoryWrite,
+    PopupCleared,
     RepairNeeded,
     RepairSaved,
     RunFinished,
@@ -56,6 +57,7 @@ from .models import (
     Playbook,
     Postcondition,
     RunMetrics,
+    SiteKnowledge,
     SiteMap,
     Step,
     href_path,
@@ -220,6 +222,10 @@ class ReplayResult:
     signed_in_already: list[str] = field(default_factory=list)
     """The trail's sign-in steps, skipped because the site was already signed in, in the
     same form as `skipped`. See `Executor._past_the_sign_in`."""
+
+    cleared: list[str] = field(default_factory=list)
+    """Pop-ups nobody told Dejo about that covered a step, and how each was cleared, as
+    `step 3: "Join our newsletter" closed by its "No thanks" control`. See `popups`."""
 
     @property
     def needs_repair(self) -> bool:
@@ -503,6 +509,8 @@ class Executor:
         self._unverified = []
         self._skipped: list[str] = []
         self._signed_in_already: list[str] = []
+        self._cleared: list[str] = []
+        self._cleared_at: set[int] = set()
         playbook = self._load(domain, task)
         # The browser as it is, not as the last task left it: a trail that emulates a phone
         # says so in its own steps.
@@ -765,6 +773,7 @@ class Executor:
                 # Reads before the broken step did answer. The fix carries on from that
                 # step, so these are the only copy of them the final reply will have.
                 answers=dict(self.answers),
+                cleared=list(self._cleared),
                 # A run that stopped BECAUSE it was aimed somewhere new has to say so.
                 # Without this the caller sees "this step went stale" and repairs a trail
                 # that is perfectly healthy — it was simply pointed at a subject that is
@@ -783,6 +792,7 @@ class Executor:
             unverified_steps=list(self._unverified),
             skipped=list(self._skipped),
             signed_in_already=list(self._signed_in_already),
+            cleared=list(self._cleared),
         )
 
     def _let_the_last_step_land(self, playbook: Playbook) -> None:
@@ -1081,7 +1091,7 @@ class Executor:
                 return outcome, found_anything, missed
 
             try:
-                spoke = self._do(step, target, domain=self._domain)
+                spoke = self._do_past_popups(step, target)
             except MissingSecret:
                 raise
             except PlaywrightError:
@@ -1376,6 +1386,59 @@ class Executor:
         if moved and self.browser.await_url_change(was):
             self.browser.settle()
         return True
+
+    def _do_past_popups(self, step: Step, target: Any) -> bool:
+        """Do the step, first clearing a pop-up nobody told Dejo about if one covers it.
+
+        Looked for before pressing, because a covered press waits out Playwright's whole
+        timeout before it fails; and again when Playwright says something else would get
+        the press, for a pop-up that arrived while it was waiting. Once per step: a page
+        that keeps covering the element after a safe move is not one to keep pressing on.
+        """
+        if step.action in popups.POINTER_ACTIONS:
+            self._clear_the_way(step, target)
+        try:
+            return self._do(step, target, domain=self._domain)
+        except PlaywrightError as failed:
+            if not popups.covered_error(failed) or not self._clear_the_way(step, target):
+                raise
+        return self._do(step, target, domain=self._domain)
+
+    def _clear_the_way(self, step: Step, target: Any) -> bool:
+        """Try the safe moves of `popups` once for this step, when a pop-up covers it. True when
+        one worked, and then the pop-up is reported, and kept in site knowledge so the next
+        run clears it first."""
+        if step.index in self._cleared_at:
+            return False
+        cleared = popups.clear_the_way(self.browser.page, target)
+        if cleared is None:
+            return False
+        self._cleared_at.add(step.index)
+        if not cleared.done:
+            return False
+        if cleared.remember:
+            self._remember_overlay(cleared.remember)
+        self._cleared.append(f"step {step.index}: {cleared.what}")
+        self.events.emit(
+            PopupCleared(index=step.index, how=cleared.what, remembered=bool(cleared.remember))
+        )
+        return True
+
+    def _remember_overlay(self, selector: str) -> None:
+        """Clear this pop-up up front from now on, on this run and every later one, exactly
+        as `dismiss css "..."` would have arranged."""
+        self.browser.dismiss_when_seen(selector)
+        knowledge = self.store.load_site_knowledge(self._domain) or SiteKnowledge(
+            domain=self._domain
+        )
+        self.store.save_site_knowledge(knowledge.merge(overlay=selector))
+        self.events.emit(
+            MemoryWrite(
+                category="site_knowledge",
+                name=self._domain,
+                detail=f"dismiss {selector} whenever it appears",
+            )
+        )
 
     def _second_for(self, step: Step) -> Any:
         """The element a drag drops onto, found by the ways the trail kept for it.

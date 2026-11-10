@@ -650,6 +650,7 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
             f"skipped {', '.join(result.signed_in_already)}: the trail's sign-in, and the "
             "site is already signed in. The steps after it ran."
         )
+    lines.extend(f"cleared a pop-up at {what}" for what in result.cleared)
     lines.extend(f"{name} = {value}" for name, value in result.answers.items())
     lines.extend(f"saved file: {path}" for path in result.saved_files)
     lines.extend(f"recorded: {path}" for path in result.recordings)

@@ -85,6 +85,19 @@ class StepSkipped(Event):
 
 
 @dataclass
+class PopupCleared(Event):
+    """A pop-up nobody told Dejo about covered a step's element, and a safe move cleared it.
+
+    `remembered` says whether it was written into site knowledge, so the next run clears it
+    up front instead of meeting it again."""
+
+    kind = "popup_cleared"
+    index: int = 0
+    how: str = ""
+    remembered: bool = False
+
+
+@dataclass
 class MemoryRead(Event):
     """A read from Sibyl. Seeing one of these is seeing the warm path work."""
 

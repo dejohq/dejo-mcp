@@ -489,6 +489,26 @@ def test_a_cookie_banner_not_shown_again_does_not_break_the_replay(mcp_server, d
     assert 'skipped step 2 (click button "Accept cookies")' in said
 
 
+def test_a_pop_up_first_seen_on_replay_is_cleared_and_named(mcp_server, demo_server):
+    """A newsletter box that was not there while learning covers the button on replay."""
+    task = "the price"
+    page = f"{demo_server}/drift/newsletter"
+    call(mcp_server, "dejo_run", site=demo_server, task=task, url=page)
+    call(
+        mcp_server,
+        "dejo_run",
+        site=demo_server,
+        task=task,
+        steps='click button "Show the price"\nread css "#price" as price',
+    )
+
+    said = call(mcp_server, "dejo_run", site=demo_server, task=task, url=page)
+
+    assert said.startswith('done: "the price"'), said
+    assert "price = £12 a month" in said
+    assert 'cleared a pop-up at step 2: "Join our newsletter" closed by its "No thanks"' in said
+
+
 def test_a_wrong_answer_says_how_to_replace_the_trail(mcp_server, demo_server):
     """Bench T12: the saved read answered the wrong thing, and the agent re-asked 28 times in
     other words, each time getting the same trail back."""

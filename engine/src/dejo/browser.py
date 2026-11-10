@@ -48,6 +48,7 @@ from . import snapshot as aria
 from .home import HOME, PROFILE_OWNER, setting, switched_on
 from .locks import ProfileHeld, ProfileLock
 from .models import ENTER_FRAME, Locator
+from .popups import PRESS_ESCAPE
 from .snapshot import Element, Snapshot
 from .waits import DEFAULT_WAIT_MS, LOCATOR_WAIT_MS, QUIET_WAIT_MS
 
@@ -1107,6 +1108,8 @@ class Browser:
         self.tabs: list[Page] = []
         self._watched: list[Page] = []
         self._overlays: list[str] = []
+        self.overlays_cleared: list[str] = []
+        """Known overlays cleared since the caller last emptied this, oldest first."""
         self._armed: dict[Page, set[str]] = {}
         self._cookies_kept_at = 0.0
         self._hold: ProfileLock | None = None
@@ -1965,7 +1968,20 @@ class Browser:
         if selector in armed:
             return
         armed.add(selector)
-        page.add_locator_handler(page.locator(selector), lambda o: o.click(), times=None)
+        escape = selector.startswith(PRESS_ESCAPE)
+        shown = page.locator(selector.removeprefix(PRESS_ESCAPE))
+
+        def clear(overlay: PWLocator) -> None:
+            # A pop-up with nothing to click is closed with Escape (see `popups`).
+            if escape:
+                page.keyboard.press("Escape")
+            else:
+                overlay.click()
+            # Clearing one changes what ran, and nothing that changes what ran may be
+            # silent: the run reads this list and says so.
+            self.overlays_cleared.append(selector)
+
+        page.add_locator_handler(shown, clear, times=None)
 
     @property
     def overlays(self) -> list[str]:
