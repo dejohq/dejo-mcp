@@ -991,7 +991,7 @@ class Executor:
             unplaced += extra
         # Asked for in place of what the trail is about, these are another job whether or not
         # a value also moved: "minimum Dart SDK" for "changelog entry" (pub.dev, 10 Nov).
-        unplaced += instead
+        unplaced += [word for word in instead if word not in unplaced]
         if unplaced or aimed is None:
             return playbook, unplaced
         self._aimed, self._aimed_to = aimed[1], aimed[2]
