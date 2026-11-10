@@ -61,6 +61,7 @@ from .models import (
     SiteKnowledge,
     SiteMap,
     Step,
+    answer_mark,
     href_path,
     page_path,
     signs_in_at,
@@ -92,6 +93,9 @@ NAME_CHARS = 120
 # What a control is called, as a person or a screen reader meets it.
 _NAME_JS = """(n) => (n.getAttribute("aria-label") || n.innerText || n.value ||
   n.getAttribute("title") || n.getAttribute("alt") || "").replace(/\\s+/g, " ").trim()"""
+
+# A CSS path that picks by position: nth-of-type, nth-child, first or last child.
+_PLACE_IN_CSS = re.compile(r":(?:nth-(?:last-)?(?:of-type|child)|first-|last-|only-)")
 
 # Steps that press or change a control. Only these are refused a control that does something
 # else: a read takes nothing away, and is checked by what it read.
@@ -286,6 +290,14 @@ class NeedsTask(NoTrailError):
     def __init__(self, message: str, *, tasks: list[str]):
         super().__init__(message)
         self.tasks = tasks
+
+
+def _by_place(locator: Locator) -> bool:
+    """Does this way find its element only by where it sits: the nth match, or a CSS path
+    of positions? Such a way finds whatever is in that place now."""
+    if locator.nth is not None:
+        return True
+    return locator.kind == "css" and bool(_PLACE_IN_CSS.search(locator.value))
 
 
 def _names_learned(step: Step) -> list[str]:
@@ -1194,6 +1206,22 @@ class Executor:
         if not proven:
             self._unverified.append(step.index)
 
+    def _say_if_read_by_place(self, step: Step, locator: Locator, label: str) -> None:
+        """A read that found its element only by its place, and read something other than
+        it read when learned, says so. It may be the next row, not the one the task meant:
+        a price list reordered and the first row's price was handed back for the teapot's."""
+        if step.action != READ_ACTION or not step.read_mark or not _by_place(locator):
+            return
+        if answer_mark(self.answers.get(step.intent, "")) == step.read_mark:
+            return
+        self._decide(
+            step.index,
+            f"read by place ({label}): what sits there now is not what this read said when "
+            "it was learned, so it may be another item. If the task meant one item by its "
+            "name, check it is that one",
+            event=True,
+        )
+
     def _another_control(self, step: Step, locator: Locator, target: Any) -> bool:
         """Is this element, found for a step that acts, a different control from the one
         the step was learned on? Only a name that does something else counts: a reworded
@@ -1337,6 +1365,7 @@ class Executor:
 
             if settles_into(self.browser, step.postcondition):
                 locator.record_hit()
+                self._say_if_read_by_place(step, locator, label)
                 outcome.matched_by = label
                 outcome.passed_over = [passed for _, passed in missed]
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)

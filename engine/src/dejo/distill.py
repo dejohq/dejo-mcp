@@ -16,7 +16,7 @@ from __future__ import annotations
 from urllib.parse import parse_qsl, urlencode, urlparse
 
 from .actions import PRESSES
-from .models import Locator, Playbook, Postcondition, Step, href_path, in_frame
+from .models import Locator, Playbook, Postcondition, Step, answer_mark, href_path, in_frame
 from .operations import READ_ACTION, TraceEntry
 
 
@@ -37,6 +37,7 @@ def distill(trace: list[TraceEntry], *, domain: str, task: str) -> Playbook:
             # its own destination.
             page=href_path(entry.url_before) if entry.url_before else "",
             answered=bool(entry.answer),
+            read_mark=answer_mark(entry.answer) if entry.answer else "",
             dialog_message=(entry.dialog or {}).get("message"),
             dialog_choice=(entry.dialog or {}).get("choice"),
             dialog_answer=(entry.dialog or {}).get("answer"),

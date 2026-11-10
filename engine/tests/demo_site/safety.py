@@ -12,6 +12,8 @@ task, for the wrong person, or with old values, while every step's own check pas
     /safety/lang         the same basket in English or in Hindi, by Accept-Language
     /safety/prices       a price list whose rows have no links and come back in another order
                          on every visit after the first
+    /safety/stock        the shop's items as links, with the first one sold out and gone
+                         after the first visit
 
 Like the drift lab, each page counts its visits in a cookie, and what the page did is
 written to `#log` and `window.lab`.
@@ -225,3 +227,15 @@ def prices(request: Request) -> HTMLResponse:
         for name, _, price in shown
     )
     return _page(request, "prices", "Prices", f'<h1>Prices</h1><ul class="rows">{rows}</ul>')
+
+
+@router.get("/stock", response_class=HTMLResponse)
+def stock(request: Request) -> HTMLResponse:
+    """The shop's items as links, with the teapot sold out and gone after the first visit."""
+    shown = (
+        ITEMS if not _visits(request, "stock") else [item for item in ITEMS if item[1] != "teapot"]
+    )
+    rows = "".join(
+        f'<li class="item"><a href="/drift/item/{slug}">{name}</a></li>' for name, slug, _ in shown
+    )
+    return _page(request, "stock", "Stock", f'<h1>Stock</h1><ul class="items">{rows}</ul>')

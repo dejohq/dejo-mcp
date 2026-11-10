@@ -163,6 +163,11 @@ decided on its own (2):
 - step 3: found by a backup way (css:#total-button); role:button|Show total missed and moved down
 ```
 
+A read that finds its element only by its place ("the first row") and reads something other
+than it read when learned says so: `read by place (...): what sits there now is not what this
+read said when it was learned`. A list that reordered never hands back another row's value in
+silence.
+
 **When it stops and asks:**
 
 - **The site really changed.** No way finds the element, or the check fails. Dejo stops at

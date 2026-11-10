@@ -11,6 +11,7 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 - **A control that does something else is never pressed.** A backup way that finds "Remove
   item" where "Show total" was is a miss, not a click. The way a trail was learned with
   survives its first miss, so a fix for version B of an A/B page no longer undoes version A.
+- **A read by place says so** when what sits there now is not what it read when learned.
 
 ## 0.5.0 — 2026-11-10
 
