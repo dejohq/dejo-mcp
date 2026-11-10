@@ -105,7 +105,9 @@ def _store(args: argparse.Namespace) -> DejoStore:
     An exported DEJO_AGENT that nobody remembers setting looks exactly like data loss —
     `dejo sites` goes quiet and the trails appear to be gone. So say who is asking.
     """
-    store = DejoStore(db_path=args.db, agent=getattr(args, "agent", None))
+    store = DejoStore(db_path=args.db, agent=getattr(args, "agent", None)).for_profile(
+        getattr(args, "profile", None)
+    )
     if store.agent:
         # `run --json` promises one line of JSON on stdout, so the notice goes elsewhere.
         out = sys.stderr if getattr(args, "json", False) else sys.stdout

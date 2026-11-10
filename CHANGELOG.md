@@ -8,6 +8,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   reject, archive and restore, enable and disable, lock and unlock (and any word against the
   same word with "un") no longer match, and a trail with a risky step only runs for its own
   task, never for a loose match.
+- **Each profile keeps its own routes.** Trails are keyed by profile as well as site and task,
+  so a customer's and a vendor's "show my orders" never overwrite or block each other. Every
+  profile still reads the default profile's routes and every route saved before.
 - **Every changed value is swapped in, or the replay stops.** A task asked with two or more new
   values ("Kolkata to Pune on 9 Dec") replays with all of them; a new value the route has no
   place for stops it before step 1 (`dejo run` exits 8).

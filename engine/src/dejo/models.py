@@ -22,6 +22,10 @@ from urllib.parse import urlparse, urlunparse
 # `page.frame_locator` and `page.locator` take the whole chain as one selector.
 ENTER_FRAME = " >> internal:control=enter-frame >> "
 
+# What `Playbook.kept_under` says of a trail made just now and not yet read from memory.
+# Empty, because no profile is ever named "".
+NOT_KEPT_YET = ""
+
 # How much of a read's fingerprint is kept: plenty to tell two answers apart, far too little
 # to matter if it were ever seen. See `answer_mark`.
 ANSWER_MARK_CHARS = 16
@@ -595,6 +599,10 @@ class Playbook:
 
     Kept separate from `runs`, which is reset on borrow. A borrowed trail arriving with
     `runs=9` would make the borrower's own journal say something untrue."""
+    kept_under: str | None = field(default=NOT_KEPT_YET, compare=False, repr=False)
+    """Which profile's name this trail was read from in memory: None for the name every
+    profile reads, `NOT_KEPT_YET` for a trail made just now. Never written into the trail:
+    it is where the trail lives, not what it is. See `DejoStore.for_profile`."""
     signed_in_as: str | None = None
     """Who the site showed as signed in while this trail was learned: an email address, or
     the name on the account button (see `identity`). Only what was on the screen, never a

@@ -208,6 +208,8 @@ sure it is the same job, for the same person, with the right values:
 - **A risky route needs its own task.** A route with a `click!` (pay, send, delete, submit)
   runs only for the task it was saved as, said in other common words, never for a loose
   match.
+- **Another account has its own route.** See [More than one identity at
+  once](#more-than-one-identity-at-once).
 
 ### The map
 
@@ -351,6 +353,13 @@ dejo --profile admin  login --site shop.example.com
 From your agent, `dejo_profile` with `name="vendor"` switches, and without a name lists them. A suite
 covering three roles never has to sign out and back in, so the order of the tests stops
 mattering.
+
+**Each profile keeps its own routes.** A customer's "show my orders" is a different page from a
+vendor's, so the same task name learned in two profiles is two routes, and neither overwrites
+the other. Every profile also reads the routes of the default profile, and every route saved
+by 0.5.0 or older, so nothing is lost on upgrade. If such a route was learned as another
+account, the profile learns its own instead of being stopped. `dejo forget` forgets the
+site's routes in every profile.
 
 ## Sharing a route
 

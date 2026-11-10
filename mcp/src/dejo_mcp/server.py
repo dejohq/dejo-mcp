@@ -131,7 +131,8 @@ LOGIN_DESCRIPTION = (
 PROFILE_DESCRIPTION = (
     "Website profiles and roles: customer, vendor, admin. A profile is a whole signed-in "
     "browser; several stay signed in side by side. With a name: switch to it (made on first "
-    "use). Without: list them. Trails are shared by every profile."
+    "use). Without: list them. Each profile keeps its own trails and also reads the "
+    "default profile's."
 )
 
 MEMORY_DESCRIPTION = (
@@ -265,7 +266,7 @@ class DejoTools:
         agent: str | None = None,
         cdp_url: str | None = None,
     ):
-        self.store = DejoStore(db_path=db_path, agent=agent)
+        self._memory = DejoStore(db_path=db_path, agent=agent)
         self.cdp_url = cdp_url
         # What `default` means on this machine: whatever was already in use, so naming
         # profiles never moves an existing sign-in.
@@ -278,6 +279,12 @@ class DejoTools:
         self._workers: dict[str, BrowserWorker] = {}
         self._runners: dict[tuple[str, str, str], Runner] = {}
         self._login_worker: BrowserWorker | None = None
+
+    @property
+    def store(self) -> DejoStore:
+        """Memory as the profile in use sees it: its own trails, and those every profile
+        reads. A customer and a vendor each keep their own "show my orders"."""
+        return self._memory.for_profile(self.active)
 
     def path_for(self, name: str) -> str:
         """The browser folder one profile uses."""
@@ -598,6 +605,17 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
         )
     if result.wrong_account is not None:
         expected, shown = result.wrong_account
+        if _someone_else_s_route(tools, key, ran):
+            # A trail every profile reads, learned as another account. It is that account's
+            # route, not a broken one and not this profile's: this profile learns its own,
+            # under its own name, and the other is left exactly as it was.
+            looked = _first_look(tools, key, task, None)
+            said = (
+                f'the saved trail "{ran}" was learned as "{expected}", and profile '
+                f'{tools.active} is signed in as "{shown}". That trail is left as it is; '
+                "this profile learns its own."
+            )
+            return Reply(f"{said}\n{looked.text}", error=looked.error, images=looked.images)
         return Reply(
             f'stopped: {key} is signed in as "{shown}", and this trail was learned as '
             f'"{expected}". Nothing was done as the wrong account. Ask the user which account '
@@ -641,6 +659,15 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
     if result.repair is not None:
         return _broke(tools, key, task, result)
     return Reply(f"stopped: {result.reason}", error=True)
+
+
+def _someone_else_s_route(tools: DejoTools, key: str, task: str) -> bool:
+    """Is this a trail every profile reads, while a named profile is in use? Such a trail was
+    learned before profiles were kept apart, or by the default profile."""
+    if tools.store.profile is None:
+        return False
+    trail = tools.store.load_playbook(key, task)
+    return trail is not None and trail.kept_under is None
 
 
 def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> str:

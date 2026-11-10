@@ -23,6 +23,7 @@ Two deliberate choices worth knowing about:
 
 from __future__ import annotations
 
+import copy
 from datetime import UTC, datetime, timedelta
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -40,7 +41,7 @@ from .memory import (
     SibylDatabase,
     import_sibyl,
 )
-from .models import Playbook, RunMetrics, SiteKnowledge, SiteMap, utc_now
+from .models import NOT_KEPT_YET, Playbook, RunMetrics, SiteKnowledge, SiteMap, utc_now
 from .when import TIME_WORDS
 from .words import COMMON_WORDS
 
@@ -91,6 +92,11 @@ KEY_SEPARATOR = "::"
 
 # Long enough to tell two tasks apart, short enough to read in a listing.
 MAX_SLUG = 60
+
+# The profile whose trails keep the names they had before profiles were kept apart, and
+# that every other profile can still read. The same name as `browser.DEFAULT_PROFILE_NAME`,
+# written here so memory never has to import a browser.
+DEFAULT_PROFILE = "default"
 
 # How much of a request's wording must be shared with a saved task before they are treated
 # as the same job. Low enough to survive rephrasing, high enough that "download the
@@ -207,6 +213,24 @@ class DejoStore:
         self.where = database.path
         self._memory = database.owner(agent_owner(self.agent))
         self._shared = database.owner(COMMONS)
+        self.profile: str | None = None
+
+    def for_profile(self, name: str | None) -> DejoStore:
+        """The same memory, as one signed-in profile (a customer, a vendor) sees its trails.
+
+        A trail is keyed by profile as well as site and task. Keyed by site and task alone,
+        a customer's and a vendor's "show my orders" were one trail: the vendor was handed
+        the customer's route (and stopped as the wrong account), and learning its own then
+        wrote over the customer's (10 Nov). Every profile also reads the trails saved
+        without one: everything learned before trails were kept per profile, and everything
+        the default profile learns, so an upgrade loses nothing. Its own trail for a task
+        always comes first.
+
+        A view, not a copy: the database and its connections are the same object."""
+        view = copy.copy(self)
+        chosen = (name or "").strip()
+        view.profile = None if chosen in ("", DEFAULT_PROFILE) else chosen
+        return view
 
     def close(self) -> None:
         """Let go of the memory file. Only a store made for one short job needs this, such
@@ -225,11 +249,17 @@ class DejoStore:
         hold exactly one task ever — found on GitHub, where asking about a second repo
         collided with the first.
         """
-        key = trail_key(playbook.domain, playbook.task)
+        key = trail_key(playbook.domain, playbook.task, self._profile_of(playbook))
         self._memory.put(PLAYBOOK, key, playbook.to_dict())
 
         # Knowing the site again is the opposite of having forgotten it.
         self._memory.archive(FORGOTTEN, playbook.domain, reason="learned again")
+
+    def _profile_of(self, playbook: Playbook) -> str | None:
+        """Where a trail is written back: where it was read from, or, for a trail made just
+        now, this profile. A trail every profile can read stays that way when another
+        profile replays or repairs it, so its health is not split into copies."""
+        return self.profile if playbook.kept_under == NOT_KEPT_YET else playbook.kept_under
 
     def save_draft(self, draft: Playbook) -> None:
         """Write. The steps of a task that is still being learned. See DRAFT."""
@@ -269,18 +299,18 @@ class DejoStore:
         are several, it has to say which; `trails_for` lists them.
         """
         if task:
-            body = self._read_entity_body(PLAYBOOK, trail_key(domain, task))
-            if body:
-                return Playbook.from_dict(body)
+            exact = self._trail(domain, task)
+            if exact is not None:
+                return exact
 
         # Trails saved before trails were keyed by task are named by domain alone. Even a
         # legacy trail has to be the one being asked for: returning it whatever the caller
         # said is the "run the wrong task" accident this function exists to prevent.
         legacy = self._read_entity_body(PLAYBOOK, domain)
         if legacy and self._is_plausible(task, legacy, domain):
-            return Playbook.from_dict(legacy)
+            return _kept(Playbook.from_dict(legacy), None)
 
-        keys = self._keys_for(domain)
+        keys = self._visible_keys(domain)
 
         # A site with ONE trail. Naming a task used to disable this fallback entirely, so
         # `dejo_run(site)` replayed and `dejo_run(site, task="...")` did not — naming the
@@ -294,7 +324,7 @@ class DejoStore:
         if len(keys) == 1:
             only = self._read_entity_body(PLAYBOOK, keys[0])
             if only and self._is_plausible(task, only, domain):
-                return Playbook.from_dict(only)
+                return _kept(Playbook.from_dict(only), profile_of_key(keys[0]))
             return None
 
         # Nobody words a request the same way twice. "how many open issues does
@@ -302,10 +332,18 @@ class DejoStore:
         # microsoft/playwright", or the memory may as well not be there.
         if task:
             closest = best_match(task, self.trails_for(domain), domain=domain)
-            if closest:
-                body = self._read_entity_body(PLAYBOOK, trail_key(domain, closest))
-                if body and _close_enough(task, body, domain):
-                    return Playbook.from_dict(body)
+            found = self._trail(domain, closest) if closest else None
+            if found is not None and _close_enough(task, found.to_dict(), domain):
+                return found
+        return None
+
+    def _trail(self, domain: str, task: str) -> Playbook | None:
+        """This profile's own trail for exactly this task, or else the one every profile
+        can read. Never another profile's."""
+        for profile in dict.fromkeys([self.profile, None]):
+            body = self._read_entity_body(PLAYBOOK, trail_key(domain, task, profile))
+            if body:
+                return _kept(Playbook.from_dict(body), profile)
         return None
 
     @staticmethod
@@ -322,17 +360,32 @@ class DejoStore:
         return shares_meaning(task, saved, domain) and _close_enough(task, body, domain)
 
     def trails_for(self, domain: str) -> list[str]:
-        """The tasks this site has trails for, so a caller can say which one it means."""
-        found = []
-        for key in self._keys_for(domain):
+        """The tasks this site has trails for, that this profile can follow, so a caller
+        can say which one it means."""
+        found = set()
+        for key in self._visible_keys(domain):
             body = self._read_entity_body(PLAYBOOK, key)
             if body and body.get("task"):
-                found.append(body["task"])
+                found.add(body["task"])
         return sorted(found)
 
     def _keys_for(self, domain: str) -> list[str]:
-        """Every live trail key belonging to one site."""
+        """Every live trail key belonging to one site, whichever profile it belongs to."""
         return [key for key in self._memory.names(PLAYBOOK) if domain_of_key(key) == domain]
+
+    def _visible_keys(self, domain: str) -> list[str]:
+        """The site's trail keys this profile may follow: its own, and those every profile
+        reads. One task saved both ways counts once, as this profile's own."""
+        own = slug(self.profile) if self.profile else None
+        mine = [key for key in self._keys_for(domain) if profile_of_key(key) == own]
+        if self.profile is None:
+            return mine
+        own_tasks = {task_of_key(key) for key in mine}
+        return mine + [
+            key
+            for key in self._keys_for(domain)
+            if profile_of_key(key) is None and task_of_key(key) not in own_tasks
+        ]
 
     def list_sites(self) -> list[str]:
         """Every domain Dejo currently knows a trail for.
@@ -741,7 +794,12 @@ class DejoStore:
         rebuilt, but "needs a login, sends a code to your phone, use the finance account"
         is all still true. This is what makes relearning cheaper than a first visit.
         """
-        key = trail_key(domain, task) if task else domain
+        if task:
+            found = self._trail(domain, task)
+            where = self._profile_of(found) if found is not None else self.profile
+            key = trail_key(domain, task, where)
+        else:
+            key = domain
         if not self._memory.archive(PLAYBOOK, key, reason="stale, site was rebuilt"):
             return False
 
@@ -807,20 +865,42 @@ class DejoStore:
         return self._memory.get(category, name)
 
 
-def trail_key(domain: str, task: str | None) -> str:
-    """The memory name for one task on one site.
+def trail_key(domain: str, task: str | None, profile: str | None = None) -> str:
+    """The memory name for one task on one site, as one profile.
 
     A site holds many trails. Without the task in the key they overwrite each other, which
-    is what happened the first time Dejo was asked about a second GitHub repo.
+    is what happened the first time Dejo was asked about a second GitHub repo. Without the
+    profile, a customer's and a vendor's trail for the same task did (see `for_profile`).
+    No profile is the name every trail had before, which every profile reads.
     """
     if not task:
         return domain
-    return f"{domain}{KEY_SEPARATOR}{slug(task)}"
+    key = f"{domain}{KEY_SEPARATOR}{slug(task)}"
+    return f"{key}{KEY_SEPARATOR}{slug(profile)}" if profile else key
 
 
 def domain_of_key(key: str) -> str:
     """The site a trail key belongs to. Trails saved before this are named by domain."""
     return key.split(KEY_SEPARATOR, 1)[0]
+
+
+def task_of_key(key: str) -> str:
+    """The task slug in a trail key, or "" for a trail named by its site alone."""
+    parts = key.split(KEY_SEPARATOR)
+    return parts[1] if len(parts) > 1 else ""
+
+
+def profile_of_key(key: str) -> str | None:
+    """The profile slug a trail key was saved for, or None for one every profile reads."""
+    parts = key.split(KEY_SEPARATOR)
+    return parts[2] if len(parts) > 2 else None
+
+
+def _kept(playbook: Playbook, profile: str | None) -> Playbook:
+    """A trail read from memory, marked with the profile it was kept under, so writing it
+    back puts it where it came from."""
+    playbook.kept_under = profile
+    return playbook
 
 
 def slug(task: str) -> str:

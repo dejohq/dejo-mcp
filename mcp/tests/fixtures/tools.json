@@ -63,7 +63,7 @@
  },
  {
   "name": "dejo_profile",
-  "description": "Website profiles and roles: customer, vendor, admin. A profile is a whole signed-in browser; several stay signed in side by side. With a name: switch to it (made on first use). Without: list them. Trails are shared by every profile.",
+  "description": "Website profiles and roles: customer, vendor, admin. A profile is a whole signed-in browser; several stay signed in side by side. With a name: switch to it (made on first use). Without: list them. Each profile keeps its own trails and also reads the default profile's.",
   "inputSchema": {
    "type": "object",
    "properties": {
