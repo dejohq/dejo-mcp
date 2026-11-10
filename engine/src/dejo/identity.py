@@ -53,7 +53,12 @@ _MARKER_JS = """
   const SIGN_OUT = /^(sign|log)\\s?-?\\s?out\\b|^logout$|^signout$/i;
   const signsOut = controls.some((n) =>
     SIGN_OUT.test(squeeze(n.innerText || n.value || labelOf(n))));
-  const accountButtons = controls.filter((n) => shown(n) && ACCOUNT.test(labelOf(n)));
+  // A real account control opens a menu, is an avatar, or carries an email in its label. A
+  // plain link that only mentions "account" is not one: on Google's "Choose an account"
+  // page (10 Nov) a "Help" link labelled "Google Account Help" was kept as the account.
+  const accountButtons = controls.filter((n) => shown(n) && ACCOUNT.test(labelOf(n)) &&
+    (n.hasAttribute("aria-haspopup") || n.hasAttribute("aria-expanded") ||
+     n.tagName === "IMG" || /avatar/i.test(labelOf(n)) || EMAIL.test(labelOf(n))));
   const body = document.body ? document.body.innerText : "";
   const said = body.split("\\n").map(squeeze).find((line) => SIGNED_IN.test(line));
   if (!signsOut && !said && !accountButtons.length) return null;

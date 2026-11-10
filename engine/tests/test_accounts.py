@@ -204,3 +204,27 @@ def test_the_account_is_checked_in_a_browser_dejo_did_not_start(
         sign_in_as(theirs, demo_server, RIYA)
         other = replay(theirs, store, demo_server)
         assert other.wrong_account == (FINANCE, RIYA)
+
+
+def test_a_link_that_only_mentions_account_is_not_who_is_signed_in(browser: Browser) -> None:
+    """Google's "Choose an account" page, 10 Nov: a "Help" link labelled "Google Account
+    Help" was kept as the signed-in account, so every later replay would compare against
+    "Help". A sign-in page names nobody yet."""
+    from dejo import identity
+
+    browser.page.set_content(
+        '<h1>Choose an account</h1><a href="/help" aria-label="Google Account Help">Help</a>'
+        '<a href="/add">Use another account</a><a href="/privacy">Privacy</a>'
+    )
+    assert identity.marker_on(browser.page) is None
+
+
+def test_an_account_menu_button_names_the_account(browser: Browser) -> None:
+    from dejo import identity
+
+    browser.page.set_content(
+        '<header><a href="/help" aria-label="Google Account Help">Help</a>'
+        '<a role="button" aria-haspopup="true" '
+        'aria-label="Google Account: Rohit Kashyap (rohit@example.com)">R</a></header>'
+    )
+    assert identity.marker_on(browser.page) == "rohit@example.com"

@@ -42,7 +42,16 @@ from .actions import PRESSES
 from .browser import NoSuchElement, domain_of, on_site
 from .distill import distill, locators_for, postcondition_for
 from .events import PopupCleared, RunFinished, RunStarted, StepFailed, StepPassed
-from .models import Locator, Playbook, Postcondition, SiteKnowledge, Step, href_path, utc_now
+from .models import (
+    Locator,
+    Playbook,
+    Postcondition,
+    SiteKnowledge,
+    Step,
+    href_path,
+    signs_in_at,
+    utc_now,
+)
 from .operations import (
     READ_ACTION,
     ActionFailed,
@@ -768,6 +777,9 @@ class Runner:
         before the task goes deep into a form or a document, which often hide them. A marker
         an agent set with `expect signed in as` is never replaced."""
         if self._signed_in_as is not None or self._pages_asked >= IDENTITY_PAGES:
+            return
+        if signs_in_at(self.browser.page.url) or self.browser.still_on_sign_in():
+            # A sign-in page names nobody yet, and must not use up one of the pages asked.
             return
         self._pages_asked += 1
         self._signed_in_as = identity.marker_on(self.browser.page)
