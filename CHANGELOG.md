@@ -2,6 +2,13 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **Opposite deeds are never the same task.** Open and close, track and cancel, approve and
+  reject, archive and restore, enable and disable, lock and unlock (and any word against the
+  same word with "un") no longer match, and a trail with a risky step only runs for its own
+  task, never for a loose match.
+
 ## 0.5.0 — 2026-11-10
 
 - **Consent pop-ups inside a frame are answered.** Sourcepoint and similar platforms ask

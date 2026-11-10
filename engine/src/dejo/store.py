@@ -126,16 +126,36 @@ _ACTIONS = frozenset(
 # would have replayed "delete the invoice". Words that are as often a thing as a deed are
 # left out ("post", "order", "update", "list"), or "read the latest post" would stop being
 # "what is the newest post".
+#
+# Opposites are deeds of their own, so each side of a pair has its own name below: "close the
+# ticket" is not "open the ticket", "reject the expense" is not "approve the expense", and
+# "unlock the account" is not "lock the account". Each of those scored as the same job (10 Nov)
+# because the words they share were all that was compared.
 _DEEDS = {
     "sign in": frozenset(
         ["log", "login", "logon", "logout", "register", "sign", "signin", "signout", "signup"]
     ),
     "add": frozenset(["add", "attach", "create", "publish", "submit", "upload"]),
-    "remove": frozenset(["cancel", "deactivate", "delete", "remove", "unsubscribe"]),
+    "remove": frozenset(["cancel", "delete", "remove", "unsubscribe"]),
     "buy": frozenset(["buy", "checkout", "pay", "purchase"]),
     "send": frozenset(["invite", "reply", "send"]),
     "change": frozenset(["edit", "modify", "rename"]),
+    "close": frozenset(["close", "resolve"]),
+    "approve": frozenset(["accept", "allow", "approve", "confirm"]),
+    "reject": frozenset(["decline", "deny", "reject"]),
+    "archive": frozenset(["archive"]),
+    "restore": frozenset(["recover", "restore", "unarchive", "undelete"]),
+    "turn on": frozenset(["activate", "enable"]),
+    "turn off": frozenset(["deactivate", "disable"]),
+    "lock": frozenset(["ban", "block", "freeze", "lock", "suspend"]),
+    "unlock": frozenset(["unban", "unblock", "unfreeze", "unlock", "unsuspend", "reactivate"]),
 }
+# A word and the same word with this in front are opposite deeds, whatever the word is:
+# follow and unfollow, mute and unmute, install and uninstall. The list above cannot name
+# every verb a site has, and this pair costs nothing to recognise.
+_UNDOING = "un"
+# Shorter words than this are not undone by "un": "it" is not the opposite of "unit".
+_SHORTEST_UNDONE = 3
 _DEED_WORDS = frozenset().union(*_DEEDS.values())
 # Signing in on the way to something else is how it is done, not what is done: "sign in and
 # download the invoice" is the job "download the invoice".
@@ -145,8 +165,8 @@ _MEANS = "sign in"
 _LOOKS = "look"
 _LOOKING = frozenset(
     ["check", "count", "download", "fetch", "find", "get", "give", "go", "how", "look", "open"]
-    + ["read", "search", "see", "show", "tell", "view", "visit", "what", "when", "where"]
-    + ["which", "who", "why"]
+    + ["read", "search", "see", "show", "tell", "track", "view", "visit", "what", "when"]
+    + ["where", "which", "who", "why"]
 )
 SITE_KNOWLEDGE = "site_knowledge"
 
@@ -280,7 +300,8 @@ class DejoStore:
             closest = best_match(task, self.trails_for(domain), domain=domain)
             if closest:
                 body = self._read_entity_body(PLAYBOOK, trail_key(domain, closest))
-                return Playbook.from_dict(body) if body else None
+                if body and _close_enough(task, body, domain):
+                    return Playbook.from_dict(body)
         return None
 
     @staticmethod
@@ -288,11 +309,13 @@ class DejoStore:
         """Could this stored trail be the job that was asked for?
 
         A caller who named nothing can only mean whatever is there. A caller who named
-        something has to share at least one meaningful word with it.
+        something has to share at least one meaningful word with it, and has to have named
+        the very task when the trail does something risky.
         """
         if not task:
             return True
-        return shares_meaning(task, str(body.get("task", "")), domain)
+        saved = str(body.get("task", ""))
+        return shares_meaning(task, saved, domain) and _close_enough(task, body, domain)
 
     def trails_for(self, domain: str) -> list[str]:
         """The tasks this site has trails for, so a caller can say which one it means."""
@@ -866,13 +889,55 @@ def shares_meaning(wanted: str, candidate: str, domain: str | None = None) -> bo
     return bool(shared) and swapped_subject(wanted, candidate, domain) is not None
 
 
+def _close_enough(task: str, body: dict[str, Any], domain: str | None) -> bool:
+    """May a trail found by other words than its own run for this task?
+
+    Always, for a trail that only reads and moves around. Not for one with a risky step
+    (it pays, sends, deletes or submits): "delete the invoice" found the trail saved as
+    "delete the draft invoice" by the words they share, and would have deleted the draft.
+    That trail runs only for its own task, said in other common words ("delete my draft
+    invoice"), or aimed at a new subject, which replay checks on the page before it acts.
+    """
+    if not any(step.get("risky") for step in body.get("steps", [])):
+        return True
+    saved = str(body.get("task", ""))
+    if _meaningful(task, domain) == _meaningful(saved, domain):
+        return True
+    swap = swapped_subject(task, saved, domain)
+    # A swap the steps never mention is not aimed anywhere: the trail would run unchanged.
+    return swap is not None and swap[0] in _words(_what_steps_act_on(body))
+
+
+def _what_steps_act_on(body: dict[str, Any]) -> str:
+    """Every value, address, check and locator in a stored trail, as one text: the places
+    a new subject can be aimed at. The intents are left out, since nothing acts on them."""
+    said: list[str] = []
+    for step in body.get("steps", []):
+        said += [str(step.get("value") or ""), str(step.get("page") or "")]
+        said.append(str((step.get("postcondition") or {}).get("value") or ""))
+        said += [str(locator.get("value") or "") for locator in step.get("locators", [])]
+    return " ".join(said)
+
+
 def _same_deed(wanted: str, candidate: str, domain: str | None = None) -> bool:
     """Could these two do the same thing? Only no when both say what they do, differently.
 
     A name that does not say ("billing", "message riya") could be either, and is left to
-    the words it shares."""
+    the words it shares. A word in one and that word undone in the other ("follow" and
+    "unfollow") always says they differ."""
+    if _undoes(_words(wanted), _words(candidate)):
+        return False
     asked, saved = _deeds(wanted, domain), _deeds(candidate, domain)
     return not asked or not saved or asked == saved
+
+
+def _undoes(one: set[str], other: set[str]) -> bool:
+    """Does one of these say a word the other says undone, as "mute" and "unmute"?"""
+    return any(
+        f"{_UNDOING}{word}" in other or f"{_UNDOING}{word}" in one
+        for word in (one ^ other)
+        if len(word) >= _SHORTEST_UNDONE and word not in COMMON_WORDS
+    )
 
 
 def _deeds(text: str, domain: str | None = None) -> frozenset[str]:
