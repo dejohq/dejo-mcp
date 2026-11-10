@@ -274,7 +274,7 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 **Learning a website now costs fewer tokens, on average, than using a browser tool with no
 memory at all.**
-On 19 tasks across 12 lesser-known real websites (Claude Sonnet 5, medium), Dejo got 19 of 19
+On 19 tasks across 11 lesser-known real websites (Claude Sonnet 5, medium), Dejo got 19 of 19
 right; the first run averaged 251k tokens against Playwright MCP's 409k (17 of 19 right) and
 Playwright CLI's 559k (18 of 19), and 17 of 19 repeats were a single tool call at about 81k
 tokens. Tasks and raw results are in `benchmarks/` (`real_tasks.py`,

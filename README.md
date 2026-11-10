@@ -155,7 +155,7 @@ a download). A task that ends by reading its answer does not pay that wait.
 
 ## Benchmark
 
-**19 tasks on 12 lesser-known websites**, the kind a model cannot answer from memory: a
+**19 tasks on 11 lesser-known websites**, the kind a model cannot answer from memory: a
 college course catalog, the Debian package directory, the RFC Editor, a museum's collection,
 a Dart package registry, a small shop. Every right answer was written down before any tool
 ran. Claude Sonnet 5 (medium), one fresh session per run, `@playwright/mcp@0.0.80`.
@@ -166,6 +166,8 @@ ran. Claude Sonnet 5 (medium), one fresh session per run, `@playwright/mcp@0.0.8
 | **Dejo, every run after** | **19/19** | **89k** | **1.2** | **$0.02** | **16 s** |
 | Playwright MCP, every run | 17/19 | 409k | 6.5 | $0.23 | 40 s |
 | Playwright CLI, every run | 18/19 | 559k | 8.4 | $0.28 | 38 s |
+
+Tool calls count browser actions only. Claude Code also makes a few calls to load a tool's definitions (ToolSearch); Dejo's tools load up front so it makes none, and Playwright MCP made about 1.3 per task (7.8 with them).
 
 - **First run:** 38% fewer tokens than Playwright MCP, 55% fewer than Playwright CLI.
 - **Every run after:** 78% fewer tokens than Playwright MCP, and 17 of 19 repeats were a
