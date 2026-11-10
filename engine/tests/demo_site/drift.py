@@ -11,9 +11,13 @@ that wants a particular visit starts a fresh browser, or clears the cookie.
     /drift/consent     a consent banner dimming the page on every visit after the first;
                        ?kind=words gives one that no consent platform's id names
     /drift/locked      a box whose only button subscribes: nothing safe clears it
+    /drift/dialogs     two dialogs alike but for their titles, one left open over the other's
+                       button
     /drift/toast       a toast on show, then not there, then already faded out by itself;
                        ?kind=fade fades when closed, ?kind=say says "Dismissed" first
     /drift/button      a button whose words and class change after the first visit
+    /drift/list        a shop list in a different order on every visit after the first
+    /drift/late        a button drawn from data that arrives late after the first visit
     /drift/session     answers 401 once the session has run out (cookie lab-session=gone)
     /drift/workspace   sends the visitor to Google's account chooser once it has run out
     /drift/start       shows an identifier-first sign-in form once it has run out
@@ -24,6 +28,8 @@ What the page did is written where a test can read it: `#log`, and `window.lab`.
 """
 
 from __future__ import annotations
+
+import asyncio
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -37,6 +43,7 @@ STYLE = """
   body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 40px; }
   .cover { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); display: flex;
            align-items: center; justify-content: center; z-index: 10 }
+  .cover[hidden] { display: none }
   .box { background: #fff; padding: 24px; border-radius: 10px; width: 320px }
   .bar { position: fixed; left: 0; right: 0; bottom: 0; background: #222; color: #fff;
          padding: 16px; z-index: 11 }
@@ -289,8 +296,8 @@ def start(request: Request, form: str = "named") -> HTMLResponse:
 @router.get("/button", response_class=HTMLResponse)
 def button(request: Request, keep: str = "id") -> HTMLResponse:
     """A button whose words and class change after the first visit, while it stays a button.
-    `keep=id` keeps its id, as most redesigns do; `keep=role` keeps nothing but its role,
-    which no remembered way can tell from any other button."""
+    `keep=id` keeps its id, as most redesigns do; `keep=role` keeps nothing but its role
+    and its place on the page."""
     later = _visits(request, f"button-{keep}") > 0
     words, look = ("Reveal total", "btn-green") if later else ("Show total", "btn-blue")
     named = ' id="total-button"' if keep == "id" else ""
@@ -302,4 +309,82 @@ def button(request: Request, keep: str = "id") -> HTMLResponse:
            <button type="button"{named} class="{look}"
                    onclick="total.textContent = '£31.40'">{words}</button>
            <p id="total"></p>""",
+    )
+
+
+# The list's items, as (name, address part, price). Shown in this order on the first visit
+# and reversed on every visit after it.
+ITEMS = [("Teapot", "teapot", "£18.50"), ("Kettle", "kettle", "£24.00"), ("Mug", "mug", "£6.00")]
+
+
+@router.get("/list", response_class=HTMLResponse)
+def item_list(request: Request) -> HTMLResponse:
+    """A shop list that comes back in a different order on every visit after the first."""
+    shown = ITEMS if not _visits(request, "list") else list(reversed(ITEMS))
+    rows = "".join(
+        f'<li class="item"><a href="/drift/item/{slug}">{name}</a></li>' for name, slug, _ in shown
+    )
+    return _page(request, "list", "Shop", f'<h1>Shop</h1><ul class="items">{rows}</ul>')
+
+
+@router.get("/item/{slug}", response_class=HTMLResponse)
+def item(request: Request, slug: str) -> HTMLResponse:
+    name, price = next(((n, p) for n, s, p in ITEMS if s == slug), ("Gone", ""))
+    return _page(request, f"item-{slug}", name, f'<h1>{name}</h1><p id="price">{price}</p>')
+
+
+# How long the late page's data takes on every visit after the first, in seconds. Longer
+# than replay's first look for an element, so only waiting for the page to finish can see it.
+LATE_S = 3.0
+
+
+@router.get("/late", response_class=HTMLResponse)
+def late(request: Request) -> HTMLResponse:
+    """A "Continue" button drawn from data the page fetches: at once on the first visit, and
+    only after a slow answer on every visit after it."""
+    slow = 1 if _visits(request, "late") else 0
+    return _page(
+        request,
+        "late",
+        "Checkout",
+        f"""<h1>Checkout</h1><div id="slot"></div><p id="total"></p>
+           <script>
+             fetch("/drift/late/data?slow={slow}").then((r) => r.json()).then((data) => {{
+               slot.innerHTML = '<button type="button">Continue</button>';
+               slot.firstChild.onclick = () => total.textContent = data.total;
+             }});
+           </script>""",
+    )
+
+
+@router.get("/late/data")
+async def late_data(slow: int = 0) -> dict[str, str]:
+    if slow:
+        await asyncio.sleep(LATE_S)
+    return {"total": "£42.00"}
+
+
+# No id on the dialog, as on demoqa.com: only its title tells the two apart.
+_DIALOG = """<div class="cover" role="dialog" aria-modal="true" aria-labelledby="{key}-title"
+     hidden><div class="box"><h2 id="{key}-title">{title}</h2>
+  <button type="button" aria-label="Close"
+          onclick="this.closest('[role=dialog]').hidden = true">×</button>
+</div></div>"""
+_OPEN = "document.querySelector('[aria-labelledby={key}-title]').hidden = false"
+
+
+@router.get("/dialogs", response_class=HTMLResponse)
+def dialogs(request: Request) -> HTMLResponse:
+    """Two dialogs alike in every way but their titles, each with its own "Close": the small
+    one is left open over the button that opens the large one."""
+    small, large = _OPEN.format(key="small"), _OPEN.format(key="large")
+    return _page(
+        request,
+        "dialogs",
+        "Dialogs",
+        f"""<h1>Dialogs</h1>
+           <button type="button" onclick="{small}">Open small</button>
+           <button type="button" onclick="{large}">Open large</button>"""
+        + _DIALOG.format(key="small", title="Small dialog")
+        + _DIALOG.format(key="large", title="Large dialog"),
     )

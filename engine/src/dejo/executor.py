@@ -70,6 +70,10 @@ from .secrets import MissingSecret
 from .secrets import resolve as resolve_secret
 from .store import DejoStore, swapped_subject
 
+# How long a way that found nothing gets to find the element once another way has: the page
+# has drawn by then, so it is there at once or not at all.
+RECHECK_MS = 250
+
 # A step is considered past saving when this share of the trail is already broken.
 STALE_SHARE = 0.5
 
@@ -481,6 +485,9 @@ class Executor:
     """Substituted steps nothing on the page could confirm."""
     _decisions: list[str] = []
     """What this run decided on its own. See `ReplayResult.decisions`."""
+    _picked_landing: str | None = None
+    """Where the latest step that picks by place ("the first item") took the browser, while
+    it is still there. See `_off_trail`."""
 
     def run(self, domain: str, task: str | None = None, **how: Any) -> ReplayResult:
         """Replay a trail, recording it as DEJO_RECORD asks (video, trace, or both).
@@ -525,6 +532,7 @@ class Executor:
         self._cleared: list[str] = []
         self._cleared_at: set[int] = set()
         self._decisions: list[str] = []
+        self._picked_landing = None
         self.browser.overlays_cleared.clear()
         playbook = self._load(domain, task)
         # The browser as it is, not as the last task left it: a trail that emulates a phone
@@ -581,9 +589,11 @@ class Executor:
             if step.index < resume_at:
                 continue
             self.events.emit(StepStarted(index=step.index, intent=step.intent))
+            was = self.browser.page.url
             outcome = self._replay_step(step, start_url=start_url)
 
             self._note_known_overlays(step)
+            self._note_where_a_pick_landed(step, outcome, was)
             if outcome.matched_by is not None:
                 metrics.steps_replayed += 1
                 self._note_if_unproven(step)
@@ -841,6 +851,16 @@ class Executor:
         self._decisions.append(f"step {index}: {what}")
         if event:
             self.events.emit(Decided(index=index, what=what))
+
+    def _note_where_a_pick_landed(self, step: Step, outcome: _StepOutcome, was: str) -> None:
+        """Keep where a step that picks by place took the browser, and forget it once a
+        later step moves the browser on. See `_off_trail`."""
+        here = self.browser.page.url
+        picked = any(locator.nth is not None for locator in step.locators)
+        if outcome.matched_by is not None and picked and here != was:
+            self._picked_landing = here
+        elif here != was:
+            self._picked_landing = None
 
     def _note_a_backup(self, step: Step, outcome: _StepOutcome) -> None:
         """A step found its element by a backup way: the ways above it missed and move down."""
@@ -1170,6 +1190,7 @@ class Executor:
         found an element at all, and the misses this pass would like recorded.
         """
         missed: list[tuple[Locator, str]] = []
+        unseen: list[tuple[Locator, str]] = []
         found_anything = False
 
         for locator in step.ranked_locators():
@@ -1184,7 +1205,13 @@ class Executor:
             )
             if target is None:
                 missed.append((locator, label))
+                unseen.append((locator, label))
                 continue
+            if unseen:
+                drawn = self._drawn_late(step, unseen, missed)
+                if drawn is not None:
+                    locator, label, target = drawn
+                unseen.clear()
             if step.clears_away and self.browser.faded(target):
                 # The toast this step closes went away on its own and only faded, so it is
                 # still in the page. Pressing what nobody can see is not clearing anything.
@@ -1239,7 +1266,7 @@ class Executor:
             if settles_into(self.browser, step.postcondition):
                 locator.record_hit()
                 outcome.matched_by = label
-                outcome.passed_over = outcome.tried[:-1]
+                outcome.passed_over = [passed for _, passed in missed]
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)
                 return outcome, found_anything, missed
 
@@ -1248,6 +1275,33 @@ class Executor:
             missed.append((locator, label))
 
         return None, found_anything, missed
+
+    def _drawn_late(
+        self, step: Step, unseen: list[tuple[Locator, str]], missed: list[tuple[Locator, str]]
+    ) -> tuple[Locator, str, Any] | None:
+        """The best-ranked way that finds the element now, when it found nothing a moment ago.
+
+        A page still drawing makes the first ways miss while the element is on its way, and
+        a later way then finds it once it has arrived. Blaming the first ways for that marks
+        good ways dead on every slow site, and reports a backup when nothing changed but the
+        site's speed (drift lab, a button drawn from slow data). So each way that found
+        nothing is asked once more, in rank order, now that something has appeared. The
+        first that finds it is used, and it and the ways tried after it are not blamed: had
+        the page been drawn, they would never have been tried."""
+        for at, (earlier, label) in enumerate(unseen):
+            again = self.browser.resolve(
+                earlier,
+                timeout_ms=RECHECK_MS,
+                visible=step.action not in _SEEN_OR_NOT,
+                every=_reads_many(step),
+            )
+            if again is None:
+                continue
+            for pair in unseen[at:]:
+                if pair in missed:
+                    missed.remove(pair)
+            return earlier, label, again
+        return None
 
     def _page_missing(
         self,
@@ -1341,6 +1395,12 @@ class Executor:
             return None
         here = self.browser.page.url
         if _same_page(here, belongs):
+            return None
+        if self._picked_landing is not None and _same_page(here, self._picked_landing):
+            # A step that picks by place ("open the first item") opens whatever is first
+            # today, so the page after it is a different item's page from the one learned.
+            # Being where that pick led is being on the trail (drift lab, a list that
+            # reorders between visits).
             return None
         return (belongs, here)
 

@@ -55,6 +55,10 @@ CLEAR_CLICK_MS = 2000
 LEAVE_MS = 600
 LEAVE_POLL_MS = 100
 
+# How long a pop-up that has got out of the target's way gets to finish leaving. Bootstrap
+# and most libraries animate a dialog out in 150-300 ms.
+GONE_MS = 1500
+
 # How long scrolling the target into view may take before the covered check is skipped.
 SCROLL_MS = 1500
 
@@ -245,17 +249,19 @@ _CANDIDATES_JS = """
   };
   const css = (s) => CSS.escape(s);
   const stable = (s) => s && !/[0-9]{3,}/.test(s);
+  // Only what names THIS pop-up. "Any dialog's Close button" would also close a dialog the
+  // trail opens on purpose (demoqa.com: the large modal, closed as soon as it opened).
   const popupPath = () => {
     if (stable(popup.id)) return "#" + css(popup.id);
-    const role = popup.getAttribute("role");
-    if (role) return "[role=" + css(role) + "]";
-    if (popup.tagName === "DIALOG") return "dialog";
-    const cls = [...popup.classList].find((c) => !/[0-9]/.test(c));
-    return cls ? popup.tagName.toLowerCase() + "." + css(cls) : "";
+    for (const name of ["aria-label", "aria-labelledby"]) {
+      const said = popup.getAttribute(name);
+      if (said) return "[" + name + "=" + JSON.stringify(said) + "]";
+    }
+    return "";
   };
   const pathOf = (n) => {
-    if (stable(n.id)) return "#" + css(n.id);
     const base = popupPath();
+    if (stable(n.id)) return base ? base + " #" + css(n.id) : "#" + css(n.id);
     if (!base) return "";
     const aria = n.getAttribute("aria-label");
     if (aria) return base + " [aria-label=" + JSON.stringify(aria) + "]";
@@ -437,11 +443,17 @@ def _press(page: Page, candidate: dict[str, str], target: PWLocator) -> bool:
 
 
 def _left(page: Page, target: PWLocator) -> bool:
-    """Has the pop-up got out of the target's way, allowing for it fading out?"""
+    """Has the pop-up got out of the target's way, allowing for it fading out?
+
+    Uncovered is not enough on its own: a dialog that is fading out often lets the pointer
+    through already, and a press that lands while it is still leaving can be swallowed by
+    the page (demoqa.com's modals ignored it). So once the target is uncovered, the pop-up
+    gets a moment more to be gone for good."""
     waited = 0
     while waited <= LEAVE_MS:
         try:
             if target.evaluate(_COVER_JS, [None]) is None:
+                _finish_leaving(page)
                 return True
         except PlaywrightError:
             return False
@@ -449,6 +461,16 @@ def _left(page: Page, target: PWLocator) -> bool:
             page.wait_for_timeout(LEAVE_POLL_MS)
         waited += LEAVE_POLL_MS
     return False
+
+
+def _finish_leaving(page: Page) -> None:
+    """Wait, up to GONE_MS, for the marked pop-up to be off the page or out of sight."""
+    popup = page.locator(f"[{MARK}=popup]")
+    with suppress(PlaywrightError):
+        popup.first.wait_for(state="hidden", timeout=GONE_MS)
+    # Some dialogs fade the last of the way after they are hidden from the pointer.
+    with suppress(PlaywrightError):
+        page.wait_for_timeout(LEAVE_POLL_MS)
 
 
 def _durable(page: Page, candidate: dict[str, str]) -> str | None:

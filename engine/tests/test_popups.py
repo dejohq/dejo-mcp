@@ -58,11 +58,10 @@ def test_a_newsletter_box_is_closed_by_its_no_thanks_and_remembered(
     knowledge = store.load_site_knowledge(domain_of(url))
     assert knowledge is not None and len(knowledge.overlays) == 1
 
-    browser.overlays_cleared.clear()
     again = replay(browser, store, url)
     assert again.ok, again.reason
     assert again.cleared == [], "a known pop-up should be cleared up front, not met again"
-    assert browser.overlays_cleared == knowledge.overlays
+    assert again.decisions == [f"step 2: cleared a known pop-up ({knowledge.overlays[0]})"]
 
 
 def test_a_box_with_nothing_to_click_is_closed_with_escape(
@@ -136,3 +135,28 @@ def test_a_pop_up_met_while_learning_is_cleared_said_and_kept(
     assert lab(browser, "subscribed") is None
     knowledge = store.load_site_knowledge(domain_of(url))
     assert knowledge is not None and len(knowledge.overlays) == 1
+
+
+def test_a_remembered_close_never_closes_a_dialog_the_trail_opens(
+    browser: Browser, store: DejoStore, demo_server: str
+) -> None:
+    """demoqa.com: the small dialog's close was remembered as "any dialog's Close", so the
+    large dialog the task opened on purpose was closed again before it could be read."""
+    url = f"{demo_server}/drift/dialogs"
+    runner = Runner(Session(browser=browser, store=store), task="the title", store=store)
+    outcome = runner.run(
+        program.parse(
+            f'go {url}\nclick button "Open small"\nclick button "Open large"\n'
+            'read css "#large-title" as title'
+        )
+    )
+
+    assert outcome.ok, outcome.text()
+    assert "line 3: cleared a pop-up first" in outcome.text()
+    knowledge = store.load_site_knowledge(domain_of(url))
+    assert knowledge is not None
+    assert knowledge.overlays == ['[aria-labelledby="small-title"] [aria-label="Close"]']
+
+    again = Executor(store, browser).run(domain_of(url), task="the title")
+    assert again.ok, again.reason
+    assert again.answers == {"title": "Large dialog"}
