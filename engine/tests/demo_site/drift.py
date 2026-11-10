@@ -13,6 +13,9 @@ that wants a particular visit starts a fresh browser, or clears the cookie.
     /drift/locked      a box whose only button subscribes: nothing safe clears it
     /drift/toast       a toast on show, then not there, then already faded out by itself;
                        ?kind=fade fades when closed, ?kind=say says "Dismissed" first
+    /drift/session     answers 401 once the session has run out (cookie lab-session=gone)
+    /drift/workspace   sends the visitor to Google's account chooser once it has run out
+    /drift/start       shows an identifier-first sign-in form once it has run out
     /drift/account/... two accounts, finance@acme.com and riya@acme.com, signed in by
                        whose password is typed, each shown in the header when signed in
 
@@ -22,7 +25,7 @@ What the page did is written where a test can read it: `#log`, and `window.lab`.
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 router = APIRouter(prefix="/drift")
 
@@ -227,3 +230,56 @@ def account_home(request: Request, quiet: int = 0) -> HTMLResponse:
         else '<h1>Invoices</h1><a href="/drift/account/sign-in">Sign in</a>'
     )
     return _page(request, "account-home", "Invoices", header + body)
+
+
+# Set by a test to end the lab's session: every page below then asks for a sign-in again,
+# each in a different way, none of them with a password box or a sign-in word in its path.
+SESSION_COOKIE = "lab-session"
+SESSION_GONE = "gone"
+
+# Where /drift/workspace sends a visitor whose session ran out. Google's account chooser
+# has no password box and no "login" in its path. Tests answer it themselves, offline.
+ACCOUNT_CHOOSER = "https://accounts.google.com/AccountChooser?service=lab"
+
+_DUE = '<h1>Invoices</h1><p id="due">48,200 due</p>'
+
+
+def _session_gone(request: Request) -> bool:
+    return request.cookies.get(SESSION_COOKIE) == SESSION_GONE
+
+
+@router.get("/session", response_class=HTMLResponse)
+def session(request: Request) -> HTMLResponse:
+    """Answers 401, with a page that only says so, once the session has run out."""
+    if _session_gone(request):
+        response = _page(request, "session", "Expired", "<p>Your session has expired.</p>")
+        response.status_code = 401
+        return response
+    return _page(request, "session", "Invoices", _DUE)
+
+
+@router.get("/workspace", response_class=HTMLResponse, response_model=None)
+def workspace(request: Request) -> Response:
+    """Sends the visitor to Google's account chooser once the session has run out."""
+    if _session_gone(request):
+        return RedirectResponse(ACCOUNT_CHOOSER, status_code=302)
+    return _page(request, "workspace", "Invoices", _DUE)
+
+
+@router.get("/start", response_class=HTMLResponse)
+def start(request: Request, form: str = "named") -> HTMLResponse:
+    """Shows an identifier-first sign-in at its own address once the session has run out:
+    an email field and a button, the password asked for on the next page. `form=named` names
+    the form "Sign in to Acme"; `form=plain` leaves it unnamed, with a "Log in" button."""
+    if not _session_gone(request):
+        return _page(request, "start", "Invoices", _DUE)
+    named = ' aria-label="Sign in to Acme"' if form == "named" else ""
+    button = "Next" if form == "named" else "Log in"
+    return _page(
+        request,
+        "start",
+        "Acme",
+        f"""<form{named} onsubmit="event.preventDefault()">
+              <label>Email <input type="email" name="email"></label>
+              <button>{button}</button></form>""",
+    )

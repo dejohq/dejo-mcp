@@ -510,6 +510,66 @@ DEFAULT_PROFILE_NAME = "default"
 # on purpose is never mistaken for one.
 _SIGNED_OUT_HINTS = ("/login", "/signin", "/sign-in", "/sign_in", "/auth", "/sso", "/oauth")
 
+# Hosts that only ever show a sign-in: the big identity providers, whatever path they use.
+# Google's account chooser (/AccountChooser) has no password box and no hint in its path.
+SIGN_IN_HOSTS = frozenset(
+    {
+        "accounts.google.com",
+        "login.microsoftonline.com",
+        "login.live.com",
+        "login.windows.net",
+        "appleid.apple.com",
+        "id.atlassian.com",
+        "login.salesforce.com",
+        "login.yahoo.com",
+    }
+)
+# Hosts under these belong to a company's own sign-in service (acme.okta.com, acme.auth0.com).
+SIGN_IN_HOST_ENDS = (
+    ".okta.com",
+    ".oktapreview.com",
+    ".auth0.com",
+    ".onelogin.com",
+    ".b2clogin.com",
+    ".duosecurity.com",
+    ".pingone.com",
+    ".amazoncognito.com",
+)
+# A host starting with one of these is a sign-in service too (login.acme.com, sso.acme.com).
+SIGN_IN_HOST_STARTS = ("login.", "signin.", "sso.", "auth.", "idp.")
+# Sign-in pages on a host that also has everything else, as (host, path start).
+SIGN_IN_PAGES = (("github.com", "/session"), ("gitlab.com", "/users/sign_in"))
+
+# The status a server sends to a visitor it wants signed in. Only for the page's own address:
+# a 401 from some request the page makes is not the page asking for a sign-in.
+UNAUTHORISED = 401
+
+# How a sign-in form is named, and how its button reads.
+_SIGNS_IN = re.compile(r"\b(sign|log)\s?-?in\b", re.IGNORECASE)
+
+# A form on show that asks who you are and has a button that signs in: an email or user
+# name field next to "Sign in" or "Log in". Identifier-first sign-ins ask for the password
+# on the next page, so a password box is not there to be seen.
+_SIGN_IN_FORM_JS = """
+() => {
+  const signsIn = /\\b(sign|log)\\s?-?in\\b/i;
+  const shown = (n) => {
+    const b = n.getBoundingClientRect(), s = getComputedStyle(n);
+    return b.width > 0 && b.height > 0 && s.visibility !== "hidden" && s.display !== "none";
+  };
+  for (const form of document.querySelectorAll("form, [role=form]")) {
+    if (!shown(form)) continue;
+    const who = form.querySelector("input[type=email], input[autocomplete~=username], " +
+      "input[name*=email i], input[name*=user i], input[name*=login i], input[id*=email i]");
+    const says = (b) => b.innerText || b.value || b.getAttribute("aria-label") || "";
+    const button = [...form.querySelectorAll("button, input[type=submit], [role=button]")]
+      .find((b) => shown(b) && signsIn.test(says(b)));
+    if (who && shown(who) && button) return true;
+  }
+  return false;
+}
+"""
+
 # Where a view's token is kept in the page. A ref is only good for the page it was printed
 # from, and a new document wipes everything on `window`, so a missing or different token
 # means the page under the ref has been replaced.
@@ -821,6 +881,25 @@ def _log_failure(page: Page, request: Any) -> None:
     if entry is not None:
         entry["failed"] = request.failure or "failed"
         entry["answered"] = time.monotonic()
+
+
+def _remember_document(page: Page, response: Any) -> None:
+    """Keep the status the page's own address was answered with, for `looks_signed_out`."""
+    with suppress(PlaywrightError):
+        if response.request.is_navigation_request() and response.frame == page.main_frame:
+            page._dejo_document_status = response.status  # type: ignore[attr-defined]
+
+
+def _sign_in_host(address: str) -> bool:
+    """Is this address an identity provider's, or a company's own sign-in service?"""
+    parts = urlparse(address)
+    host = parts.netloc.lower().split(":")[0]
+    if host in SIGN_IN_HOSTS or host.endswith(SIGN_IN_HOST_ENDS):
+        return True
+    if host.startswith(SIGN_IN_HOST_STARTS):
+        return True
+    bare = host.removeprefix("www.")
+    return any(bare == site and parts.path.startswith(path) for site, path in SIGN_IN_PAGES)
 
 
 def _file_name(name: str) -> str:
@@ -1476,6 +1555,7 @@ class Browser:
         page.on("console", lambda message: self._remember_console(page, message))
         page.on("pageerror", lambda error: _keep(page._dejo_console, f"error: {error}"))  # type: ignore[attr-defined]
         page.on("response", lambda response: self._remember_failure(page, response))
+        page.on("response", lambda response: _remember_document(page, response))
         page._dejo_in_flight = set()  # type: ignore[attr-defined]
         page.on("request", lambda request: _track_work(page, request, started=True))
         page.on("requestfinished", lambda request: _track_work(page, request, started=False))
@@ -2816,12 +2896,22 @@ class Browser:
 
         Only ever asked after a step has already failed. A site we deliberately opened at
         its login page must not be mistaken for an expired session.
+
+        Any one of: an address that reads like a sign-in, an identity provider's host, the
+        page's own address answered with 401, a password box, or a sign-in form (by its role
+        and name, or an email or user name field beside a "Sign in" button).
         """
         address = self.page.url.lower()
-        if any(hint in address for hint in _SIGNED_OUT_HINTS):
+        if any(hint in address for hint in _SIGNED_OUT_HINTS) or _sign_in_host(address):
+            return True
+        if getattr(self.page, "_dejo_document_status", None) == UNAUTHORISED:
             return True
         try:
-            return self.page.locator('input[type="password"]').count() > 0
+            if self.page.locator('input[type="password"]').count() > 0:
+                return True
+            if self.page.get_by_role("form", name=_SIGNS_IN).count() > 0:
+                return True
+            return bool(self.page.evaluate(_SIGN_IN_FORM_JS))
         except PlaywrightError:
             # A closed or navigating page cannot be asked. That is not a signed-out page.
             return False
