@@ -2,6 +2,38 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
+## Unreleased
+
+- **Opposite deeds are never the same task.** Open and close, track and cancel, approve and
+  reject, archive and restore, enable and disable, lock and unlock (and any word against the
+  same word with "un") no longer match, and a trail with a risky step only runs for its own
+  task, never for a loose match.
+- **Each profile keeps its own routes.** Trails are keyed by profile as well as site and task,
+  so a customer's and a vendor's "show my orders" never overwrite or block each other. Every
+  profile still reads the default profile's routes and every route saved before.
+- **A half-learned task belongs to its profile.** Another profile no longer resumes, or drops,
+  the draft one profile started.
+- **Every changed value is swapped in, or the replay stops.** A task asked with two or more new
+  values ("Kolkata to Pune on 9 Dec") replays with all of them; a new value the route has no
+  place for stops it before step 1 (`dejo run` exits 8).
+- **"This month" means this month.** A route learned for "this month", "last month", "today",
+  "latest" and similar is moved to the date the words mean now, by the browser's clock, or
+  stops and names the date it cannot place.
+- **A control that does something else is never pressed.** A backup way that finds "Remove
+  item" where "Show total" was is a miss, not a click. The way a trail was learned with
+  survives its first miss, so a fix for version B of an A/B page no longer undoes version A.
+- **A read by place says so** when what sits there now is not what it read when learned.
+- **A task that names another subject is not "the same job".** "find the minimum Dart SDK"
+  asked where the saved task said "find the changelog entry" for the same package stops before
+  step 1 instead of replaying the changelog (found on pub.dev).
+- **A restart in other words never replaces the trail it matched.** Steps sent with `restart`
+  under words that matched another trail are learned as a new trail in those words; the other
+  trail stays as it was. Sent under the trail's own task, a restart still replaces it.
+- **A task that does not fit a saved route shows the page at once.** When replay stops because
+  the task asks for something the route has no place for, the same reply opens the page, as
+  for any new task, so the agent sends the new steps in its next call instead of first asking
+  to look.
+
 ## 0.5.0 — 2026-11-10
 
 - **Consent pop-ups inside a frame are answered.** Sourcepoint and similar platforms ask

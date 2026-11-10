@@ -23,7 +23,9 @@ Two deliberate choices worth knowing about:
 
 from __future__ import annotations
 
+import copy
 from datetime import UTC, datetime, timedelta
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +41,8 @@ from .memory import (
     SibylDatabase,
     import_sibyl,
 )
-from .models import Playbook, RunMetrics, SiteKnowledge, SiteMap, utc_now
+from .models import NOT_KEPT_YET, Playbook, RunMetrics, SiteKnowledge, SiteMap, utc_now
+from .when import TIME_WORDS
 from .words import COMMON_WORDS
 
 PLAYBOOK = "playbook"
@@ -90,6 +93,11 @@ KEY_SEPARATOR = "::"
 # Long enough to tell two tasks apart, short enough to read in a listing.
 MAX_SLUG = 60
 
+# The profile whose trails keep the names they had before profiles were kept apart, and
+# that every other profile can still read. The same name as `browser.DEFAULT_PROFILE_NAME`,
+# written here so memory never has to import a browser.
+DEFAULT_PROFILE = "default"
+
 # How much of a request's wording must be shared with a saved task before they are treated
 # as the same job. Low enough to survive rephrasing, high enough that "download the
 # invoice" never matches "cancel the subscription".
@@ -126,16 +134,36 @@ _ACTIONS = frozenset(
 # would have replayed "delete the invoice". Words that are as often a thing as a deed are
 # left out ("post", "order", "update", "list"), or "read the latest post" would stop being
 # "what is the newest post".
+#
+# Opposites are deeds of their own, so each side of a pair has its own name below: "close the
+# ticket" is not "open the ticket", "reject the expense" is not "approve the expense", and
+# "unlock the account" is not "lock the account". Each of those scored as the same job (10 Nov)
+# because the words they share were all that was compared.
 _DEEDS = {
     "sign in": frozenset(
         ["log", "login", "logon", "logout", "register", "sign", "signin", "signout", "signup"]
     ),
     "add": frozenset(["add", "attach", "create", "publish", "submit", "upload"]),
-    "remove": frozenset(["cancel", "deactivate", "delete", "remove", "unsubscribe"]),
+    "remove": frozenset(["cancel", "delete", "remove", "unsubscribe"]),
     "buy": frozenset(["buy", "checkout", "pay", "purchase"]),
     "send": frozenset(["invite", "reply", "send"]),
     "change": frozenset(["edit", "modify", "rename"]),
+    "close": frozenset(["close", "resolve"]),
+    "approve": frozenset(["accept", "allow", "approve", "confirm"]),
+    "reject": frozenset(["decline", "deny", "reject"]),
+    "archive": frozenset(["archive"]),
+    "restore": frozenset(["recover", "restore", "unarchive", "undelete"]),
+    "turn on": frozenset(["activate", "enable"]),
+    "turn off": frozenset(["deactivate", "disable"]),
+    "lock": frozenset(["ban", "block", "freeze", "lock", "suspend"]),
+    "unlock": frozenset(["unban", "unblock", "unfreeze", "unlock", "unsuspend", "reactivate"]),
 }
+# A word and the same word with this in front are opposite deeds, whatever the word is:
+# follow and unfollow, mute and unmute, install and uninstall. The list above cannot name
+# every verb a site has, and this pair costs nothing to recognise.
+_UNDOING = "un"
+# Shorter words than this are not undone by "un": "it" is not the opposite of "unit".
+_SHORTEST_UNDONE = 3
 _DEED_WORDS = frozenset().union(*_DEEDS.values())
 # Signing in on the way to something else is how it is done, not what is done: "sign in and
 # download the invoice" is the job "download the invoice".
@@ -145,9 +173,11 @@ _MEANS = "sign in"
 _LOOKS = "look"
 _LOOKING = frozenset(
     ["check", "count", "download", "fetch", "find", "get", "give", "go", "how", "look", "open"]
-    + ["read", "search", "see", "show", "tell", "view", "visit", "what", "when", "where"]
-    + ["which", "who", "why"]
+    + ["read", "search", "see", "show", "tell", "track", "view", "visit", "what", "when"]
+    + ["where", "which", "who", "why"]
 )
+# Words that are never a value a task was asked about: what is done, and when.
+_NOT_VALUES = _ACTIONS | _LOOKING | _DEED_WORDS | TIME_WORDS
 SITE_KNOWLEDGE = "site_knowledge"
 
 
@@ -183,6 +213,24 @@ class DejoStore:
         self.where = database.path
         self._memory = database.owner(agent_owner(self.agent))
         self._shared = database.owner(COMMONS)
+        self.profile: str | None = None
+
+    def for_profile(self, name: str | None) -> DejoStore:
+        """The same memory, as one signed-in profile (a customer, a vendor) sees its trails.
+
+        A trail is keyed by profile as well as site and task. Keyed by site and task alone,
+        a customer's and a vendor's "show my orders" were one trail: the vendor was handed
+        the customer's route (and stopped as the wrong account), and learning its own then
+        wrote over the customer's (10 Nov). Every profile also reads the trails saved
+        without one: everything learned before trails were kept per profile, and everything
+        the default profile learns, so an upgrade loses nothing. Its own trail for a task
+        always comes first.
+
+        A view, not a copy: the database and its connections are the same object."""
+        view = copy.copy(self)
+        chosen = (name or "").strip()
+        view.profile = None if chosen in ("", DEFAULT_PROFILE) else chosen
+        return view
 
     def close(self) -> None:
         """Let go of the memory file. Only a store made for one short job needs this, such
@@ -201,26 +249,34 @@ class DejoStore:
         hold exactly one task ever — found on GitHub, where asking about a second repo
         collided with the first.
         """
-        key = trail_key(playbook.domain, playbook.task)
+        key = trail_key(playbook.domain, playbook.task, self._profile_of(playbook))
         self._memory.put(PLAYBOOK, key, playbook.to_dict())
 
         # Knowing the site again is the opposite of having forgotten it.
         self._memory.archive(FORGOTTEN, playbook.domain, reason="learned again")
 
+    def _profile_of(self, playbook: Playbook) -> str | None:
+        """Where a trail is written back: where it was read from, or, for a trail made just
+        now, this profile. A trail every profile can read stays that way when another
+        profile replays or repairs it, so its health is not split into copies."""
+        return self.profile if playbook.kept_under == NOT_KEPT_YET else playbook.kept_under
+
     def save_draft(self, draft: Playbook) -> None:
         """Write. The steps of a task that is still being learned. See DRAFT."""
         self._drop_stale_drafts()
-        self._memory.put(DRAFT, trail_key(draft.domain, draft.task), draft.to_dict())
+        key = trail_key(draft.domain, draft.task, self.profile)
+        self._memory.put(DRAFT, key, draft.to_dict())
 
     def load_draft(self, domain: str, task: str) -> Playbook | None:
-        """Read. The draft for exactly this task, never a look-alike: resuming another
-        task's half-learned steps would start the wrong job from its middle."""
-        body = self._read_entity_body(DRAFT, trail_key(domain, task))
+        """Read. The draft for exactly this task and profile, never a look-alike: resuming
+        another task's half-learned steps would start the wrong job from its middle."""
+        body = self._read_entity_body(DRAFT, trail_key(domain, task, self.profile))
         return Playbook.from_dict(body) if body else None
 
     def drop_draft(self, domain: str, task: str) -> bool:
         """The draft became a trail, or the caller started over. True if one was there."""
-        return self._memory.archive(DRAFT, trail_key(domain, task), reason="draft closed")
+        key = trail_key(domain, task, self.profile)
+        return self._memory.archive(DRAFT, key, reason="draft closed")
 
     def _drop_stale_drafts(self) -> None:
         oldest = datetime.now(UTC) - DRAFT_MAX_AGE
@@ -245,18 +301,18 @@ class DejoStore:
         are several, it has to say which; `trails_for` lists them.
         """
         if task:
-            body = self._read_entity_body(PLAYBOOK, trail_key(domain, task))
-            if body:
-                return Playbook.from_dict(body)
+            exact = self._trail(domain, task)
+            if exact is not None:
+                return exact
 
         # Trails saved before trails were keyed by task are named by domain alone. Even a
         # legacy trail has to be the one being asked for: returning it whatever the caller
         # said is the "run the wrong task" accident this function exists to prevent.
         legacy = self._read_entity_body(PLAYBOOK, domain)
         if legacy and self._is_plausible(task, legacy, domain):
-            return Playbook.from_dict(legacy)
+            return _kept(Playbook.from_dict(legacy), None)
 
-        keys = self._keys_for(domain)
+        keys = self._visible_keys(domain)
 
         # A site with ONE trail. Naming a task used to disable this fallback entirely, so
         # `dejo_run(site)` replayed and `dejo_run(site, task="...")` did not — naming the
@@ -270,7 +326,7 @@ class DejoStore:
         if len(keys) == 1:
             only = self._read_entity_body(PLAYBOOK, keys[0])
             if only and self._is_plausible(task, only, domain):
-                return Playbook.from_dict(only)
+                return _kept(Playbook.from_dict(only), profile_of_key(keys[0]))
             return None
 
         # Nobody words a request the same way twice. "how many open issues does
@@ -278,9 +334,18 @@ class DejoStore:
         # microsoft/playwright", or the memory may as well not be there.
         if task:
             closest = best_match(task, self.trails_for(domain), domain=domain)
-            if closest:
-                body = self._read_entity_body(PLAYBOOK, trail_key(domain, closest))
-                return Playbook.from_dict(body) if body else None
+            found = self._trail(domain, closest) if closest else None
+            if found is not None and _close_enough(task, found.to_dict(), domain):
+                return found
+        return None
+
+    def _trail(self, domain: str, task: str) -> Playbook | None:
+        """This profile's own trail for exactly this task, or else the one every profile
+        can read. Never another profile's."""
+        for profile in dict.fromkeys([self.profile, None]):
+            body = self._read_entity_body(PLAYBOOK, trail_key(domain, task, profile))
+            if body:
+                return _kept(Playbook.from_dict(body), profile)
         return None
 
     @staticmethod
@@ -288,24 +353,41 @@ class DejoStore:
         """Could this stored trail be the job that was asked for?
 
         A caller who named nothing can only mean whatever is there. A caller who named
-        something has to share at least one meaningful word with it.
+        something has to share at least one meaningful word with it, and has to have named
+        the very task when the trail does something risky.
         """
         if not task:
             return True
-        return shares_meaning(task, str(body.get("task", "")), domain)
+        saved = str(body.get("task", ""))
+        return shares_meaning(task, saved, domain) and _close_enough(task, body, domain)
 
     def trails_for(self, domain: str) -> list[str]:
-        """The tasks this site has trails for, so a caller can say which one it means."""
-        found = []
-        for key in self._keys_for(domain):
+        """The tasks this site has trails for, that this profile can follow, so a caller
+        can say which one it means."""
+        found = set()
+        for key in self._visible_keys(domain):
             body = self._read_entity_body(PLAYBOOK, key)
             if body and body.get("task"):
-                found.append(body["task"])
+                found.add(body["task"])
         return sorted(found)
 
     def _keys_for(self, domain: str) -> list[str]:
-        """Every live trail key belonging to one site."""
+        """Every live trail key belonging to one site, whichever profile it belongs to."""
         return [key for key in self._memory.names(PLAYBOOK) if domain_of_key(key) == domain]
+
+    def _visible_keys(self, domain: str) -> list[str]:
+        """The site's trail keys this profile may follow: its own, and those every profile
+        reads. One task saved both ways counts once, as this profile's own."""
+        own = slug(self.profile) if self.profile else None
+        mine = [key for key in self._keys_for(domain) if profile_of_key(key) == own]
+        if self.profile is None:
+            return mine
+        own_tasks = {task_of_key(key) for key in mine}
+        return mine + [
+            key
+            for key in self._keys_for(domain)
+            if profile_of_key(key) is None and task_of_key(key) not in own_tasks
+        ]
 
     def list_sites(self) -> list[str]:
         """Every domain Dejo currently knows a trail for.
@@ -714,7 +796,12 @@ class DejoStore:
         rebuilt, but "needs a login, sends a code to your phone, use the finance account"
         is all still true. This is what makes relearning cheaper than a first visit.
         """
-        key = trail_key(domain, task) if task else domain
+        if task:
+            found = self._trail(domain, task)
+            where = self._profile_of(found) if found is not None else self.profile
+            key = trail_key(domain, task, where)
+        else:
+            key = domain
         if not self._memory.archive(PLAYBOOK, key, reason="stale, site was rebuilt"):
             return False
 
@@ -780,20 +867,42 @@ class DejoStore:
         return self._memory.get(category, name)
 
 
-def trail_key(domain: str, task: str | None) -> str:
-    """The memory name for one task on one site.
+def trail_key(domain: str, task: str | None, profile: str | None = None) -> str:
+    """The memory name for one task on one site, as one profile.
 
     A site holds many trails. Without the task in the key they overwrite each other, which
-    is what happened the first time Dejo was asked about a second GitHub repo.
+    is what happened the first time Dejo was asked about a second GitHub repo. Without the
+    profile, a customer's and a vendor's trail for the same task did (see `for_profile`).
+    No profile is the name every trail had before, which every profile reads.
     """
     if not task:
         return domain
-    return f"{domain}{KEY_SEPARATOR}{slug(task)}"
+    key = f"{domain}{KEY_SEPARATOR}{slug(task)}"
+    return f"{key}{KEY_SEPARATOR}{slug(profile)}" if profile else key
 
 
 def domain_of_key(key: str) -> str:
     """The site a trail key belongs to. Trails saved before this are named by domain."""
     return key.split(KEY_SEPARATOR, 1)[0]
+
+
+def task_of_key(key: str) -> str:
+    """The task slug in a trail key, or "" for a trail named by its site alone."""
+    parts = key.split(KEY_SEPARATOR)
+    return parts[1] if len(parts) > 1 else ""
+
+
+def profile_of_key(key: str) -> str | None:
+    """The profile slug a trail key was saved for, or None for one every profile reads."""
+    parts = key.split(KEY_SEPARATOR)
+    return parts[2] if len(parts) > 2 else None
+
+
+def _kept(playbook: Playbook, profile: str | None) -> Playbook:
+    """A trail read from memory, marked with the profile it was kept under, so writing it
+    back puts it where it came from."""
+    playbook.kept_under = profile
+    return playbook
 
 
 def slug(task: str) -> str:
@@ -866,13 +975,69 @@ def shares_meaning(wanted: str, candidate: str, domain: str | None = None) -> bo
     return bool(shared) and swapped_subject(wanted, candidate, domain) is not None
 
 
+def _close_enough(task: str, body: dict[str, Any], domain: str | None) -> bool:
+    """May a trail found by other words than its own run for this task?
+
+    Always, for a trail that only reads and moves around. Not for one with a risky step
+    (it pays, sends, deletes or submits): "delete the invoice" found the trail saved as
+    "delete the draft invoice" by the words they share, and would have deleted the draft.
+    That trail runs only for its own task, said in other common words ("delete my draft
+    invoice"), or aimed at a new subject, which replay checks on the page before it acts.
+    """
+    if not any(step.get("risky") for step in body.get("steps", [])):
+        return True
+    saved = str(body.get("task", ""))
+    if _meaningful(task, domain) == _meaningful(saved, domain):
+        return True
+    swap = swapped_subject(task, saved, domain)
+    # A swap the steps never mention is not aimed anywhere: the trail would run unchanged.
+    return swap is not None and swap[0] in _words(_what_steps_act_on(body))
+
+
+def _what_steps_act_on(body: dict[str, Any]) -> str:
+    """Every value, address, check and locator in a stored trail, as one text: the places
+    a new subject can be aimed at. The intents are left out, since nothing acts on them."""
+    said: list[str] = []
+    for step in body.get("steps", []):
+        said += [str(step.get("value") or ""), str(step.get("page") or "")]
+        said.append(str((step.get("postcondition") or {}).get("value") or ""))
+        said += [str(locator.get("value") or "") for locator in step.get("locators", [])]
+    return " ".join(said)
+
+
 def _same_deed(wanted: str, candidate: str, domain: str | None = None) -> bool:
     """Could these two do the same thing? Only no when both say what they do, differently.
 
     A name that does not say ("billing", "message riya") could be either, and is left to
-    the words it shares."""
+    the words it shares. A word in one and that word undone in the other ("follow" and
+    "unfollow") always says they differ."""
+    if _undoes(_words(wanted), _words(candidate)):
+        return False
     asked, saved = _deeds(wanted, domain), _deeds(candidate, domain)
     return not asked or not saved or asked == saved
+
+
+def does_something_else(was: str, now: str) -> bool:
+    """Does the control named `now` do something the one named `was` did not?
+
+    Asked before a step acts on an element found by a backup way, with the name the step
+    was learned on. "Reveal total" for "Show total" is the same button reworded; "Remove
+    item" for "Show total" is another button that happens to sit where it sat (an A/B page,
+    10 Nov). A name that adds a deed ("Remove", "Pay", "Send") the old one did not have is
+    always something else, even when the old name said no deed at all ("Total")."""
+    if not _same_deed(was, now):
+        return True
+    added = _deeds(now) - _deeds(was)
+    return bool(added - {_LOOKS})
+
+
+def _undoes(one: set[str], other: set[str]) -> bool:
+    """Does one of these say a word the other says undone, as "mute" and "unmute"?"""
+    return any(
+        f"{_UNDOING}{word}" in other or f"{_UNDOING}{word}" in one
+        for word in (one ^ other)
+        if len(word) >= _SHORTEST_UNDONE and word not in COMMON_WORDS
+    )
 
 
 def _deeds(text: str, domain: str | None = None) -> frozenset[str]:
@@ -919,6 +1084,62 @@ def swapped_subject(
         # request against a one-word trail is not a swap, it is a different job.
         return None
     return (dropped.pop(), added.pop())
+
+
+def changed_values(
+    wanted: str, candidate: str, domain: str | None = None
+) -> tuple[list[tuple[str, str]], list[str], list[str]]:
+    """Every value that changed between a saved task and the same task asked again.
+
+    "flights from Kolkata to Pune on 9 Dec" against the trail saved as "flights from Delhi
+    to Mumbai on 5 Dec" is the same route with three values changed. The words are lined up
+    in order, and a run of changed words the same length on both sides is paired word for
+    word: (delhi, kolkata), (mumbai, pune), (5, 9). `swapped_subject` allows one change
+    only, so with three it saw a different request, the matcher still found the trail by
+    "flights" and "dec", and the replay answered with Delhi to Mumbai (10 Nov).
+
+    Returns the pairs, as (was, now), the new words that have nothing to pair with
+    ("in business class"), which a replay cannot place anywhere, and of those the ones asked
+    INSTEAD of the saved task's own words: "minimum Dart SDK" where the trail said
+    "changelog entry" is not the same job reworded, it is another job (pub.dev, 10 Nov).
+    Words that only say what is done ("show", "list") or when ("last", "latest") are never
+    values.
+    """
+    known, asked = _in_order(candidate, domain), _in_order(wanted, domain)
+    pairs: list[tuple[str, str]] = []
+    unpaired: list[str] = []
+    instead: list[str] = []
+    matched = SequenceMatcher(
+        a=[word.lower() for word in known], b=[word.lower() for word in asked], autojunk=False
+    )
+    for kind, was_from, was_to, now_from, now_to in matched.get_opcodes():
+        was, now = known[was_from:was_to], asked[now_from:now_to]
+        if kind == "replace" and len(was) == len(now):
+            pairs.extend(zip(was, now, strict=True))
+        elif kind in ("replace", "insert"):
+            unpaired.extend(now)
+            if kind == "replace" and any(word.lower() not in _NOT_VALUES for word in was):
+                instead.extend(now)
+    values = [pair for pair in pairs if _a_value(*pair)]
+    kept = [word for word in unpaired if word.lower() not in _NOT_VALUES]
+    return values, kept, [word for word in instead if word.lower() not in _NOT_VALUES]
+
+
+def _a_value(was: str, now: str) -> bool:
+    """Is this pair of words a value that changed, rather than the same job said otherwise?
+    "show" for "list" is a rewording, and "delete" for "remove" or "last" for "this" is
+    never a value. "closed" for "open" is: the open issues are not the closed ones."""
+    words = {was.lower(), now.lower()}
+    if words & (_DEED_WORDS | TIME_WORDS):
+        return False
+    return not words <= _NOT_VALUES
+
+
+def _in_order(text: str, domain: str | None) -> list[str]:
+    """The meaningful words of a task, in the order and the case they were said."""
+    dropped = COMMON_WORDS | _site_words(domain)
+    words = "".join(character if character.isalnum() else " " for character in text)
+    return [word for word in words.split() if word.lower() not in dropped]
 
 
 def _overlap(wanted: str, candidate: str, domain: str | None = None) -> float:

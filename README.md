@@ -134,7 +134,10 @@ fails, Dejo stops at that exact step.
 
 - **Finds the element another way.** Up to nine ways per step, best first. When the first
   misses and a backup finds it, the backup moves up. On a slow page Dejo waits for the page
-  to finish before it calls any way broken.
+  to finish before it calls any way broken. A backup that finds a control which does
+  something else ("Remove item" where "Show total" used to be) is never pressed. After a
+  fix, the old ways stay as backups, so a site that shows version A one day and version B
+  the next works on both once each has been seen.
 - **Clears a pop-up nobody told it about.** When something covers the element a step presses,
   Dejo tries, in order: the pop-up's own close ("Close", "No thanks", "Not now", "×"), the
   Escape key, then a consent banner's button, choosing "Reject all" or "Necessary only" over
@@ -160,6 +163,11 @@ decided on its own (2):
 - step 3: found by a backup way (css:#total-button); role:button|Show total missed and moved down
 ```
 
+A read that finds its element only by its place ("the first row") and reads something other
+than it read when learned says so: `read by place (...): what sits there now is not what this
+read said when it was learned`. A list that reordered never hands back another row's value in
+silence.
+
 **When it stops and asks:**
 
 - **The site really changed.** No way finds the element, or the check fails. Dejo stops at
@@ -177,6 +185,31 @@ decided on its own (2):
   opens a sign-in page on purpose works as usual.
 - **A captcha, or a pop-up with no safe way out.** Dejo stops and hands over to you. It does
   not solve captchas and does not get around a site's block.
+
+### When the task changes
+
+A route is saved under the task's words. Asked in other words, Dejo only replays it when it is
+sure it is the same job, for the same person, with the right values:
+
+- **The same job with new values.** "flights from Delhi to Mumbai on 5 Dec", asked as
+  "flights from Kolkata to Pune on 9 Dec", replays the same route with every changed value
+  swapped in, and the reply says so (`aimed at 'Kolkata' instead of 'Delhi'`). Each step
+  that was aimed has to find the new value on the page before it acts. A value the route has
+  no place for ("in business class") stops the replay before step 1 and is named. It never
+  replays the old values.
+- **A time relative to today.** "This month's invoice" learned in September clicks
+  "September 2026". Asked in October, Dejo moves it to "October 2026" by the browser's
+  clock, and says so. "last month", "today", "this week", "latest" and "current" work the
+  same way. A date it cannot place stops the replay and is named. A task that names its
+  month ("the September invoice") is never moved.
+- **A different deed is a different job.** Download and delete, open and close, add and
+  remove, track and cancel, approve and reject, lock and unlock (and any word against the
+  same word with "un") are never matched, whatever else the names share.
+- **A risky route needs its own task.** A route with a `click!` (pay, send, delete, submit)
+  runs only for the task it was saved as, said in other common words, never for a loose
+  match.
+- **Another account has its own route.** See [More than one identity at
+  once](#more-than-one-identity-at-once).
 
 ### The map
 
@@ -320,6 +353,13 @@ dejo --profile admin  login --site shop.example.com
 From your agent, `dejo_profile` with `name="vendor"` switches, and without a name lists them. A suite
 covering three roles never has to sign out and back in, so the order of the tests stops
 mattering.
+
+**Each profile keeps its own routes.** A customer's "show my orders" is a different page from a
+vendor's, so the same task name learned in two profiles is two routes, and neither overwrites
+the other. Every profile also reads the routes of the default profile, and every route saved
+by 0.5.0 or older, so nothing is lost on upgrade. If such a route was learned as another
+account, the profile learns its own instead of being stopped. A half-learned task is kept per
+profile too. `dejo forget` forgets the site's routes in every profile.
 
 ## Sharing a route
 

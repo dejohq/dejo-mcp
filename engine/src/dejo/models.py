@@ -10,6 +10,7 @@ Nothing in this module talks to memory. That is `store.py`, and only `store.py`.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
@@ -20,6 +21,14 @@ from urllib.parse import urlparse, urlunparse
 # iframe's selector and what is inside it. A frame inside a frame is two of these, and both
 # `page.frame_locator` and `page.locator` take the whole chain as one selector.
 ENTER_FRAME = " >> internal:control=enter-frame >> "
+
+# What `Playbook.kept_under` says of a trail made just now and not yet read from memory.
+# Empty, because no profile is ever named "".
+NOT_KEPT_YET = ""
+
+# How much of a read's fingerprint is kept: plenty to tell two answers apart, far too little
+# to matter if it were ever seen. See `answer_mark`.
+ANSWER_MARK_CHARS = 16
 
 
 def in_frame(frame: str | None, selector: str) -> str:
@@ -418,6 +427,15 @@ class Step:
     the banner is not shown at all there is nothing to clear, so a replay that finds nothing
     for this step skips it, as long as the next step can go ahead without it (bench T07)."""
 
+    read_mark: str = ""
+    """For a read, a fingerprint of what it said when it was learned (see `answer_mark`).
+    Never the answer itself: a balance or an address does not belong in memory.
+
+    A read that finds its element only by its place ("the first row") reads whatever sits
+    there now. When that differs from what was read while learning, the reply says the
+    read is by place, so a price from another row is never handed back in silence (a
+    price list that reordered, 10 Nov). Empty on trails saved before it existed."""
+
     second: list[Locator] = field(default_factory=list)
     """For a step that needs two elements (`drag e4 to e9`), the ways to find the second.
 
@@ -520,6 +538,7 @@ class Step:
             **({"second": [loc.to_dict() for loc in self.second]} if self.second else {}),
             **({"dialog_answer": self.dialog_answer} if self.dialog_answer is not None else {}),
             **({"options": dict(self.options)} if self.options else {}),
+            **({"read_mark": self.read_mark} if self.read_mark else {}),
             "health": round(self.health, 3),
         }
 
@@ -545,7 +564,15 @@ class Step:
             second=[Locator.from_dict(loc) for loc in raw.get("second", [])],
             dialog_answer=raw.get("dialog_answer"),
             options=dict(raw.get("options", {})),
+            read_mark=raw.get("read_mark", ""),
         )
+
+
+def answer_mark(answer: Any) -> str:
+    """A short fingerprint of what a read said: enough to tell "the same" from "not the
+    same", and nothing a person could read the answer back from."""
+    said = " ".join(str(answer).split())
+    return hashlib.sha256(said.encode("utf-8")).hexdigest()[:ANSWER_MARK_CHARS]
 
 
 @dataclass
@@ -572,6 +599,10 @@ class Playbook:
 
     Kept separate from `runs`, which is reset on borrow. A borrowed trail arriving with
     `runs=9` would make the borrower's own journal say something untrue."""
+    kept_under: str | None = field(default=NOT_KEPT_YET, compare=False, repr=False)
+    """Which profile's name this trail was read from in memory: None for the name every
+    profile reads, `NOT_KEPT_YET` for a trail made just now. Never written into the trail:
+    it is where the trail lives, not what it is. See `DejoStore.for_profile`."""
     signed_in_as: str | None = None
     """Who the site showed as signed in while this trail was learned: an email address, or
     the name on the account button (see `identity`). Only what was on the screen, never a
@@ -614,7 +645,7 @@ class Playbook:
         return Playbook(
             domain=self.domain,
             task=self.task,
-            steps=[step.without_what_was_typed() for step in self.steps],
+            steps=[replace(step.without_what_was_typed(), read_mark="") for step in self.steps],
             version=self.version,
             runs=self.runs,
             repairs=self.repairs,

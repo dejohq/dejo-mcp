@@ -29,12 +29,13 @@ import copy
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 from urllib.parse import parse_qsl, urljoin, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 
-from . import actions, identity, popups, reads, steplog
+from . import actions, identity, popups, reads, steplog, when
 from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
     Decided,
@@ -61,6 +62,7 @@ from .models import (
     SiteKnowledge,
     SiteMap,
     Step,
+    answer_mark,
     href_path,
     page_path,
     signs_in_at,
@@ -68,7 +70,7 @@ from .models import (
 from .operations import READ_ACTION, check_postcondition, controls_in, settles_into
 from .secrets import MissingSecret
 from .secrets import resolve as resolve_secret
-from .store import DejoStore, swapped_subject
+from .store import DejoStore, changed_values, does_something_else
 
 # How long a way that found nothing gets to find the element once another way has: the page
 # has drawn by then, so it is there at once or not at all.
@@ -80,6 +82,33 @@ STALE_SHARE = 0.5
 # HTTP statuses from here up mean the server did not give us the page (not found, forbidden,
 # server error). Below it, 2xx and 3xx, the page arrived.
 HTTP_ERROR_FROM = 400
+
+# How long asking an element its name may take. It is one DOM read of an element already
+# found, so longer means the page is being replaced and has no name to give.
+NAME_LOOK_MS = 1500
+
+# The most of an element's name worth comparing: a control's name is a few words, and a
+# container's whole text is not a name at all.
+NAME_CHARS = 120
+
+# What a control is called, as a person or a screen reader meets it.
+_NAME_JS = """(n) => (n.getAttribute("aria-label") || n.innerText || n.value ||
+  n.getAttribute("title") || n.getAttribute("alt") || "").replace(/\\s+/g, " ").trim()"""
+
+# Today's date by the page's own clock, as [year, month, day].
+_TODAY_JS = (
+    "(() => { const d = new Date(); return [d.getFullYear(), d.getMonth() + 1, d.getDate()]; })()"
+)
+
+# A CSS path that picks by position: nth-of-type, nth-child, first or last child.
+_PLACE_IN_CSS = re.compile(r":(?:nth-(?:last-)?(?:of-type|child)|first-|last-|only-)")
+
+# Steps that press or change a control. Only these are refused a control that does something
+# else: a read takes nothing away, and is checked by what it read.
+_ACTS_ON_A_CONTROL = frozenset(
+    {"check", "clear", "click", "dispatch_event", "double_click", "drag", "fill", "press"}
+    | {"select", "set_checked", "tap", "type", "uncheck", "upload"}
+)
 
 # How long to let the site finish moving after a trail's LAST action before saying the run
 # is done. Spent only by trails that end by pressing something — a trail ending in a read
@@ -242,6 +271,11 @@ class ReplayResult:
     """Pop-ups nobody told Dejo about that covered a step, and how each was cleared, as
     `step 3: "Join our newsletter" closed by its "No thanks" control`. See `popups`."""
 
+    unplaced: list[str] = field(default_factory=list)
+    """Values the task asked for that this trail has no place for: a third changed value, a
+    new word with nothing to pair it with, or a date its words cannot place ("this week"
+    against a trail that picked one day). Nothing ran. See `Executor._aim_at`."""
+
     @property
     def needs_repair(self) -> bool:
         return self.repair is not None
@@ -267,6 +301,40 @@ class NeedsTask(NoTrailError):
     def __init__(self, message: str, *, tasks: list[str]):
         super().__init__(message)
         self.tasks = tasks
+
+
+def _dates_in_steps(playbook: Playbook) -> list[when.Dated]:
+    """Every fixed date the trail's steps hold where a swap can land, each once."""
+    found: dict[str, when.Dated] = {}
+    for step in playbook.steps:
+        texts = [step.value, step.page, step.postcondition.value]
+        texts += [locator.value for locator in step.locators]
+        for text in texts:
+            for dated in when.dates_in(text):
+                found.setdefault(dated.text, dated)
+    return list(found.values())
+
+
+def _by_place(locator: Locator) -> bool:
+    """Does this way find its element only by where it sits: the nth match, or a CSS path
+    of positions? Such a way finds whatever is in that place now."""
+    if locator.nth is not None:
+        return True
+    return locator.kind == "css" and bool(_PLACE_IN_CSS.search(locator.value))
+
+
+def _names_learned(step: Step) -> list[str]:
+    """The names this step's control was known by: in its role and text locators."""
+    return sorted({name for locator in step.locators for name in _names(locator)})
+
+
+def _names(locator: Locator) -> set[str]:
+    """The name a locator finds its element by, if it finds it by name at all."""
+    if locator.kind == "role" and "|" in locator.value:
+        return {locator.value.partition("|")[2]} - {""}
+    if locator.kind in ("text", "label", "title", "alt"):
+        return {locator.value}
+    return set()
 
 
 def _reads_many(step: Step) -> bool:
@@ -367,6 +435,70 @@ def _reaim(text: str | None, was: str, now: str) -> tuple[str | None, bool]:
     return swapped, count > 0
 
 
+def _reaim_all(text: str | None, swaps: list[tuple[str, str]]) -> tuple[str | None, set[str]]:
+    """Every swap at once, so one never rewrites another's result ("Delhi" to "Mumbai" and
+    "Mumbai" to "Pune" must not turn Delhi into Pune). Returns the new values that landed."""
+    if not text or not swaps:
+        return text, set()
+    wanted = {was.casefold(): now for was, now in swaps}
+    words = "|".join(re.escape(was) for was, _ in sorted(swaps, key=lambda s: -len(s[0])))
+    pattern = re.compile(
+        rf"(?:(?<![0-9A-Za-z])|(?<=%[0-9A-Fa-f]{{2}}))(?:{words})(?![0-9A-Za-z])",
+        re.IGNORECASE,
+    )
+    landed: set[str] = set()
+
+    def swapped(match: re.Match[str]) -> str:
+        now = wanted[match.group(0).casefold()]
+        landed.add(now)
+        return _in_the_case_of(match.group(0), now)
+
+    return pattern.sub(swapped, text), landed
+
+
+def _in_the_case_of(was: str, now: str) -> str:
+    """`now` written the way `was` was: an agent asks about "kolkata", the form held "Delhi"."""
+    if not now.islower():
+        return now
+    if was.isupper() and len(was) > 1:
+        return now.upper()
+    return now.title() if was.istitle() else now
+
+
+def with_values(
+    playbook: Playbook, swaps: list[tuple[str, str]]
+) -> tuple[Playbook, dict[int, set[str]], dict[int, set[str]]] | None:
+    """The same trail with every value in `swaps` replaced. A COPY: memory is never touched.
+
+    Returns the aimed copy, per step WHERE a swap landed (value, check, page, locator), and
+    per step WHICH new values landed there, which is what that step is checked against.
+    `None` when no old value appears anywhere in the trail's own data."""
+    aimed = copy.deepcopy(playbook)
+    touched: dict[int, set[str]] = {}
+    values: dict[int, set[str]] = {}
+    for step in aimed.steps:
+        where: set[str] = set()
+        landed: set[str] = set()
+        step.intent, _ = _reaim_all(step.intent, swaps)
+        step.value, hit = _reaim_all(step.value, swaps)
+        where |= {"value"} if hit else set()
+        landed |= hit
+        step.postcondition.value, hit = _reaim_all(step.postcondition.value, swaps)
+        where |= {"check"} if hit else set()
+        landed |= hit
+        step.page, hit = _reaim_all(step.page, swaps)
+        where |= {"page"} if hit else set()
+        landed |= hit
+        for locator in step.locators:
+            locator.value, hit = _reaim_all(locator.value, swaps)
+            where |= {"locator"} if hit else set()
+            landed |= hit
+        if where:
+            touched[step.index] = where
+            values[step.index] = landed
+    return (aimed, touched, values) if touched else None
+
+
 def with_subject(
     playbook: Playbook, was: str, now: str
 ) -> tuple[Playbook, dict[int, set[str]]] | None:
@@ -384,27 +516,8 @@ def with_subject(
     Returns the aimed copy and, per step, WHERE the swap landed — which is what decides
     how that step gets verified.
     """
-    aimed = copy.deepcopy(playbook)
-    touched: dict[int, set[str]] = {}
-    for step in aimed.steps:
-        where: set[str] = set()
-        step.intent, _ = _reaim(step.intent, was, now)
-        step.value, hit = _reaim(step.value, was, now)
-        if hit:
-            where.add("value")
-        step.postcondition.value, hit = _reaim(step.postcondition.value, was, now)
-        if hit:
-            where.add("check")
-        step.page, hit = _reaim(step.page, was, now)
-        if hit:
-            where.add("page")
-        for locator in step.locators:
-            locator.value, hit = _reaim(locator.value, was, now)
-            if hit:
-                where.add("locator")
-        if where:
-            touched[step.index] = where
-    return (aimed, touched) if touched else None
+    aimed = with_values(playbook, [(was, now)])
+    return (aimed[0], aimed[1]) if aimed else None
 
 
 def pages_along(steps: list[Step], start_url: str | None = None) -> dict[int, str]:
@@ -486,6 +599,8 @@ class Executor:
     """The subject swap in force for this run, if any. See `with_subject`."""
     _aimed: dict[int, set[str]] = {}
     """Per step, where the swap landed: value, check, page or locator."""
+    _aimed_to: dict[int, set[str]] = {}
+    """Per step, the new values that landed there. The step is checked against these."""
     _unverified: list[int] = []
     """Substituted steps nothing on the page could confirm."""
     _picked_landing: str | None = None
@@ -545,18 +660,15 @@ class Executor:
         if start_url and _leaves_out_of(start_url, playbook):
             start_url = None
 
-        # Same route, different subject. "message riya" against a trail saved as "message
+        # Same route, different values. "message riya" against a trail saved as "message
         # ankush" is not a rephrasing and must not be replayed unchanged — that is how a
         # message reaches the wrong person, and how a question about one project comes back
-        # with another project's numbers.
+        # with another project's numbers. The same goes for every changed value at once,
+        # and for "this month" asked a month after the trail picked September.
         self._aim = None
         self._aimed = {}
-        swap = swapped_subject(task, playbook.task, domain) if task else None
-        if swap:
-            reaimed = with_subject(playbook, *swap)
-            if reaimed:
-                playbook, self._aimed = reaimed
-                self._aim = swap
+        self._aimed_to = {}
+        playbook, unplaced = self._aim_at(task, playbook, domain)
 
         self._expected = pages_along(playbook.steps, start_url)
         started = time.perf_counter()
@@ -579,6 +691,9 @@ class Executor:
             tool_calls=1,  # the whole run is one call from the caller's side
             model_calls=0,  # nothing in this file can make one
         )
+
+        if unplaced:
+            return self._cannot_place(playbook, metrics, started, unplaced)
 
         # Who is signed in, asked of the page the browser already shows when it is this
         # site's, so a wrong account is caught before step 1 does anything at all.
@@ -848,6 +963,104 @@ class Executor:
             cleared=list(self._cleared),
         )
 
+    def _aim_at(
+        self, task: str | None, playbook: Playbook, domain: str
+    ) -> tuple[Playbook, list[str]]:
+        """The trail aimed at every value the task changed and every date its words mean
+        today, and what could not be placed. Nothing is aimed when anything cannot be: a
+        replay with some new values and some old ones is the wrong task done confidently.
+
+        One changed word that the steps never mention is a rewording ("tell me the quote"
+        for "read the quote") and changes nothing, exactly as before. Two or more changed
+        values, a new value with nothing to pair it with, or a date the words cannot place,
+        is a stop that names them."""
+        pairs, extra, instead = (
+            changed_values(task, playbook.task, domain) if task else ([], [], [])
+        )
+        dated, undated, phrase = self._dates_meant(task, playbook)
+        swaps = pairs + dated
+        if not swaps:
+            return playbook, undated + instead
+        aimed = with_values(playbook, swaps)
+        landed = set().union(*aimed[2].values()) if aimed else set()
+        missing = [now for _, now in pairs if now not in landed]
+        unplaced = list(undated)
+        if len(pairs) > 1 or (missing and len(missing) < len(pairs)):
+            unplaced += missing
+        if landed and extra:
+            unplaced += extra
+        # Asked for in place of what the trail is about, these are another job whether or not
+        # a value also moved: "minimum Dart SDK" for "changelog entry" (pub.dev, 10 Nov).
+        unplaced += [word for word in instead if word not in unplaced]
+        if unplaced or aimed is None:
+            return playbook, unplaced
+        self._aimed, self._aimed_to = aimed[1], aimed[2]
+        placed = [(was, now) for was, now in swaps if now in landed]
+        self._aim = (", ".join(was for was, _ in placed), ", ".join(now for _, now in placed))
+        for was, now in placed:
+            said = f", because the task says {phrase!r}" if (was, now) in dated else ""
+            self._decisions.append(f"aimed at {now!r} instead of {was!r}{said}")
+        return aimed[0], []
+
+    def _dates_meant(
+        self, task: str | None, playbook: Playbook
+    ) -> tuple[list[tuple[str, str]], list[str], str]:
+        """The trail's fixed dates moved to what the task's words mean today, the dates
+        that cannot be placed, and the words that said so. Asked as the task was saved
+        ("this month"), or asked in other words that name no date of their own."""
+        relative = when.relative_to_today(task)
+        if relative is None and not when.dates_in(task):
+            relative = when.relative_to_today(playbook.task)
+        if relative is None:
+            return [], [], ""
+        today = self._today()
+        moved: list[tuple[str, str]] = []
+        unplaced: list[str] = []
+        for dated in _dates_in_steps(playbook):
+            meant = when.meant_now(dated, relative, today)
+            if meant is None:
+                unplaced.append(f"{dated.text} (the task says {relative.phrase!r})")
+            elif meant != dated.text:
+                moved.append((dated.text, meant))
+        return moved, unplaced, relative.phrase
+
+    def _today(self) -> date:
+        """Today, by the browser's own clock: a test or a trail can move it with set_time."""
+        try:
+            year, month, day = self.browser.page.evaluate(_TODAY_JS)
+            return date(int(year), int(month), int(day))
+        except (PlaywrightError, TypeError, ValueError):
+            return date.today()
+
+    def _cannot_place(
+        self, playbook: Playbook, metrics: RunMetrics, started: float, unplaced: list[str]
+    ) -> ReplayResult:
+        """Stop before step 1: the task asks for values this trail has no place for."""
+        named = ", ".join(repr(value) for value in unplaced)
+        reason = (
+            f"This trail is for {playbook.task!r}, and the task asked for {named}, which "
+            f"Dejo could not place in its steps. Nothing ran, so nothing was done with the "
+            f"trail's own values. If this is another job, send its steps: they are learned "
+            f"as a task of their own."
+        )
+        self.events.emit(StepFailed(index=1, intent="place the task's values", reason=reason))
+        metrics.duration_ms = int((time.perf_counter() - started) * 1000)
+        metrics.succeeded = False
+        self.events.emit(
+            RunFinished(
+                domain=playbook.domain,
+                succeeded=False,
+                duration_ms=metrics.duration_ms,
+                steps_replayed=0,
+                trail_repairs=playbook.repairs,
+                model_calls=0,
+                decided=list(self._decisions),
+            )
+        )
+        return ReplayResult(
+            ok=False, metrics=metrics, unplaced=list(unplaced), reason=reason, decisions=[]
+        )
+
     def _decide(self, index: int, what: str, *, event: bool = False) -> None:
         """Note something this run chose on its own. `event` sends it as a `Decided` too,
         for the decisions no other event already tells a listener about."""
@@ -1046,11 +1259,11 @@ class Executor:
             # one. Sites answer an unknown id by quietly returning you to the default,
             # which passes the stored check and then reads the wrong project's numbers.
             if passed and self._aim and "value" in self._aimed.get(step.index, set()):
-                _, landed = _reaim(self.browser.page.url, self._aim[1], self._aim[1])
-                if not landed:
+                wanted = sorted(self._aimed_to.get(step.index, set()))
+                if not any(_reaim(self.browser.page.url, now, now)[1] for now in wanted):
                     return self._StepOutcome(
                         reason=(
-                            f"asked for {self._aim[1]!r} and the address came back as "
+                            f"asked for {' / '.join(wanted)!r} and the address came back as "
                             f"{self.browser.page.url} — the site did not go there"
                         )
                     )
@@ -1108,7 +1321,10 @@ class Executor:
                 self._blame(missed, step)
                 return settled
 
+        refused = outcome.reason
         outcome.reason = "every remembered way of finding this went stale"
+        if refused:
+            outcome.reason += f"; {refused}"
         if step.clears_away and not found_anything:
             # A banner not shown this time is not drift. Whether it is skipped is decided
             # with the next step in view, so the misses wait for that.
@@ -1157,6 +1373,43 @@ class Executor:
         proven = "locator" in where or "check" in where or step.action == "goto"
         if not proven:
             self._unverified.append(step.index)
+
+    def _say_if_read_by_place(self, step: Step, locator: Locator, label: str) -> None:
+        """A read that found its element only by its place, and read something other than
+        it read when learned, says so. It may be the next row, not the one the task meant:
+        a price list reordered and the first row's price was handed back for the teapot's."""
+        if step.action != READ_ACTION or not step.read_mark or not _by_place(locator):
+            return
+        if answer_mark(self.answers.get(step.intent, "")) == step.read_mark:
+            return
+        self._decide(
+            step.index,
+            f"read by place ({label}): what sits there now is not what this read said when "
+            "it was learned, so it may be another item. If the task meant one item by its "
+            "name, check it is that one",
+            event=True,
+        )
+
+    def _another_control(self, step: Step, locator: Locator, target: Any) -> bool:
+        """Is this element, found for a step that acts, a different control from the one
+        the step was learned on? Only a name that does something else counts: a reworded
+        button is still the button. A read takes nothing away and is never refused here."""
+        if step.action not in _ACTS_ON_A_CONTROL:
+            return False
+        learned = _names_learned(step)
+        if not learned or _names(locator) & set(learned):
+            return False
+        now = self._name_of(target)
+        return bool(now) and all(does_something_else(was, now) for was in learned)
+
+    @staticmethod
+    def _name_of(target: Any) -> str:
+        """What a person or a screen reader calls this element, in a few words."""
+        try:
+            said = target.first.evaluate(_NAME_JS, timeout=NAME_LOOK_MS)
+        except (PlaywrightError, AttributeError):
+            return ""
+        return str(said or "")[:NAME_CHARS]
 
     @staticmethod
     def _shows(target: Any, subject: str) -> bool:
@@ -1223,15 +1476,29 @@ class Executor:
 
             found_anything = True
 
+            if self._another_control(step, locator, target):
+                # Found by a backup way, and it is not the control the step was learned on:
+                # it does something else. Pressing it is how an A/B page's "Remove item"
+                # was clicked for "Show total", with the step then called merely stale.
+                missed.append((locator, label))
+                outcome.reason = (
+                    f"what {label} finds now is named {self._name_of(target)!r}, and this "
+                    f"step was learned on {' / '.join(_names_learned(step))!r}. It does "
+                    "something else, so it was not pressed."
+                )
+                continue
+
             # The promise: Dejo will aim a route at a new subject, but it will not ACT
             # until it can see that subject on the thing it is about to act on. Checking
             # the whole page is not enough — riya sitting in the conversation list while
             # ankush's thread is open would pass, and the message would go to ankush.
             aimed_here = self._aim and "locator" in self._aimed.get(step.index, set())
-            if aimed_here and not self._shows(target, self._aim[1]):
+            wanted = sorted(self._aimed_to.get(step.index, set()))
+            if aimed_here and not any(self._shows(target, now) for now in wanted):
+                said = " / ".join(wanted)
                 outcome.reason = (
-                    f"this step was aimed at {self._aim[1]!r}, and what it found on the "
-                    f"page does not say {self._aim[1]!r}. Stopping before it acts, because "
+                    f"this step was aimed at {said!r}, and what it found on the "
+                    f"page does not say {said!r}. Stopping before it acts, because "
                     f"the route would otherwise carry on against the wrong one."
                 )
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)
@@ -1268,6 +1535,7 @@ class Executor:
 
             if settles_into(self.browser, step.postcondition):
                 locator.record_hit()
+                self._say_if_read_by_place(step, locator, label)
                 outcome.matched_by = label
                 outcome.passed_over = [passed for _, passed in missed]
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)

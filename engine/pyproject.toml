@@ -47,6 +47,7 @@ packages = ["src/dejo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["own_clock: replays on the browser's own clock, not the demo site's calendar"]
 
 [tool.ruff]
 line-length = 100

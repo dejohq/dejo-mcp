@@ -5,8 +5,8 @@ back in between roles: slow, and it made the ORDER of the work matter. A profile
 browser (its own cookies, session and process), so Dejo keeps them side by side and
 switching between them is free.
 
-Trails and the map are shared by every profile: the site is one site however many logins
-reach it.
+The map is shared by every profile: the site is one site however many logins reach it.
+Trails are not: a customer's "show my orders" is not a vendor's (see test_two_accounts.py).
 """
 
 from __future__ import annotations

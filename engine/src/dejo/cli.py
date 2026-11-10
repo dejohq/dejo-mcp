@@ -105,7 +105,9 @@ def _store(args: argparse.Namespace) -> DejoStore:
     An exported DEJO_AGENT that nobody remembers setting looks exactly like data loss —
     `dejo sites` goes quiet and the trails appear to be gone. So say who is asking.
     """
-    store = DejoStore(db_path=args.db, agent=getattr(args, "agent", None))
+    store = DejoStore(db_path=args.db, agent=getattr(args, "agent", None)).for_profile(
+        getattr(args, "profile", None)
+    )
     if store.agent:
         # `run --json` promises one line of JSON on stdout, so the notice goes elsewhere.
         out = sys.stderr if getattr(args, "json", False) else sys.stdout
@@ -144,6 +146,7 @@ EXIT_CODES = {
     "wrong_place": 5,
     "page_error": 6,
     "wrong_account": 7,
+    "unplaced": 8,
 }
 
 
@@ -155,6 +158,8 @@ def outcome_of(result: ReplayResult) -> str:
         return "wrong_place"
     if result.wrong_account is not None:
         return "wrong_account"
+    if result.unplaced:
+        return "unplaced"
     if result.blocked:
         return "blocked"
     if result.page_error is not None:
@@ -272,6 +277,12 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"  {CROSS} {result.reason}")
         print()
         return EXIT_CODES["wrong_account"]
+
+    if result.unplaced:
+        print()
+        print(f"  {CROSS} {result.reason}")
+        print()
+        return EXIT_CODES["unplaced"]
 
     if result.blocked:
         print()

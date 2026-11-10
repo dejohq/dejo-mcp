@@ -42,9 +42,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from .drift import router as drift_router
 from .hard import hard_page
 from .parity import SLOW_SECONDS, data_json, parity_page
+from .safety import router as safety_router
 
 app = FastAPI(title="Acme Billing (Dejo demo site)", docs_url=None, redoc_url=None)
 app.include_router(drift_router)
+app.include_router(safety_router)
 
 # How long /contact/send takes to answer: well past the moment a click returns.
 CONTACT_REPLY_S = 1.5

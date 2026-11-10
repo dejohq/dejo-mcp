@@ -67,10 +67,13 @@ MAX_LISTED = 25
 
 # Seen in bench T12: a saved trail answered the wrong thing, and the agent asked again 28
 # times in other words. Every time, matching found the same trail and gave the same answer.
+# Since 10 Nov a restart in other words than the trail's own is a new trail: on pub.dev it
+# replaced a correct trail for another task, and that task's next replay answered wrongly.
 REPLACE_THE_TRAIL = (
     "If this is NOT what the user asked for, asking again in other words finds this same "
     "trail. Instead send steps whose first line is restart, then the steps that do the task "
-    "right: they replace this trail."
+    "right. Sent with this trail's own task they replace it; sent with other words they are "
+    "learned as a new trail in those words, and this one is left as it is."
 )
 
 # Claude Code loads a tool marked with this key before the first turn, instead of waiting
@@ -131,7 +134,8 @@ LOGIN_DESCRIPTION = (
 PROFILE_DESCRIPTION = (
     "Website profiles and roles: customer, vendor, admin. A profile is a whole signed-in "
     "browser; several stay signed in side by side. With a name: switch to it (made on first "
-    "use). Without: list them. Trails are shared by every profile."
+    "use). Without: list them. Each profile keeps its own trails and also reads the "
+    "default profile's."
 )
 
 MEMORY_DESCRIPTION = (
@@ -265,7 +269,7 @@ class DejoTools:
         agent: str | None = None,
         cdp_url: str | None = None,
     ):
-        self.store = DejoStore(db_path=db_path, agent=agent)
+        self._memory = DejoStore(db_path=db_path, agent=agent)
         self.cdp_url = cdp_url
         # What `default` means on this machine: whatever was already in use, so naming
         # profiles never moves an existing sign-in.
@@ -278,6 +282,12 @@ class DejoTools:
         self._workers: dict[str, BrowserWorker] = {}
         self._runners: dict[tuple[str, str, str], Runner] = {}
         self._login_worker: BrowserWorker | None = None
+
+    @property
+    def store(self) -> DejoStore:
+        """Memory as the profile in use sees it: its own trails, and those every profile
+        reads. A customer and a vendor each keep their own "show my orders"."""
+        return self._memory.for_profile(self.active)
 
     def path_for(self, name: str) -> str:
         """The browser folder one profile uses."""
@@ -324,6 +334,19 @@ class DejoTools:
 
     def learning(self, domain: str, task: str) -> bool:
         return (self.active, domain, task) in self._runners
+
+    def own_words(self, domain: str, task: str) -> bool:
+        """Unhook the agent's words from a trail `carry_on` matched them to.
+
+        `restart` means "learn this from scratch", and from scratch is a task in the agent's
+        own words. Left hooked, the new steps were saved under the matched trail's name and
+        replaced that other task's route: pub.dev, 10 Nov, the Versions-tab steps were saved
+        as the changelog task. True when the words were hooked."""
+        key = (self.active, domain, task)
+        hooked = key in self._runners and self._runners[key].task != task
+        if hooked:
+            del self._runners[key]
+        return hooked
 
     def forget_runs(self, domain: str) -> None:
         """Drop the learning runs for a site that was just forgotten."""
@@ -462,6 +485,8 @@ def _run_steps(
         written = program.parse(steps) if steps.strip() else program.Program()
     except program.ProgramError as wrong:
         return Reply(f"nothing ran: {wrong}", error=True)
+    restarted = bool(written.steps) and getattr(written.steps[0], "action", None) == "restart_trail"
+    unhooked = restarted and tools.own_words(key, task)
     fresh = not tools.learning(key, task)
     runner = tools.runner(key, task)
     resumed = ""
@@ -472,7 +497,8 @@ def _run_steps(
         # Steps sent with a url on the very first call mean "start there, then do these".
         # Only then: an agent that repeats the url on a later call must not be sent back
         # to the start in the middle of a task.
-        if first_page and not resumed.startswith("draft:"):
+        # Not after a replay, though: its restart starts from the page the replay left open.
+        if first_page and not unhooked and not resumed.startswith("draft:"):
             written = program.parse(f"go {first_page}\n{steps}")
     outcome = tools.worker.submit(lambda _browser: runner.run(written, done=done))
     said = outcome.text()
@@ -507,7 +533,7 @@ def _replay_or_look(
                 key, task=task
             )
         )
-    return _after_replay(tools, key, task, result)
+    return _after_replay(tools, key, task, result, first_page)
 
 
 def _first_look(
@@ -577,7 +603,9 @@ def _about_the_site(tools: DejoTools, key: str, task: str, known: list[str]) -> 
     return lines
 
 
-def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply:
+def _after_replay(
+    tools: DejoTools, key: str, task: str, result: ReplayResult, first_page: str | None = None
+) -> Reply:
     ran = result.metrics.task
     if result.ok and result.already_done:
         return Reply(
@@ -598,12 +626,35 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
         )
     if result.wrong_account is not None:
         expected, shown = result.wrong_account
+        if _someone_else_s_route(tools, key, ran):
+            # A trail every profile reads, learned as another account. It is that account's
+            # route, not a broken one and not this profile's: this profile learns its own,
+            # under its own name, and the other is left exactly as it was.
+            looked = _first_look(tools, key, task, None)
+            said = (
+                f'the saved trail "{ran}" was learned as "{expected}", and profile '
+                f'{tools.active} is signed in as "{shown}". That trail is left as it is; '
+                "this profile learns its own."
+            )
+            return Reply(f"{said}\n{looked.text}", error=looked.error, images=looked.images)
         return Reply(
             f'stopped: {key} is signed in as "{shown}", and this trail was learned as '
             f'"{expected}". Nothing was done as the wrong account. Ask the user which account '
             "to use: dejo_login to sign in as the right one, or dejo_profile to switch to the "
             "profile that is. Do not repair anything; the trail is fine."
         )
+    if result.unplaced:
+        listed = ", ".join(f'"{value}"' for value in result.unplaced)
+        said = (
+            f'stopped before step 1: you asked for {listed}, and the trail "{ran}" has no '
+            "place for it, so nothing ran with the trail's own values. If this is another "
+            "job, send steps: they are learned as a new task in your words."
+        )
+        # The page comes in the same reply, as for any new task: without it the agent spent
+        # a whole turn asking to look (pub.dev, 10 Nov), and a second task on a known site
+        # cost more than on an unknown one.
+        looked = _first_look(tools, key, task, first_page)
+        return Reply(f"{said}\n{looked.text}", error=looked.error, images=looked.images)
     if result.needs_login:
         return Reply(
             f"stopped: {key} wants a sign-in. Do not guess a password: call dejo_login, ask "
@@ -634,6 +685,15 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
     if result.repair is not None:
         return _broke(tools, key, task, result)
     return Reply(f"stopped: {result.reason}", error=True)
+
+
+def _someone_else_s_route(tools: DejoTools, key: str, task: str) -> bool:
+    """Is this a trail every profile reads, while a named profile is in use? Such a trail was
+    learned before profiles were kept apart, or by the default profile."""
+    if tools.store.profile is None:
+        return False
+    trail = tools.store.load_playbook(key, task)
+    return trail is not None and trail.kept_under is None
 
 
 def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> str:

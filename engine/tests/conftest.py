@@ -14,6 +14,7 @@ import sys
 import threading
 import time
 from collections.abc import Iterator
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -197,3 +198,18 @@ def _port_in(port_file: Path) -> str | None:
     except OSError:
         return None
     return words[0] if words else None
+
+
+# The demo billing site lives in September 2026: "this month's invoice" is September's there
+# on any day of the year. Replay works out what "this month" means from the browser's clock
+# (`Executor._dates_meant`), so tests replay on the demo's own calendar. A test about time
+# itself is marked `own_clock`, and moves the browser's clock with `set_time` instead.
+DEMO_TODAY = date(2026, 9, 15)
+
+
+@pytest.fixture(autouse=True)
+def demo_calendar(request, monkeypatch) -> None:
+    if request.node.get_closest_marker("own_clock") is None:
+        from dejo.executor import Executor
+
+        monkeypatch.setattr(Executor, "_today", lambda _self: DEMO_TODAY)

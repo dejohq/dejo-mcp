@@ -39,6 +39,8 @@ from dejo.secrets import env_var_name
 from dejo.store import DejoStore
 
 TASK = "download this month's invoice"
+# A day in the month the demo site's invoices call this month.
+DEMO_TODAY = "2026-09-15T09:00:00"
 
 # A SECOND task, on a site the first one already walked. This is the part that used to cost
 # full price every time: Dejo remembered the route to the invoice and nothing about the
@@ -228,6 +230,9 @@ def main() -> int:
 
     week: list[Morning] = []
     with Browser(headless=True) as browser:
+        # The demo site lives in September 2026, so "this month" there is September. Replay
+        # reads "this month" from the browser's clock, so the week runs on the demo's own.
+        browser.set_time(DEMO_TODAY)
         week.append(monday(browser, store, url))
 
         for label in ("Tuesday", "Wednesday"):
