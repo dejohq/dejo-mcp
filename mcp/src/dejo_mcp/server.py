@@ -604,6 +604,13 @@ def _after_replay(tools: DejoTools, key: str, task: str, result: ReplayResult) -
             "to use: dejo_login to sign in as the right one, or dejo_profile to switch to the "
             "profile that is. Do not repair anything; the trail is fine."
         )
+    if result.unplaced:
+        listed = ", ".join(f'"{value}"' for value in result.unplaced)
+        return Reply(
+            f'stopped before step 1: you asked for {listed}, and the trail "{ran}" has no '
+            "place for it, so nothing ran with the trail's own values. If this is another "
+            "job, send steps: they are learned as a new task in your words."
+        )
     if result.needs_login:
         return Reply(
             f"stopped: {key} wants a sign-in. Do not guess a password: call dejo_login, ask "

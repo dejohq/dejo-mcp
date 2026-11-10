@@ -186,6 +186,24 @@ silence.
 - **A captcha, or a pop-up with no safe way out.** Dejo stops and hands over to you. It does
   not solve captchas and does not get around a site's block.
 
+### When the task changes
+
+A route is saved under the task's words. Asked in other words, Dejo only replays it when it is
+sure it is the same job, for the same person, with the right values:
+
+- **The same job with new values.** "flights from Delhi to Mumbai on 5 Dec", asked as
+  "flights from Kolkata to Pune on 9 Dec", replays the same route with every changed value
+  swapped in, and the reply says so (`aimed at 'Kolkata' instead of 'Delhi'`). Each step
+  that was aimed has to find the new value on the page before it acts. A value the route has
+  no place for ("in business class") stops the replay before step 1 and is named. It never
+  replays the old values.
+- **A different deed is a different job.** Download and delete, open and close, add and
+  remove, track and cancel, approve and reject, lock and unlock (and any word against the
+  same word with "un") are never matched, whatever else the names share.
+- **A risky route needs its own task.** A route with a `click!` (pay, send, delete, submit)
+  runs only for the task it was saved as, said in other common words, never for a loose
+  match.
+
 ### The map
 
 A route is one path through a site. Dejo also keeps a **map**: every page it has looked at,

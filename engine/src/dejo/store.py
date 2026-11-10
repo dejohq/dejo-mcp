@@ -24,6 +24,7 @@ Two deliberate choices worth knowing about:
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
@@ -168,6 +169,8 @@ _LOOKING = frozenset(
     + ["read", "search", "see", "show", "tell", "track", "view", "visit", "what", "when"]
     + ["where", "which", "who", "why"]
 )
+# Words that are never a value a task was asked about: what is done.
+_NOT_VALUES = _ACTIONS | _LOOKING | _DEED_WORDS
 SITE_KNOWLEDGE = "site_knowledge"
 
 
@@ -998,6 +1001,55 @@ def swapped_subject(
         # request against a one-word trail is not a swap, it is a different job.
         return None
     return (dropped.pop(), added.pop())
+
+
+def changed_values(
+    wanted: str, candidate: str, domain: str | None = None
+) -> tuple[list[tuple[str, str]], list[str]]:
+    """Every value that changed between a saved task and the same task asked again.
+
+    "flights from Kolkata to Pune on 9 Dec" against the trail saved as "flights from Delhi
+    to Mumbai on 5 Dec" is the same route with three values changed. The words are lined up
+    in order, and a run of changed words the same length on both sides is paired word for
+    word: (delhi, kolkata), (mumbai, pune), (5, 9). `swapped_subject` allows one change
+    only, so with three it saw a different request, the matcher still found the trail by
+    "flights" and "dec", and the replay answered with Delhi to Mumbai (10 Nov).
+
+    Returns the pairs, as (was, now), and the new words that have nothing to pair with
+    ("in business class"), which a replay cannot place anywhere. Words that only say what
+    is done ("show", "list") are never values.
+    """
+    known, asked = _in_order(candidate, domain), _in_order(wanted, domain)
+    pairs: list[tuple[str, str]] = []
+    unpaired: list[str] = []
+    matched = SequenceMatcher(
+        a=[word.lower() for word in known], b=[word.lower() for word in asked], autojunk=False
+    )
+    for kind, was_from, was_to, now_from, now_to in matched.get_opcodes():
+        was, now = known[was_from:was_to], asked[now_from:now_to]
+        if kind == "replace" and len(was) == len(now):
+            pairs.extend(zip(was, now, strict=True))
+        elif kind in ("replace", "insert"):
+            unpaired.extend(now)
+    values = [pair for pair in pairs if _a_value(*pair)]
+    return values, [word for word in unpaired if word.lower() not in _NOT_VALUES]
+
+
+def _a_value(was: str, now: str) -> bool:
+    """Is this pair of words a value that changed, rather than the same job said otherwise?
+    "show" for "list" is a rewording, and "delete" for "remove" is never a value. "closed"
+    for "open" is: the open issues are not the closed ones."""
+    words = {was.lower(), now.lower()}
+    if words & _DEED_WORDS:
+        return False
+    return not words <= _NOT_VALUES
+
+
+def _in_order(text: str, domain: str | None) -> list[str]:
+    """The meaningful words of a task, in the order and the case they were said."""
+    dropped = COMMON_WORDS | _site_words(domain)
+    words = "".join(character if character.isalnum() else " " for character in text)
+    return [word for word in words.split() if word.lower() not in dropped]
 
 
 def _overlap(wanted: str, candidate: str, domain: str | None = None) -> float:

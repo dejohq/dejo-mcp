@@ -144,6 +144,7 @@ EXIT_CODES = {
     "wrong_place": 5,
     "page_error": 6,
     "wrong_account": 7,
+    "unplaced": 8,
 }
 
 
@@ -155,6 +156,8 @@ def outcome_of(result: ReplayResult) -> str:
         return "wrong_place"
     if result.wrong_account is not None:
         return "wrong_account"
+    if result.unplaced:
+        return "unplaced"
     if result.blocked:
         return "blocked"
     if result.page_error is not None:
@@ -272,6 +275,12 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"  {CROSS} {result.reason}")
         print()
         return EXIT_CODES["wrong_account"]
+
+    if result.unplaced:
+        print()
+        print(f"  {CROSS} {result.reason}")
+        print()
+        return EXIT_CODES["unplaced"]
 
     if result.blocked:
         print()

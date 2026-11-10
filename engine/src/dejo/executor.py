@@ -69,7 +69,7 @@ from .models import (
 from .operations import READ_ACTION, check_postcondition, controls_in, settles_into
 from .secrets import MissingSecret
 from .secrets import resolve as resolve_secret
-from .store import DejoStore, does_something_else, swapped_subject
+from .store import DejoStore, changed_values, does_something_else
 
 # How long a way that found nothing gets to find the element once another way has: the page
 # has drawn by then, so it is there at once or not at all.
@@ -265,6 +265,11 @@ class ReplayResult:
     """Pop-ups nobody told Dejo about that covered a step, and how each was cleared, as
     `step 3: "Join our newsletter" closed by its "No thanks" control`. See `popups`."""
 
+    unplaced: list[str] = field(default_factory=list)
+    """Values the task asked for that this trail has no place for: one of several changed
+    values, or a new word with nothing to pair it with. Nothing ran. See
+    `Executor._aim_at`."""
+
     @property
     def needs_repair(self) -> bool:
         return self.repair is not None
@@ -412,6 +417,70 @@ def _reaim(text: str | None, was: str, now: str) -> tuple[str | None, bool]:
     return swapped, count > 0
 
 
+def _reaim_all(text: str | None, swaps: list[tuple[str, str]]) -> tuple[str | None, set[str]]:
+    """Every swap at once, so one never rewrites another's result ("Delhi" to "Mumbai" and
+    "Mumbai" to "Pune" must not turn Delhi into Pune). Returns the new values that landed."""
+    if not text or not swaps:
+        return text, set()
+    wanted = {was.casefold(): now for was, now in swaps}
+    words = "|".join(re.escape(was) for was, _ in sorted(swaps, key=lambda s: -len(s[0])))
+    pattern = re.compile(
+        rf"(?:(?<![0-9A-Za-z])|(?<=%[0-9A-Fa-f]{{2}}))(?:{words})(?![0-9A-Za-z])",
+        re.IGNORECASE,
+    )
+    landed: set[str] = set()
+
+    def swapped(match: re.Match[str]) -> str:
+        now = wanted[match.group(0).casefold()]
+        landed.add(now)
+        return _in_the_case_of(match.group(0), now)
+
+    return pattern.sub(swapped, text), landed
+
+
+def _in_the_case_of(was: str, now: str) -> str:
+    """`now` written the way `was` was: an agent asks about "kolkata", the form held "Delhi"."""
+    if not now.islower():
+        return now
+    if was.isupper() and len(was) > 1:
+        return now.upper()
+    return now.title() if was.istitle() else now
+
+
+def with_values(
+    playbook: Playbook, swaps: list[tuple[str, str]]
+) -> tuple[Playbook, dict[int, set[str]], dict[int, set[str]]] | None:
+    """The same trail with every value in `swaps` replaced. A COPY: memory is never touched.
+
+    Returns the aimed copy, per step WHERE a swap landed (value, check, page, locator), and
+    per step WHICH new values landed there, which is what that step is checked against.
+    `None` when no old value appears anywhere in the trail's own data."""
+    aimed = copy.deepcopy(playbook)
+    touched: dict[int, set[str]] = {}
+    values: dict[int, set[str]] = {}
+    for step in aimed.steps:
+        where: set[str] = set()
+        landed: set[str] = set()
+        step.intent, _ = _reaim_all(step.intent, swaps)
+        step.value, hit = _reaim_all(step.value, swaps)
+        where |= {"value"} if hit else set()
+        landed |= hit
+        step.postcondition.value, hit = _reaim_all(step.postcondition.value, swaps)
+        where |= {"check"} if hit else set()
+        landed |= hit
+        step.page, hit = _reaim_all(step.page, swaps)
+        where |= {"page"} if hit else set()
+        landed |= hit
+        for locator in step.locators:
+            locator.value, hit = _reaim_all(locator.value, swaps)
+            where |= {"locator"} if hit else set()
+            landed |= hit
+        if where:
+            touched[step.index] = where
+            values[step.index] = landed
+    return (aimed, touched, values) if touched else None
+
+
 def with_subject(
     playbook: Playbook, was: str, now: str
 ) -> tuple[Playbook, dict[int, set[str]]] | None:
@@ -429,27 +498,8 @@ def with_subject(
     Returns the aimed copy and, per step, WHERE the swap landed — which is what decides
     how that step gets verified.
     """
-    aimed = copy.deepcopy(playbook)
-    touched: dict[int, set[str]] = {}
-    for step in aimed.steps:
-        where: set[str] = set()
-        step.intent, _ = _reaim(step.intent, was, now)
-        step.value, hit = _reaim(step.value, was, now)
-        if hit:
-            where.add("value")
-        step.postcondition.value, hit = _reaim(step.postcondition.value, was, now)
-        if hit:
-            where.add("check")
-        step.page, hit = _reaim(step.page, was, now)
-        if hit:
-            where.add("page")
-        for locator in step.locators:
-            locator.value, hit = _reaim(locator.value, was, now)
-            if hit:
-                where.add("locator")
-        if where:
-            touched[step.index] = where
-    return (aimed, touched) if touched else None
+    aimed = with_values(playbook, [(was, now)])
+    return (aimed[0], aimed[1]) if aimed else None
 
 
 def pages_along(steps: list[Step], start_url: str | None = None) -> dict[int, str]:
@@ -531,6 +581,8 @@ class Executor:
     """The subject swap in force for this run, if any. See `with_subject`."""
     _aimed: dict[int, set[str]] = {}
     """Per step, where the swap landed: value, check, page or locator."""
+    _aimed_to: dict[int, set[str]] = {}
+    """Per step, the new values that landed there. The step is checked against these."""
     _unverified: list[int] = []
     """Substituted steps nothing on the page could confirm."""
     _picked_landing: str | None = None
@@ -590,18 +642,14 @@ class Executor:
         if start_url and _leaves_out_of(start_url, playbook):
             start_url = None
 
-        # Same route, different subject. "message riya" against a trail saved as "message
+        # Same route, different values. "message riya" against a trail saved as "message
         # ankush" is not a rephrasing and must not be replayed unchanged — that is how a
         # message reaches the wrong person, and how a question about one project comes back
-        # with another project's numbers.
+        # with another project's numbers. The same goes for every changed value at once.
         self._aim = None
         self._aimed = {}
-        swap = swapped_subject(task, playbook.task, domain) if task else None
-        if swap:
-            reaimed = with_subject(playbook, *swap)
-            if reaimed:
-                playbook, self._aimed = reaimed
-                self._aim = swap
+        self._aimed_to = {}
+        playbook, unplaced = self._aim_at(task, playbook, domain)
 
         self._expected = pages_along(playbook.steps, start_url)
         started = time.perf_counter()
@@ -624,6 +672,9 @@ class Executor:
             tool_calls=1,  # the whole run is one call from the caller's side
             model_calls=0,  # nothing in this file can make one
         )
+
+        if unplaced:
+            return self._cannot_place(playbook, metrics, started, unplaced)
 
         # Who is signed in, asked of the page the browser already shows when it is this
         # site's, so a wrong account is caught before step 1 does anything at all.
@@ -893,6 +944,66 @@ class Executor:
             cleared=list(self._cleared),
         )
 
+    def _aim_at(
+        self, task: str | None, playbook: Playbook, domain: str
+    ) -> tuple[Playbook, list[str]]:
+        """The trail aimed at every value the task changed, and what could not be placed.
+        Nothing is aimed when anything cannot be: a replay with some new values and some
+        old ones is the wrong task done confidently.
+
+        One changed word that the steps never mention is a rewording ("tell me the quote"
+        for "read the quote") and changes nothing, exactly as before. Two or more changed
+        values, or a new value with nothing to pair it with, is a stop that names them."""
+        pairs, extra = changed_values(task, playbook.task, domain) if task else ([], [])
+        swaps = pairs
+        if not swaps:
+            return playbook, []
+        aimed = with_values(playbook, swaps)
+        landed = set().union(*aimed[2].values()) if aimed else set()
+        missing = [now for _, now in pairs if now not in landed]
+        unplaced: list[str] = []
+        if len(pairs) > 1 or (missing and len(missing) < len(pairs)):
+            unplaced += missing
+        if landed and extra:
+            unplaced += extra
+        if unplaced or aimed is None:
+            return playbook, unplaced
+        self._aimed, self._aimed_to = aimed[1], aimed[2]
+        placed = [(was, now) for was, now in swaps if now in landed]
+        self._aim = (", ".join(was for was, _ in placed), ", ".join(now for _, now in placed))
+        for was, now in placed:
+            self._decisions.append(f"aimed at {now!r} instead of {was!r}")
+        return aimed[0], []
+
+    def _cannot_place(
+        self, playbook: Playbook, metrics: RunMetrics, started: float, unplaced: list[str]
+    ) -> ReplayResult:
+        """Stop before step 1: the task asks for values this trail has no place for."""
+        named = ", ".join(repr(value) for value in unplaced)
+        reason = (
+            f"This trail is for {playbook.task!r}, and the task asked for {named}, which "
+            f"Dejo could not place in its steps. Nothing ran, so nothing was done with the "
+            f"trail's own values. If this is another job, send its steps: they are learned "
+            f"as a task of their own."
+        )
+        self.events.emit(StepFailed(index=1, intent="place the task's values", reason=reason))
+        metrics.duration_ms = int((time.perf_counter() - started) * 1000)
+        metrics.succeeded = False
+        self.events.emit(
+            RunFinished(
+                domain=playbook.domain,
+                succeeded=False,
+                duration_ms=metrics.duration_ms,
+                steps_replayed=0,
+                trail_repairs=playbook.repairs,
+                model_calls=0,
+                decided=list(self._decisions),
+            )
+        )
+        return ReplayResult(
+            ok=False, metrics=metrics, unplaced=list(unplaced), reason=reason, decisions=[]
+        )
+
     def _decide(self, index: int, what: str, *, event: bool = False) -> None:
         """Note something this run chose on its own. `event` sends it as a `Decided` too,
         for the decisions no other event already tells a listener about."""
@@ -1091,11 +1202,11 @@ class Executor:
             # one. Sites answer an unknown id by quietly returning you to the default,
             # which passes the stored check and then reads the wrong project's numbers.
             if passed and self._aim and "value" in self._aimed.get(step.index, set()):
-                _, landed = _reaim(self.browser.page.url, self._aim[1], self._aim[1])
-                if not landed:
+                wanted = sorted(self._aimed_to.get(step.index, set()))
+                if not any(_reaim(self.browser.page.url, now, now)[1] for now in wanted):
                     return self._StepOutcome(
                         reason=(
-                            f"asked for {self._aim[1]!r} and the address came back as "
+                            f"asked for {' / '.join(wanted)!r} and the address came back as "
                             f"{self.browser.page.url} — the site did not go there"
                         )
                     )
@@ -1325,10 +1436,12 @@ class Executor:
             # the whole page is not enough — riya sitting in the conversation list while
             # ankush's thread is open would pass, and the message would go to ankush.
             aimed_here = self._aim and "locator" in self._aimed.get(step.index, set())
-            if aimed_here and not self._shows(target, self._aim[1]):
+            wanted = sorted(self._aimed_to.get(step.index, set()))
+            if aimed_here and not any(self._shows(target, now) for now in wanted):
+                said = " / ".join(wanted)
                 outcome.reason = (
-                    f"this step was aimed at {self._aim[1]!r}, and what it found on the "
-                    f"page does not say {self._aim[1]!r}. Stopping before it acts, because "
+                    f"this step was aimed at {said!r}, and what it found on the "
+                    f"page does not say {said!r}. Stopping before it acts, because "
                     f"the route would otherwise carry on against the wrong one."
                 )
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)

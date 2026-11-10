@@ -53,6 +53,11 @@ class TestTheOutcome:
         assert outcome_of(wrong) == "wrong_account"
         assert EXIT_CODES["wrong_account"] == 7
 
+    def test_values_the_trail_has_no_place_for_are_their_own_outcome(self) -> None:
+        unplaced = a_result(ok=False, unplaced=["business", "class"])
+        assert outcome_of(unplaced) == "unplaced"
+        assert EXIT_CODES["unplaced"] == 8
+
     def test_a_broken_step_with_a_repair_request_needs_repair(self) -> None:
         repair = RepairRequest(
             domain=SITE, step_index=2, intent="read the count", action="read", tried=[]
@@ -62,7 +67,7 @@ class TestTheOutcome:
     def test_every_outcome_has_an_exit_code(self) -> None:
         outcomes = {"done", "failed", "already_done", "wrong_place", "blocked"}
         outcomes |= {"needs_login", "stale", "needs_repair", "no_trail", "page_error"}
-        outcomes |= {"wrong_account"}
+        outcomes |= {"wrong_account", "unplaced"}
         assert outcomes == set(EXIT_CODES)
 
     def test_only_success_exits_zero(self) -> None:
