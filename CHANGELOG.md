@@ -4,6 +4,17 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
 
 ## Unreleased
 
+- **Consent pop-ups inside a frame are answered.** Sourcepoint and similar platforms ask
+  inside their own iframe, so a search of the page found no button and the step stopped
+  (theguardian.com, spiegel.de). Dejo now looks inside the frame, with the same rules:
+  reject first, never subscribe or pay. "Accept and continue" and "Consent and continue" are
+  known accept words, for a wall that offers only accept or pay.
+- **Fixed: a step picked by place could crash its replay.** Its check was saved as Dejo's
+  own role form (`link|Sport`) and read as CSS. New checks are CSS, old ones are read as the
+  role they name. A by-place step that lands on a top-level page (/ to /sport/) is now
+  checked by its address, since the link it came from is often in the site menu.
+- **The account marker is never read from a sign-in page,** and a link that only mentions
+  "account" (Google's "Google Account Help") is not taken for the signed-in account.
 - **A pop-up nobody told Dejo about is cleared.** When something covers the element a step
   presses, on replay or while learning, Dejo tries the pop-up's own close, then Escape, then a
   consent banner's "Reject all" before "Accept", never anything that buys, sends or

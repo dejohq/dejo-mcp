@@ -139,8 +139,10 @@ fails, Dejo stops at that exact step.
   Dejo tries, in order: the pop-up's own close ("Close", "No thanks", "Not now", "×"), the
   Escape key, then a consent banner's button, choosing "Reject all" or "Necessary only" over
   "Accept". It never presses anything that buys, pays, sends, deletes, submits, subscribes
-  or signs up. What worked is kept for the site, so the next run clears it up front, as
-  `dismiss css "..."` would.
+  or signs up. Consent platforms that ask inside their own frame (Sourcepoint, used by many
+  news sites) are answered inside the frame. What worked is kept for the site, so the next
+  run clears it up front, as `dismiss css "..."` would; a pop-up inside a frame is cleared
+  the same way on every run instead.
 - **Skips a step that only closed something.** A cookie banner or a toast that is not there
   this time: the step that closed it is skipped. Also when the toast faded out by itself, or
   said "Dismissed" before it went. A step marked risky (`click!`) or with its own `expect` is
