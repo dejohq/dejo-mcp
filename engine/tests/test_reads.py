@@ -341,3 +341,16 @@ def test_a_read_picked_by_place_whose_words_are_its_answer_is_kept_by_its_path(
     replay = Executor(store, browser).run(domain_of(demo_server), task=task)
     assert replay.ok, replay
     assert replay.answers["title"] == "See America"
+
+
+def test_an_element_gone_check_saved_with_a_role_locator_still_runs(browser) -> None:
+    """spiegel.de, 10 Nov: a step picked "by place" saved its check as `link|Sport`, Dejo's
+    own form of a role locator, and replay handed it to Playwright as CSS. The replay
+    crashed. Trails saved that way by 0.4.0 must still replay."""
+    from dejo.models import Postcondition
+    from dejo.operations import check_postcondition
+
+    browser.page.set_content('<a href="/s">Sport news</a>')
+    assert check_postcondition(browser, Postcondition("element_gone", "link|Sport"))
+    browser.page.set_content('<a href="/s">Sport</a>')
+    assert not check_postcondition(browser, Postcondition("element_gone", "link|Sport"))

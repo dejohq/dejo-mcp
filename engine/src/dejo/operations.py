@@ -15,6 +15,8 @@ the entire reason a redesign is usually survivable: lose the CSS id, keep the li
 
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass, field
 from time import monotonic
 from typing import Any, get_args
@@ -1124,10 +1126,19 @@ def _selector_of(expected: Postcondition) -> str:
     return expected.target or expected.value
 
 
+# A check saved by 0.4.0 for a step picked "by place" could hold Dejo's own form of a role
+# locator, `link|Sport`, which is not CSS: Playwright refused it and the replay crashed
+# (spiegel.de, 10 Nov). New checks hold CSS; this reads the old form as the role it names.
+_SAVED_ROLE = re.compile(r"^([a-z]+)\|(.*)$", re.DOTALL)
+
+
 def _count_matching(browser: Browser, expected: Postcondition) -> int:
-    return reads.read(
-        "count", page=browser.page, target=browser.page.locator(_selector_of(expected))
-    )
+    selector = _selector_of(expected)
+    saved_role = _SAVED_ROLE.match(selector)
+    if saved_role:
+        role, name = saved_role.groups()
+        selector = f"role={role}[name={json.dumps(name)}]" if name else f"role={role}"
+    return reads.read("count", page=browser.page, target=browser.page.locator(selector))
 
 
 def _read_for(

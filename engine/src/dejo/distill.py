@@ -167,5 +167,9 @@ def _landed_somewhere_like(entry: TraceEntry) -> Postcondition:
     parent = landed.rstrip("/").rsplit("/", 1)[0] + "/"
     if parent != "/" and parent not in href_path(entry.url_before) + "/":
         return Postcondition("url_contains", parent)
-    assert entry.element is not None and entry.element.found_by is not None
-    return Postcondition("element_gone", entry.element.found_by.value)
+    if parent == "/" and landed != href_path(entry.url_before):
+        # A top-level page (/ to /sport/) has no kind of page above it to check, and the
+        # element it was picked from is often in the site menu on every page, so "it is
+        # gone" called a correct replay broken (spiegel.de, 10 Nov). The address is the check.
+        return Postcondition("url_contains", landed)
+    return Postcondition("element_gone", _where(entry))
