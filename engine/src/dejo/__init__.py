@@ -22,7 +22,7 @@ from .models import (
 from .operations import Session
 from .store import DejoStore
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 __all__ = [
     "Browser",

@@ -2,7 +2,7 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
-## Unreleased
+## 0.5.1 — 2026-11-10
 
 - **Opposite deeds are never the same task.** Open and close, track and cancel, approve and
   reject, archive and restore, enable and disable, lock and unlock (and any word against the
