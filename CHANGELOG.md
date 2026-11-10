@@ -8,6 +8,9 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   reject, archive and restore, enable and disable, lock and unlock (and any word against the
   same word with "un") no longer match, and a trail with a risky step only runs for its own
   task, never for a loose match.
+- **A control that does something else is never pressed.** A backup way that finds "Remove
+  item" where "Show total" was is a miss, not a click. The way a trail was learned with
+  survives its first miss, so a fix for version B of an A/B page no longer undoes version A.
 
 ## 0.5.0 — 2026-11-10
 

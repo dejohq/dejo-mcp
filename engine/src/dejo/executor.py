@@ -68,7 +68,7 @@ from .models import (
 from .operations import READ_ACTION, check_postcondition, controls_in, settles_into
 from .secrets import MissingSecret
 from .secrets import resolve as resolve_secret
-from .store import DejoStore, swapped_subject
+from .store import DejoStore, does_something_else, swapped_subject
 
 # How long a way that found nothing gets to find the element once another way has: the page
 # has drawn by then, so it is there at once or not at all.
@@ -80,6 +80,25 @@ STALE_SHARE = 0.5
 # HTTP statuses from here up mean the server did not give us the page (not found, forbidden,
 # server error). Below it, 2xx and 3xx, the page arrived.
 HTTP_ERROR_FROM = 400
+
+# How long asking an element its name may take. It is one DOM read of an element already
+# found, so longer means the page is being replaced and has no name to give.
+NAME_LOOK_MS = 1500
+
+# The most of an element's name worth comparing: a control's name is a few words, and a
+# container's whole text is not a name at all.
+NAME_CHARS = 120
+
+# What a control is called, as a person or a screen reader meets it.
+_NAME_JS = """(n) => (n.getAttribute("aria-label") || n.innerText || n.value ||
+  n.getAttribute("title") || n.getAttribute("alt") || "").replace(/\\s+/g, " ").trim()"""
+
+# Steps that press or change a control. Only these are refused a control that does something
+# else: a read takes nothing away, and is checked by what it read.
+_ACTS_ON_A_CONTROL = frozenset(
+    {"check", "clear", "click", "dispatch_event", "double_click", "drag", "fill", "press"}
+    | {"select", "set_checked", "tap", "type", "uncheck", "upload"}
+)
 
 # How long to let the site finish moving after a trail's LAST action before saying the run
 # is done. Spent only by trails that end by pressing something — a trail ending in a read
@@ -267,6 +286,20 @@ class NeedsTask(NoTrailError):
     def __init__(self, message: str, *, tasks: list[str]):
         super().__init__(message)
         self.tasks = tasks
+
+
+def _names_learned(step: Step) -> list[str]:
+    """The names this step's control was known by: in its role and text locators."""
+    return sorted({name for locator in step.locators for name in _names(locator)})
+
+
+def _names(locator: Locator) -> set[str]:
+    """The name a locator finds its element by, if it finds it by name at all."""
+    if locator.kind == "role" and "|" in locator.value:
+        return {locator.value.partition("|")[2]} - {""}
+    if locator.kind in ("text", "label", "title", "alt"):
+        return {locator.value}
+    return set()
 
 
 def _reads_many(step: Step) -> bool:
@@ -1108,7 +1141,10 @@ class Executor:
                 self._blame(missed, step)
                 return settled
 
+        refused = outcome.reason
         outcome.reason = "every remembered way of finding this went stale"
+        if refused:
+            outcome.reason += f"; {refused}"
         if step.clears_away and not found_anything:
             # A banner not shown this time is not drift. Whether it is skipped is decided
             # with the next step in view, so the misses wait for that.
@@ -1157,6 +1193,27 @@ class Executor:
         proven = "locator" in where or "check" in where or step.action == "goto"
         if not proven:
             self._unverified.append(step.index)
+
+    def _another_control(self, step: Step, locator: Locator, target: Any) -> bool:
+        """Is this element, found for a step that acts, a different control from the one
+        the step was learned on? Only a name that does something else counts: a reworded
+        button is still the button. A read takes nothing away and is never refused here."""
+        if step.action not in _ACTS_ON_A_CONTROL:
+            return False
+        learned = _names_learned(step)
+        if not learned or _names(locator) & set(learned):
+            return False
+        now = self._name_of(target)
+        return bool(now) and all(does_something_else(was, now) for was in learned)
+
+    @staticmethod
+    def _name_of(target: Any) -> str:
+        """What a person or a screen reader calls this element, in a few words."""
+        try:
+            said = target.first.evaluate(_NAME_JS, timeout=NAME_LOOK_MS)
+        except (PlaywrightError, AttributeError):
+            return ""
+        return str(said or "")[:NAME_CHARS]
 
     @staticmethod
     def _shows(target: Any, subject: str) -> bool:
@@ -1222,6 +1279,18 @@ class Executor:
                 continue
 
             found_anything = True
+
+            if self._another_control(step, locator, target):
+                # Found by a backup way, and it is not the control the step was learned on:
+                # it does something else. Pressing it is how an A/B page's "Remove item"
+                # was clicked for "Show total", with the step then called merely stale.
+                missed.append((locator, label))
+                outcome.reason = (
+                    f"what {label} finds now is named {self._name_of(target)!r}, and this "
+                    f"step was learned on {' / '.join(_names_learned(step))!r}. It does "
+                    "something else, so it was not pressed."
+                )
+                continue
 
             # The promise: Dejo will aim a route at a new subject, but it will not ACT
             # until it can see that subject on the thing it is about to act on. Checking

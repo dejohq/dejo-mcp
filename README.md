@@ -134,7 +134,10 @@ fails, Dejo stops at that exact step.
 
 - **Finds the element another way.** Up to nine ways per step, best first. When the first
   misses and a backup finds it, the backup moves up. On a slow page Dejo waits for the page
-  to finish before it calls any way broken.
+  to finish before it calls any way broken. A backup that finds a control which does
+  something else ("Remove item" where "Show total" used to be) is never pressed. After a
+  fix, the old ways stay as backups, so a site that shows version A one day and version B
+  the next works on both once each has been seen.
 - **Clears a pop-up nobody told it about.** When something covers the element a step presses,
   Dejo tries, in order: the pop-up's own close ("Close", "No thanks", "Not now", "×"), the
   Escape key, then a consent banner's button, choosing "Reject all" or "Necessary only" over

@@ -931,6 +931,20 @@ def _same_deed(wanted: str, candidate: str, domain: str | None = None) -> bool:
     return not asked or not saved or asked == saved
 
 
+def does_something_else(was: str, now: str) -> bool:
+    """Does the control named `now` do something the one named `was` did not?
+
+    Asked before a step acts on an element found by a backup way, with the name the step
+    was learned on. "Reveal total" for "Show total" is the same button reworded; "Remove
+    item" for "Show total" is another button that happens to sit where it sat (an A/B page,
+    10 Nov). A name that adds a deed ("Remove", "Pay", "Send") the old one did not have is
+    always something else, even when the old name said no deed at all ("Total")."""
+    if not _same_deed(was, now):
+        return True
+    added = _deeds(now) - _deeds(was)
+    return bool(added - {_LOOKS})
+
+
 def _undoes(one: set[str], other: set[str]) -> bool:
     """Does one of these say a word the other says undone, as "mute" and "unmute"?"""
     return any(

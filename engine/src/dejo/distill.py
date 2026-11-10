@@ -30,7 +30,7 @@ def distill(trace: list[TraceEntry], *, domain: str, task: str) -> Playbook:
             value=entry.value,
             secret=entry.secret,
             postcondition=entry.expect or postcondition_for(entry),
-            locators=locators_for(entry),
+            locators=_found_while_learning(locators_for(entry)),
             second=list(entry.second or []),
             options=dict(entry.options),
             # Where this step happened. A goto has no "before", and needs none: it names
@@ -151,6 +151,21 @@ def locators_for(entry: TraceEntry) -> list[Locator]:
     if entry.locators is not None:
         return entry.locators
     return entry.element.locators()
+
+
+def _found_while_learning(locators: list[Locator]) -> list[Locator]:
+    """Copies of a learned step's locators, the first credited with the hit it had.
+
+    The element was there and was acted on, by the way of finding it that leads the list,
+    exactly as a repair's first way is credited (`Executor.apply_repair`). Left at no hits,
+    the way a trail was learned with died on its first miss: an A/B page showed version B
+    once, the repair for B dropped every way of finding version A, and version A then
+    needed a repair of its own, each fix undoing the last (10 Nov). Copies, because a
+    trace is distilled again for every draft, and each would add another hit."""
+    copies = [Locator.from_dict(locator.to_dict()) for locator in locators]
+    if copies and copies[0].hits == 0:
+        copies[0].record_hit()
+    return copies
 
 
 def _landed_somewhere_like(entry: TraceEntry) -> Postcondition:

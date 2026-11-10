@@ -173,16 +173,20 @@ def flight_results(request: Request) -> HTMLResponse:
 @router.get("/ab", response_class=HTMLResponse)
 def ab(request: Request) -> HTMLResponse:
     """Version A on the first visit and every other one after it, version B between: the
-    same control, with other words, another class and in another place."""
+    same control, with other words, another class and in another place. Beside it, in both,
+    a button that removes the item, so a control found only by being "a button" is wrong."""
     show = "total.textContent = '£31.40'"
+    removed = "window.lab.removed = true; log.textContent = 'removed'"
     version_b = _visits(request, "ab") % 2 == 1
     if version_b:
         body = f"""<h1>Basket</h1><p id="total"></p>
+           <button type="button" class="remove" onclick="{removed}">Remove item</button>
            <aside class="promo"><p>New look!</p>
              <button type="button" class="cta-b" onclick="{show}">See the total</button></aside>"""
     else:
         body = f"""<h1>Basket</h1>
-           <div class="bar"><button type="button" class="cta-a" onclick="{show}">Show total</button></div>
+           <div class="bar"><button type="button" class="cta-a" onclick="{show}">Show total</button>
+             <button type="button" class="remove" onclick="{removed}">Remove item</button></div>
            <p id="total"></p>"""
     return _page(request, "ab", "Basket", body)
 
