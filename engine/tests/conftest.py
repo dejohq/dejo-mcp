@@ -176,15 +176,24 @@ def running_chrome(tmp_path: Path) -> Iterator[str]:
     port_file = profile / "DevToolsActivePort"
     began = time.monotonic()
     # The file appears before Chrome has written the port into it, so wait for the words.
-    while not _port_in(port_file) and time.monotonic() - began < STARTUP_S:
+    while not (port := _port_in(port_file)) and time.monotonic() - began < STARTUP_S:
         time.sleep(0.1)
     try:
-        assert _port_in(port_file), "Chrome never said which port it listens on"
-        yield f"http://127.0.0.1:{port_file.read_text().split()[0]}"
+        assert port, "Chrome never said which port it listens on"
+        yield f"http://127.0.0.1:{port}"
     finally:
         chrome.terminate()
         chrome.wait(timeout=STARTUP_S)
 
 
-def _port_in(port_file: Path) -> bool:
-    return port_file.is_file() and bool(port_file.read_text().split())
+def _port_in(port_file: Path) -> str | None:
+    """The port Chrome wrote, or None while the file is missing, empty, or still locked.
+
+    On Windows Chrome holds the file locked for a moment while it writes it, and reading it
+    then raises PermissionError (CI, 10 Nov, under parallel tests). That is "not yet", not a
+    failure: the caller waits and asks again."""
+    try:
+        words = port_file.read_text().split()
+    except OSError:
+        return None
+    return words[0] if words else None
