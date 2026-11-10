@@ -30,6 +30,7 @@ What the page did is written where a test can read it: `#log`, and `window.lab`.
 from __future__ import annotations
 
 import asyncio
+import html
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -50,12 +51,17 @@ STYLE = """
 """
 
 
+# A visit count is a small number; anything else a cookie says is read as a first visit.
+MAX_VISITS = 1000
+
+
 def _visits(request: Request, name: str) -> int:
     """How many times this browser has been to this page before."""
     try:
-        return int(request.cookies.get(f"lab-{name}", "0"))
+        seen = int(request.cookies.get(f"lab-{name}", "0"))
     except ValueError:
         return 0
+    return seen if 0 <= seen <= MAX_VISITS else 0
 
 
 def _page(request: Request, name: str, title: str, body: str) -> HTMLResponse:
@@ -220,8 +226,12 @@ def account_home(request: Request, quiet: int = 0) -> HTMLResponse:
     """The signed-in account's invoices, with the account shown in the header: its email
     address, and its name on the account button, whose menu holds "Sign out". `quiet=1`
     draws the page with no header at all, as a print view or an embedded page does."""
-    email = request.cookies.get(ACCOUNT_COOKIE, "")
-    name = next((name for mail, name in ACCOUNTS.values() if mail == email), "")
+    # Only the lab's own accounts: any other cookie value is no one, so nothing a visitor
+    # sends is written into the page.
+    known = {mail: name for mail, name in ACCOUNTS.values()}
+    sent = request.cookies.get(ACCOUNT_COOKIE, "")
+    email = html.escape(sent) if sent in known else ""
+    name = html.escape(known.get(sent, ""))
     header = (
         f"""<header>
               <span class="who">{email}</span>
