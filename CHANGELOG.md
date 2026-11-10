@@ -2,7 +2,7 @@
 
 Every release of `dejo` and `dejo-mcp`. The two are released together with the same version.
 
-## Unreleased
+## 0.5.0 — 2026-11-10
 
 - **Consent pop-ups inside a frame are answered.** Sourcepoint and similar platforms ask
   inside their own iframe, so a search of the page found no button and the step stopped
