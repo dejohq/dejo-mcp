@@ -175,11 +175,16 @@ def running_chrome(tmp_path: Path) -> Iterator[str]:
     )
     port_file = profile / "DevToolsActivePort"
     began = time.monotonic()
-    while not port_file.is_file() and time.monotonic() - began < STARTUP_S:
+    # The file appears before Chrome has written the port into it, so wait for the words.
+    while not _port_in(port_file) and time.monotonic() - began < STARTUP_S:
         time.sleep(0.1)
     try:
-        assert port_file.is_file(), "Chrome never said which port it listens on"
+        assert _port_in(port_file), "Chrome never said which port it listens on"
         yield f"http://127.0.0.1:{port_file.read_text().split()[0]}"
     finally:
         chrome.terminate()
         chrome.wait(timeout=STARTUP_S)
+
+
+def _port_in(port_file: Path) -> bool:
+    return port_file.is_file() and bool(port_file.read_text().split())
