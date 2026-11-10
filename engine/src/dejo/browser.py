@@ -375,12 +375,16 @@ _FADED_JS = """
 
 # Does this element sit in something that comes and goes on its own: a toast, a snackbar, a
 # status message, a banner pinned to the screen? Only those are given a moment to leave
-# after a press, so an ordinary button never waits.
+# after a press, so an ordinary button never waits, and neither does one in the site's own
+# header or navigation, which is pinned to the screen and never goes anywhere.
 _PASSING_JS = """
 (el) => {
   const named = /toast|snackbar|notification|notice|flash|banner|alert/i;
   for (let n = el; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) {
     const role = (n.getAttribute("role") || "").toLowerCase();
+    if (["HEADER", "NAV"].includes(n.tagName) || ["banner", "navigation"].includes(role)) {
+      return false;
+    }
     if (["alert", "status", "alertdialog", "log"].includes(role)) return true;
     if (n.hasAttribute("aria-live")) return true;
     const s = getComputedStyle(n);

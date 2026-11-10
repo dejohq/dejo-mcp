@@ -468,6 +468,11 @@ class Executor:
         self.browser = browser
         self.events = emitter or Emitter()
         steplog.attach(self.events)
+        # What a run cleared and decided, set again by each run. Here too, so one step can be
+        # replayed on its own (`_replay_step`) without a whole run around it.
+        self._cleared: list[str] = []
+        self._cleared_at: set[int] = set()
+        self._decisions: list[str] = []
         # Which signed-in identity this replay is. Only secrets need it: one domain can
         # have a customer, a vendor and an admin sign-in, each with its own password.
         self.profile = profile
@@ -483,8 +488,6 @@ class Executor:
     """Per step, where the swap landed: value, check, page or locator."""
     _unverified: list[int] = []
     """Substituted steps nothing on the page could confirm."""
-    _decisions: list[str] = []
-    """What this run decided on its own. See `ReplayResult.decisions`."""
     _picked_landing: str | None = None
     """Where the latest step that picks by place ("the first item") took the browser, while
     it is still there. See `_off_trail`."""
@@ -529,9 +532,9 @@ class Executor:
         self._unverified = []
         self._skipped: list[str] = []
         self._signed_in_already: list[str] = []
-        self._cleared: list[str] = []
-        self._cleared_at: set[int] = set()
-        self._decisions: list[str] = []
+        self._cleared = []
+        self._cleared_at = set()
+        self._decisions = []
         self._picked_landing = None
         self.browser.overlays_cleared.clear()
         playbook = self._load(domain, task)

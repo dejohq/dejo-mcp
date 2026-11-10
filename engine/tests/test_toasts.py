@@ -82,7 +82,8 @@ def test_a_toast_on_show_again_is_closed_by_its_step(
 
     assert shown.ok, shown.reason
     assert shown.skipped == []
-    assert browser.page.evaluate("getComputedStyle(toast).opacity") == "0"
+    # It fades over 0.2 s, so wait for the fade rather than read it half way.
+    browser.page.wait_for_function("getComputedStyle(toast).opacity === '0'", timeout=2000)
 
 
 def test_a_close_with_its_own_check_is_never_skipped(
