@@ -11,10 +11,19 @@
 
 name: tests
 
+# Once per change: a pull request runs here, and main runs again after a merge. Pushing a
+# branch with a pull request used to run everything twice, as "push" and as "pull_request".
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+# A new push to a pull request cancels the run it replaces; nobody needs the old result.
+# Runs on main are never cancelled, so every merged commit gets its own full result.
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # The suite only reads the code. Saying so here keeps the token read-only even if the repo or
 # org default is ever widened.
@@ -23,8 +32,19 @@ permissions:
 
 jobs:
   test:
-    name: python ${{ matrix.python }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: python ${{ matrix.config.python }} on ${{ matrix.config.os }} (${{ matrix.shard }}/4)
+    runs-on: ${{ matrix.config.os }}
+    env:
+      # One fixed place for the browser, so it can be cached between runs instead of
+      # downloaded every time.
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
+      # Each machine runs a quarter of the tests, one at a time (.github/pytest_shard.py).
+      # Four machines per operating system instead of four workers on one: the tests
+      # wait out real timeouts, and on a shared CPU those timeouts failed on Windows
+      # while macOS gained nothing. 16 test jobs + ruff fit GitHub's free limit of 20 at
+      # once, 5 of them macOS (docs.github.com/en/actions/reference/limits, 10 Nov 2026).
+      PYTEST_SHARD: ${{ matrix.shard }}/4
+      PYTHONPATH: ${{ github.workspace }}/.github
     strategy:
       # Never stop the other jobs because one failed. A failure on one operating system
       # is exactly the thing worth seeing next to a pass on the others.
@@ -33,18 +53,19 @@ jobs:
         # Ubuntu carries both ends of the supported Python range. macOS and Windows each
         # take one end, which covers three operating systems and both versions without
         # paying for six runners.
-        include:
+        config:
           - { os: ubuntu-latest, python: "3.11" }
           - { os: ubuntu-latest, python: "3.13" }
           - { os: macos-latest, python: "3.13" }
           - { os: windows-latest, python: "3.11" }
+        shard: [1, 2, 3, 4]
 
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.config.python }}
           cache: pip
           cache-dependency-path: |
             engine/pyproject.toml
@@ -55,6 +76,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e "engine[dev]" -e "mcp[dev]"
+
+      # The Chromium download is the same until Playwright's version changes, so it is
+      # cached. `playwright install` below still fetches a newer one when the version moves.
+      - name: Cache the browser
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.pw-browsers
+          key: chromium-${{ runner.os }}-${{ hashFiles('engine/pyproject.toml', 'mcp/pyproject.toml') }}
+          restore-keys: chromium-${{ runner.os }}-
 
       # No real Chrome on any of these runners, on purpose: that exercises the fallback to
       # bundled Chromium, which is the path most people actually hit.
@@ -86,7 +116,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m pytest -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
+          python -m pytest -p pytest_shard -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
           status=$?
           cat pytest.log
           if [ $status -ne 0 ]; then
@@ -109,7 +139,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m pytest -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
+          python -m pytest -p pytest_shard -q --tb=short -rf --maxfail=8 > pytest.log 2>&1
           status=$?
           cat pytest.log
           if [ $status -ne 0 ]; then

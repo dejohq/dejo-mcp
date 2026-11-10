@@ -21,6 +21,8 @@ from dejo import browser as browser_module
 from dejo.browser import Browser, ProfileStuck
 
 SHORT_MS = 1500
+# One wait in the slow-once test: shorter than the demo's 4 s slow page, longer than half of it.
+SLOW_ONCE_WAIT_MS = 3000
 
 
 class TestTheWindowIsCheckedBeforeAnyoneIsBelieved:
@@ -109,12 +111,20 @@ class TestAStuckProfileIsToldApartFromADownSite:
             profiled.goto(f"{demo_server}/down")
 
     def test_one_slow_load_in_the_profile_is_tried_again_before_anything_is_blamed(
-        self, profiled: Browser, demo_server
+        self, tmp_path, demo_server
     ) -> None:
-        """The page is slow only the first time, the way a site has a slow moment."""
-        profiled.goto(f"{demo_server}/slow-once?key={uuid.uuid4().hex}")
+        """The page is slow only the first time, the way a site has a slow moment.
 
-        assert profiled.page.locator("#answered").inner_text() == "Answered"
+        Slower than one wait and shorter than two. With a 1.5 s wait and the 4 s slow page,
+        the second try timed out as well on Windows CI (10 Nov, twice) while it passed on
+        Linux, macOS and a Windows laptop: the first, slow request had not answered yet.
+        A slow moment shorter than two waits loads either way."""
+        with Browser(
+            headless=True, profile=tmp_path / "profile", timeout_ms=SLOW_ONCE_WAIT_MS
+        ) as profiled:
+            profiled.goto(f"{demo_server}/slow-once?key={uuid.uuid4().hex}")
+
+            assert profiled.page.locator("#answered").inner_text() == "Answered"
 
     def test_a_stuck_profile_is_not_sent_to_be_deleted_first(
         self, profiled: Browser, demo_server
