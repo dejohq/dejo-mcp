@@ -648,17 +648,7 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
     ]
     if task != ran:
         lines.append(f'you asked for "{task}"; this is the trail "{ran}", the same job.')
-    if result.skipped:
-        lines.append(
-            f"skipped {', '.join(result.skipped)}: it only clears something away (like a "
-            "cookie banner), and that was not on the page this time."
-        )
-    if result.signed_in_already:
-        lines.append(
-            f"skipped {', '.join(result.signed_in_already)}: the trail's sign-in, and the "
-            "site is already signed in. The steps after it ran."
-        )
-    lines.extend(f"cleared a pop-up at {what}" for what in result.cleared)
+    lines.extend(_decided(result))
     lines.extend(f"{name} = {value}" for name, value in result.answers.items())
     lines.extend(f"saved file: {path}" for path in result.saved_files)
     lines.extend(f"recorded: {path}" for path in result.recordings)
@@ -677,6 +667,16 @@ def _replayed(tools: DejoTools, key: str, task: str, result: ReplayResult) -> st
         )
     lines.append(REPLACE_THE_TRAIL)
     return "\n".join(lines)
+
+
+def _decided(result: ReplayResult) -> list[str]:
+    """Everything the replay chose on its own, as one list. Nothing that changes what ran is
+    left out: a fix the agent never hears about hides real breakage from the user."""
+    if not result.decisions:
+        return []
+    return [f"decided on its own ({len(result.decisions)}):"] + [
+        f"- {what}" for what in result.decisions
+    ]
 
 
 def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply:
@@ -702,6 +702,7 @@ def _broke(tools: DejoTools, key: str, task: str, result: ReplayResult) -> Reply
     lines = [f"broke at step {at} of {total}: {broken.intent}{tried}"]
     if at > 1:
         lines.append(f"steps 1-{at - 1} passed and are kept.")
+    lines.extend(_decided(result))
     # A recording of a run that broke is the one most worth watching.
     lines.extend(f"recorded: {path}" for path in result.recordings)
     rest = f"runs steps {at + 1}-{total} itself" if at < total else "saves the trail with the fix"

@@ -13,6 +13,7 @@ that wants a particular visit starts a fresh browser, or clears the cookie.
     /drift/locked      a box whose only button subscribes: nothing safe clears it
     /drift/toast       a toast on show, then not there, then already faded out by itself;
                        ?kind=fade fades when closed, ?kind=say says "Dismissed" first
+    /drift/button      a button whose words and class change after the first visit
     /drift/session     answers 401 once the session has run out (cookie lab-session=gone)
     /drift/workspace   sends the visitor to Google's account chooser once it has run out
     /drift/start       shows an identifier-first sign-in form once it has run out
@@ -282,4 +283,23 @@ def start(request: Request, form: str = "named") -> HTMLResponse:
         f"""<form{named} onsubmit="event.preventDefault()">
               <label>Email <input type="email" name="email"></label>
               <button>{button}</button></form>""",
+    )
+
+
+@router.get("/button", response_class=HTMLResponse)
+def button(request: Request, keep: str = "id") -> HTMLResponse:
+    """A button whose words and class change after the first visit, while it stays a button.
+    `keep=id` keeps its id, as most redesigns do; `keep=role` keeps nothing but its role,
+    which no remembered way can tell from any other button."""
+    later = _visits(request, f"button-{keep}") > 0
+    words, look = ("Reveal total", "btn-green") if later else ("Show total", "btn-blue")
+    named = ' id="total-button"' if keep == "id" else ""
+    return _page(
+        request,
+        f"button-{keep}",
+        "Basket",
+        f"""<h1>Basket</h1>
+           <button type="button"{named} class="{look}"
+                   onclick="total.textContent = '£31.40'">{words}</button>
+           <p id="total"></p>""",
     )

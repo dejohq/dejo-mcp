@@ -37,6 +37,7 @@ from playwright.sync_api import Error as PlaywrightError
 from . import actions, identity, popups, reads, steplog
 from .browser import ACCEPT, BROWSER_ACTIONS, Browser
 from .events import (
+    Decided,
     DriftDetected,
     Emitter,
     MemoryRead,
@@ -222,6 +223,12 @@ class ReplayResult:
     signed_in_already: list[str] = field(default_factory=list)
     """The trail's sign-in steps, skipped because the site was already signed in, in the
     same form as `skipped`. See `Executor._past_the_sign_in`."""
+
+    decisions: list[str] = field(default_factory=list)
+    """Everything this run decided on its own that changes what ran, one line each, in the
+    order it happened: steps skipped, pop-ups cleared, sign-in steps skipped, backup ways of
+    finding an element used, walks back to a step's page. Nothing that changes what ran may
+    be silent: a fix nobody hears about hides real breakage."""
 
     wrong_account: tuple[str, str] | None = None
     """`(expected, shown)`: the trail was learned signed in as `expected`, and the page
@@ -472,6 +479,8 @@ class Executor:
     """Per step, where the swap landed: value, check, page or locator."""
     _unverified: list[int] = []
     """Substituted steps nothing on the page could confirm."""
+    _decisions: list[str] = []
+    """What this run decided on its own. See `ReplayResult.decisions`."""
 
     def run(self, domain: str, task: str | None = None, **how: Any) -> ReplayResult:
         """Replay a trail, recording it as DEJO_RECORD asks (video, trace, or both).
@@ -515,6 +524,8 @@ class Executor:
         self._signed_in_already: list[str] = []
         self._cleared: list[str] = []
         self._cleared_at: set[int] = set()
+        self._decisions: list[str] = []
+        self.browser.overlays_cleared.clear()
         playbook = self._load(domain, task)
         # The browser as it is, not as the last task left it: a trail that emulates a phone
         # says so in its own steps.
@@ -572,9 +583,11 @@ class Executor:
             self.events.emit(StepStarted(index=step.index, intent=step.intent))
             outcome = self._replay_step(step, start_url=start_url)
 
+            self._note_known_overlays(step)
             if outcome.matched_by is not None:
                 metrics.steps_replayed += 1
                 self._note_if_unproven(step)
+                self._note_a_backup(step, outcome)
                 self.events.emit(
                     StepPassed(
                         index=step.index,
@@ -597,6 +610,7 @@ class Executor:
                     StepSkipped(index=step.index, intent=step.intent, reason=NOTHING_TO_CLEAR)
                 )
                 self._skipped.append(f"step {step.index} ({step.intent})")
+                self._decide(step.index, f"skipped ({step.intent}): {NOTHING_TO_CLEAR}")
                 continue
             self._blame(outcome.missed, step)
 
@@ -630,7 +644,7 @@ class Executor:
                     playbook, step
                 ):
                     self._went_back = True
-                    self.browser.goto(target)
+                    self._walk_back(step, target, here)
                     status = self.browser.last_status
                     if status is not None and status >= HTTP_ERROR_FROM:
                         missing = self._StepOutcome(
@@ -677,6 +691,7 @@ class Executor:
                     return ReplayResult(
                         ok=True,
                         metrics=metrics,
+                        decisions=list(self._decisions),
                         already_done=True,
                         reason=(
                             f"Already done — nothing to do. {playbook.domain} sends "
@@ -689,6 +704,7 @@ class Executor:
                 return ReplayResult(
                     ok=False,
                     metrics=metrics,
+                    decisions=list(self._decisions),
                     wrong_place=True,
                     reason=(
                         f"Step {step.index} ({step.intent!r}) belongs on {belongs}, and we "
@@ -715,6 +731,7 @@ class Executor:
                 return ReplayResult(
                     ok=False,
                     metrics=metrics,
+                    decisions=list(self._decisions),
                     aimed_at=self._aim,
                     reason=(
                         f"This trail is for {was!r} and you asked about {now!r}. Dejo "
@@ -751,6 +768,7 @@ class Executor:
                 return ReplayResult(
                     ok=False,
                     metrics=metrics,
+                    decisions=list(self._decisions),
                     blocked=True,
                     reason=(
                         f"{playbook.domain} put a human check in the way, so the run "
@@ -768,6 +786,7 @@ class Executor:
                 return ReplayResult(
                     ok=False,
                     metrics=metrics,
+                    decisions=list(self._decisions),
                     needs_login=True,
                     reason=(
                         f"{playbook.domain} asked to sign in again. The trail is fine — "
@@ -786,6 +805,7 @@ class Executor:
             return ReplayResult(
                 ok=False,
                 metrics=metrics,
+                decisions=list(self._decisions),
                 repair=request,
                 reason=outcome.reason,
                 saved_files=list(self.browser.saved_files),
@@ -805,6 +825,7 @@ class Executor:
         return ReplayResult(
             ok=True,
             metrics=metrics,
+            decisions=list(self._decisions),
             saved_files=list(self.browser.saved_files),
             answers=dict(self.answers),
             aimed_at=self._aim,
@@ -813,6 +834,35 @@ class Executor:
             signed_in_already=list(self._signed_in_already),
             cleared=list(self._cleared),
         )
+
+    def _decide(self, index: int, what: str, *, event: bool = False) -> None:
+        """Note something this run chose on its own. `event` sends it as a `Decided` too,
+        for the decisions no other event already tells a listener about."""
+        self._decisions.append(f"step {index}: {what}")
+        if event:
+            self.events.emit(Decided(index=index, what=what))
+
+    def _note_a_backup(self, step: Step, outcome: _StepOutcome) -> None:
+        """A step found its element by a backup way: the ways above it missed and move down."""
+        if not outcome.passed_over:
+            return
+        missed = ", ".join(outcome.passed_over)
+        self._decide(
+            step.index,
+            f"found by a backup way ({outcome.matched_by}); {missed} missed and moved down",
+            event=True,
+        )
+
+    def _note_known_overlays(self, step: Step) -> None:
+        """Say which of the site's known pop-ups were cleared while this step ran."""
+        for selector in self.browser.overlays_cleared:
+            self._decide(step.index, f"cleared a known pop-up ({selector})", event=True)
+        self.browser.overlays_cleared.clear()
+
+    def _walk_back(self, step: Step, target: str, here: str) -> None:
+        """Go to the page this step belongs on, from wherever the tab was, and say so."""
+        self._decide(step.index, f"the tab was on {here}; went back to {target} first", event=True)
+        self.browser.goto(target)
 
     def _on_the_trails_site(self, playbook: Playbook) -> bool:
         origin = _trail_origin(playbook)
@@ -848,6 +898,7 @@ class Executor:
         return ReplayResult(
             ok=False,
             metrics=metrics,
+            decisions=list(self._decisions),
             wrong_account=(expected, shown),
             reason=reason,
             saved_files=list(self.browser.saved_files),
@@ -896,6 +947,9 @@ class Executor:
         that may be skipped then (see `Step.clears_away`), with its misses held in `missed`
         and blamed only if it is not."""
         missed: list[tuple[Locator, str]] = field(default_factory=list)
+        passed_over: list[str] = field(default_factory=list)
+        """The ways of finding the element ranked above the one that found it, which missed.
+        Empty when the first way found it."""
         off_trail: tuple[str, str] | None = None
         """Where this step belongs, and where we actually are — when they differ.
 
@@ -1185,6 +1239,7 @@ class Executor:
             if settles_into(self.browser, step.postcondition):
                 locator.record_hit()
                 outcome.matched_by = label
+                outcome.passed_over = outcome.tried[:-1]
                 outcome.duration_ms = int((time.perf_counter() - began) * 1000)
                 return outcome, found_anything, missed
 
@@ -1213,6 +1268,7 @@ class Executor:
             return ReplayResult(
                 ok=False,
                 metrics=metrics,
+                decisions=list(self._decisions),
                 needs_login=True,
                 reason=(
                     f"{playbook.domain} asked to sign in again. The trail is fine — "
@@ -1223,6 +1279,7 @@ class Executor:
         return ReplayResult(
             ok=False,
             metrics=metrics,
+            decisions=list(self._decisions),
             page_error=outcome.error_status,
             reason=(
                 f"Step {step.index} ({step.intent!r}): {outcome.reason}. The page this trail "
@@ -1343,12 +1400,15 @@ class Executor:
                     )
                 )
                 self._signed_in_already.append(f"step {skipped.index} ({skipped.intent})")
+                self._decide(skipped.index, f"skipped ({skipped.intent}): {ALREADY_SIGNED_IN}")
         where = self._page_of(rest)
         if rest.action != "goto" and not _same_page(self.browser.page.url, where):
             # The site sent its sign-in page to a dashboard, not to the page the skipped
             # steps would have reached. Once per run, like any other walk back.
             self._went_back = True
-            self.browser.goto(urljoin(_trail_origin(playbook) or self.browser.page.url, where))
+            here = self.browser.page.url
+            target = urljoin(_trail_origin(playbook) or here, where)
+            self._walk_back(rest, target, here)
         return rest.index
 
     def _blame(self, missed: list[tuple[Locator, str]], step: Step) -> None:
@@ -1482,6 +1542,8 @@ class Executor:
         if cleared.remember:
             self._remember_overlay(cleared.remember)
         self._cleared.append(f"step {step.index}: {cleared.what}")
+        kept = "; cleared up front from now on" if cleared.remember else ""
+        self._decide(step.index, f"cleared a pop-up: {cleared.what}{kept}")
         self.events.emit(
             PopupCleared(index=step.index, how=cleared.what, remembered=bool(cleared.remember))
         )
@@ -1564,6 +1626,7 @@ class Executor:
         return ReplayResult(
             ok=False,
             metrics=metrics,
+            decisions=list(self._decisions),
             stale=True,
             reason=(
                 f"{broken} of {len(playbook.steps)} steps no longer match this site. "
@@ -1754,5 +1817,6 @@ class Executor:
                 steps_replayed=metrics.steps_replayed,
                 trail_repairs=metrics.trail_repairs,
                 model_calls=0,
+                decided=list(self._decisions),
             )
         )

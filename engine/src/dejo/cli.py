@@ -184,6 +184,7 @@ def run_report(domain: str, result: ReplayResult) -> dict[str, Any]:
         "model_calls": result.metrics.model_calls,
         "reason": result.reason,
         "repair": result.repair.to_dict() if result.repair is not None else None,
+        "decisions": result.decisions,
     }
 
 
@@ -233,6 +234,12 @@ def cmd_run(args: argparse.Namespace) -> int:
     # line, because page text often arrives split across several; --json keeps it as read.
     for intent, answer in result.answers.items():
         print(f"  {TICK} {intent}:  {' '.join(str(answer).split())}")
+    # Everything the run chose by itself (a step skipped, a pop-up cleared, a backup way of
+    # finding an element): a fix nobody hears about hides real breakage.
+    if result.decisions:
+        print(f"  {DOT} decided on its own:")
+        for what in result.decisions:
+            print(f"      {what}")
 
     if result.aimed_at:
         was, now = result.aimed_at
