@@ -1088,7 +1088,7 @@ def swapped_subject(
 
 def changed_values(
     wanted: str, candidate: str, domain: str | None = None
-) -> tuple[list[tuple[str, str]], list[str]]:
+) -> tuple[list[tuple[str, str]], list[str], list[str]]:
     """Every value that changed between a saved task and the same task asked again.
 
     "flights from Kolkata to Pune on 9 Dec" against the trail saved as "flights from Delhi
@@ -1098,13 +1098,17 @@ def changed_values(
     only, so with three it saw a different request, the matcher still found the trail by
     "flights" and "dec", and the replay answered with Delhi to Mumbai (10 Nov).
 
-    Returns the pairs, as (was, now), and the new words that have nothing to pair with
-    ("in business class"), which a replay cannot place anywhere. Words that only say what
-    is done ("show", "list") or when ("last", "latest") are never values.
+    Returns the pairs, as (was, now), the new words that have nothing to pair with
+    ("in business class"), which a replay cannot place anywhere, and of those the ones asked
+    INSTEAD of the saved task's own words: "minimum Dart SDK" where the trail said
+    "changelog entry" is not the same job reworded, it is another job (pub.dev, 10 Nov).
+    Words that only say what is done ("show", "list") or when ("last", "latest") are never
+    values.
     """
     known, asked = _in_order(candidate, domain), _in_order(wanted, domain)
     pairs: list[tuple[str, str]] = []
     unpaired: list[str] = []
+    instead: list[str] = []
     matched = SequenceMatcher(
         a=[word.lower() for word in known], b=[word.lower() for word in asked], autojunk=False
     )
@@ -1114,8 +1118,11 @@ def changed_values(
             pairs.extend(zip(was, now, strict=True))
         elif kind in ("replace", "insert"):
             unpaired.extend(now)
+            if kind == "replace" and any(word.lower() not in _NOT_VALUES for word in was):
+                instead.extend(now)
     values = [pair for pair in pairs if _a_value(*pair)]
-    return values, [word for word in unpaired if word.lower() not in _NOT_VALUES]
+    kept = [word for word in unpaired if word.lower() not in _NOT_VALUES]
+    return values, kept, [word for word in instead if word.lower() not in _NOT_VALUES]
 
 
 def _a_value(was: str, now: str) -> bool:

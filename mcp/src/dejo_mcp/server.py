@@ -67,10 +67,13 @@ MAX_LISTED = 25
 
 # Seen in bench T12: a saved trail answered the wrong thing, and the agent asked again 28
 # times in other words. Every time, matching found the same trail and gave the same answer.
+# Since 10 Nov a restart in other words than the trail's own is a new trail: on pub.dev it
+# replaced a correct trail for another task, and that task's next replay answered wrongly.
 REPLACE_THE_TRAIL = (
     "If this is NOT what the user asked for, asking again in other words finds this same "
     "trail. Instead send steps whose first line is restart, then the steps that do the task "
-    "right: they replace this trail."
+    "right. Sent with this trail's own task they replace it; sent with other words they are "
+    "learned as a new trail in those words, and this one is left as it is."
 )
 
 # Claude Code loads a tool marked with this key before the first turn, instead of waiting
@@ -332,6 +335,19 @@ class DejoTools:
     def learning(self, domain: str, task: str) -> bool:
         return (self.active, domain, task) in self._runners
 
+    def own_words(self, domain: str, task: str) -> bool:
+        """Unhook the agent's words from a trail `carry_on` matched them to.
+
+        `restart` means "learn this from scratch", and from scratch is a task in the agent's
+        own words. Left hooked, the new steps were saved under the matched trail's name and
+        replaced that other task's route: pub.dev, 10 Nov, the Versions-tab steps were saved
+        as the changelog task. True when the words were hooked."""
+        key = (self.active, domain, task)
+        hooked = key in self._runners and self._runners[key].task != task
+        if hooked:
+            del self._runners[key]
+        return hooked
+
     def forget_runs(self, domain: str) -> None:
         """Drop the learning runs for a site that was just forgotten."""
         for key in [key for key in self._runners if key[1] == domain]:
@@ -469,6 +485,8 @@ def _run_steps(
         written = program.parse(steps) if steps.strip() else program.Program()
     except program.ProgramError as wrong:
         return Reply(f"nothing ran: {wrong}", error=True)
+    restarted = bool(written.steps) and getattr(written.steps[0], "action", None) == "restart_trail"
+    unhooked = restarted and tools.own_words(key, task)
     fresh = not tools.learning(key, task)
     runner = tools.runner(key, task)
     resumed = ""
@@ -479,7 +497,8 @@ def _run_steps(
         # Steps sent with a url on the very first call mean "start there, then do these".
         # Only then: an agent that repeats the url on a later call must not be sent back
         # to the start in the middle of a task.
-        if first_page and not resumed.startswith("draft:"):
+        # Not after a replay, though: its restart starts from the page the replay left open.
+        if first_page and not unhooked and not resumed.startswith("draft:"):
             written = program.parse(f"go {first_page}\n{steps}")
     outcome = tools.worker.submit(lambda _browser: runner.run(written, done=done))
     said = outcome.text()

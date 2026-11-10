@@ -23,6 +23,12 @@ Every release of `dejo` and `dejo-mcp`. The two are released together with the s
   item" where "Show total" was is a miss, not a click. The way a trail was learned with
   survives its first miss, so a fix for version B of an A/B page no longer undoes version A.
 - **A read by place says so** when what sits there now is not what it read when learned.
+- **A task that names another subject is not "the same job".** "find the minimum Dart SDK"
+  asked where the saved task said "find the changelog entry" for the same package stops before
+  step 1 instead of replaying the changelog (found on pub.dev).
+- **A restart in other words never replaces the trail it matched.** Steps sent with `restart`
+  under words that matched another trail are learned as a new trail in those words; the other
+  trail stays as it was. Sent under the trail's own task, a restart still replaces it.
 - **A task that does not fit a saved route shows the page at once.** When replay stops because
   the task asks for something the route has no place for, the same reply opens the page, as
   for any new task, so the agent sends the new steps in its next call instead of first asking

@@ -14,7 +14,7 @@ from __future__ import annotations
 import pytest
 
 from dejo.models import Locator, Playbook, Postcondition, Step
-from dejo.store import DejoStore, best_match, shares_meaning
+from dejo.store import DejoStore, best_match, changed_values, shares_meaning
 
 SITE = "shop.example"
 
@@ -114,3 +114,31 @@ class TestARiskyTrailNeedsTheSameTask:
         store = DejoStore(db_path=str(tmp_path / "memory.db"))
         store.save_playbook(trail("count open issues"))
         assert store.load_playbook(SITE, "how many open issues are there") is not None
+
+
+@pytest.mark.parametrize(
+    ("asked", "saved"),
+    [
+        # pub.dev, 10 Nov: replayed as "the same job", and answered with the changelog.
+        (
+            "find minimum Dart SDK for mustache_recase version 2.0.3",
+            "Find changelog entry for mustache_recase version 2.0.1",
+        ),
+    ],
+)
+def test_words_asked_in_place_of_the_trails_subject_are_another_job(asked, saved):
+    *_, instead = changed_values(asked, saved, SITE)
+    assert instead, "these words replace what the trail is about, so replay must stop"
+
+
+@pytest.mark.parametrize(
+    ("asked", "saved"),
+    [
+        ("how much is the next charge", "read the next charge"),
+        ("sign in to the portal with Google", "sign in to the portal"),
+        ("show flights from Delhi to Mumbai on 5 Dec", "flights from Delhi to Mumbai on 5 Dec"),
+    ],
+)
+def test_a_rewording_puts_nothing_in_place_of_the_subject(asked, saved):
+    *_, instead = changed_values(asked, saved, SITE)
+    assert instead == []

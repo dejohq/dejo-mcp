@@ -554,8 +554,11 @@ def test_a_wrong_answer_says_how_to_replace_the_trail(mcp_server, demo_server):
         task=asked,
         steps='restart\nread css "#next-charge" as charge',
     )
-    again = call(mcp_server, "dejo_run", site=demo_server, task=task)
+    again = call(mcp_server, "dejo_run", site=demo_server, task=asked)
     assert "charge = ₹ 18,400" in again, again
+    # Other words learned a trail of their own; the trail they matched is left as it was,
+    # since it may be right for its own task (pub.dev, 10 Nov). Its own words replace it.
+    assert "charge = Visa ending 4242" in call(mcp_server, "dejo_run", site=demo_server, task=task)
 
 
 def test_a_toast_shown_after_a_sent_form_is_in_the_reply(mcp_server, demo_server):

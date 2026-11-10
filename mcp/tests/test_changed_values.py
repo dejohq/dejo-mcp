@@ -46,3 +46,22 @@ def test_a_value_with_no_place_stops_and_is_named(mcp_server, demo_server):
     assert "Delhi" not in said.split("trail")[0]
     # The page is in the same reply, so the agent can send the new task's steps at once.
     assert "\npage " in said and "next: send steps" in said, said
+
+
+def test_a_restart_after_a_match_by_other_words_never_replaces_that_trail(mcp_server, demo_server):
+    """pub.dev, 10 Nov: a task asked in other words replayed a saved trail, the agent sent
+    `restart` and the steps of its own task, and they were saved under the saved trail's
+    name. That trail's route was gone, and its next replay answered the other task."""
+    learn(mcp_server, demo_server)
+    reworded = "show flights from Delhi to Mumbai on 5 Dec"
+    said = call(mcp_server, "dejo_run", site=demo_server, task=reworded)
+    assert "the same job" in said, said
+
+    steps = f"restart\ngo {demo_server}/safety/flights\n{STEPS}"
+    said = call(mcp_server, "dejo_run", site=demo_server, task=reworded, steps=steps)
+
+    assert f'saved "{reworded}"' in said, said
+    tasks = call(mcp_server, "dejo_memory", what="sites")
+    assert f'"{SAVED}"' in tasks and f'"{reworded}"' in tasks, tasks
+    again = call(mcp_server, "dejo_run", site=demo_server, task=SAVED)
+    assert "flights = Delhi to Mumbai on 5 Dec: 3 flights" in again, again

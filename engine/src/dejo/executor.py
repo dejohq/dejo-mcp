@@ -974,11 +974,13 @@ class Executor:
         for "read the quote") and changes nothing, exactly as before. Two or more changed
         values, a new value with nothing to pair it with, or a date the words cannot place,
         is a stop that names them."""
-        pairs, extra = changed_values(task, playbook.task, domain) if task else ([], [])
+        pairs, extra, instead = (
+            changed_values(task, playbook.task, domain) if task else ([], [], [])
+        )
         dated, undated, phrase = self._dates_meant(task, playbook)
         swaps = pairs + dated
         if not swaps:
-            return playbook, undated
+            return playbook, undated + instead
         aimed = with_values(playbook, swaps)
         landed = set().union(*aimed[2].values()) if aimed else set()
         missing = [now for _, now in pairs if now not in landed]
@@ -987,6 +989,9 @@ class Executor:
             unplaced += missing
         if landed and extra:
             unplaced += extra
+        # Asked for in place of what the trail is about, these are another job whether or not
+        # a value also moved: "minimum Dart SDK" for "changelog entry" (pub.dev, 10 Nov).
+        unplaced += instead
         if unplaced or aimed is None:
             return playbook, unplaced
         self._aimed, self._aimed_to = aimed[1], aimed[2]
